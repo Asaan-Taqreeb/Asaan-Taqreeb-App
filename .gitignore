@@ -1,0 +1,16 @@
+# --- Python / Django ---
+backend/venv/
+backend/__pycache__/
+backend/*.sqlite3
+backend/media/
+*.pyc
+
+# --- Node / React Native ---
+mobile-app/node_modules/
+mobile-app/.expo/
+mobile-app/web-build/
+mobile-app/.env
+
+# --- System ---
+.DS_Store
+Thumbs.db
