@@ -15,14 +15,16 @@ export default function WelcomeScreen() {
       title: "Plan an Event",
       subText: "Browse venues & book services",
       icon: "calendar-day",
-      color: "#3B3F91"
+      color: "#3B3F91",
+      link: "/screens/client/ClientHomeScreen" as const
     },
     {
       keyRole: "Vendor",
       title: "List Services",
       subText: "Grow your business with us",
       icon: "briefcase",
-      color: "#F7A015"
+      color: "#F7A015",
+      link: "/screens/vendor/VendorHomeScreen" as const
     }
   ]
 
@@ -44,7 +46,7 @@ export default function WelcomeScreen() {
           {roles.map(role => (
             <Pressable 
               key={role.keyRole} 
-              onPress={() => router.push("/")}
+              onPress={() => router.push(role.link)}
               className="active:opacity-80"
             >
               <View 
