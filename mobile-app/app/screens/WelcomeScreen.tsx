@@ -41,25 +41,20 @@ export default function WelcomeScreen() {
           <Text className="text-4xl font-bold text-white mb-2">Welcome!</Text>
           <Text className="text-3xl font-normal text-white">Who are you today?</Text>
         </View>
-
-        <View>
+        <View className="flex-col items-center gap-5">
           {roles.map(role => (
             <Pressable 
               key={role.keyRole} 
               onPress={() => router.push(role.link)}
-              className="active:opacity-80"
+              className="w-11/12 h-1/4 flex-row justify-evenly items-center bg-gray-100 self-center rounded-xl active:opacity-20"
+              style={style.cardShadow}
             >
-              <View 
-                className="px-6 py-10 bg-gray-100 self-center rounded-[30] flex justify-center items-center flex-row gap-10 mb-12"
-                style={style.cardShadow}
-              >
-                <View className="bg-gray-200 px-2 py-2 rounded-xl">
-                  <Icon name={role.icon} color={role.color} size={35} />
-                </View>
-                <View>
-                  <Text className="text-2xl font-bold">{role.title}</Text>
-                  <Text className="text-lg text-gray-600">{role.subText}</Text>
-                </View>
+              <View className="bg-gray-200 px-2 py-2 rounded-xl">
+                <Icon name={role.icon} color={role.color} size={35} />
+              </View>
+              <View>
+                <Text className="text-2xl font-bold">{role.title}</Text>
+                <Text className="text-lg text-gray-600">{role.subText}</Text>
               </View>
             </Pressable>
           ))}
@@ -78,8 +73,8 @@ const style = StyleSheet.create({
   cardShadow: {
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
+    shadowOpacity: 1,
+    shadowRadius: 10,
     elevation: 8, // For Android
   }
 })
