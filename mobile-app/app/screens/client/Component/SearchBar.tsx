@@ -7,7 +7,7 @@ export default function SearchBar() {
     return (
     <View className='mt-5'>
         <Searchbar 
-            placeholder='Search venues, caterers...'
+            placeholder='Search venues, caters...'
             onChangeText={setSearchQuery}
             value={searchQuery}
             className='text-gray-100 mx-2'

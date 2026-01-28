@@ -33,12 +33,11 @@ const Header = () => {
         <View className='bg-gray-200 px-2 py-2 rounded-full'>
           <Icon name={"bell"} size={20} />
         </View>
-        {/* <Text className='bg-gray-200 px-2 py-2 rounded-full text-center text-xl font-semibold text-[#3B3F91]'>MZ</Text> */}
         <Avatar.Text
           size={35}
           label='MZ'
           color='#3B3F91'
-          style={{backgroundColor: 'lightgray'}}
+          style={{backgroundColor: '#e5e7eb'}}
           labelStyle={{fontWeight: 'bold'}}
         />
       </View>
@@ -53,6 +52,6 @@ export default Header
 const styles = StyleSheet.create({
   constainer: {
     width: "100%",
-    height: "100%"
+    height: "20%"
   }
 })
