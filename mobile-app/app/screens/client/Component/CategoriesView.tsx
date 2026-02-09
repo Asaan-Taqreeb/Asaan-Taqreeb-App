@@ -44,22 +44,22 @@ const CategoriesView = () => {
     
 ]
   return (
-    <View style={[ styles.constainer, { paddingTop: insets.top, paddingBottom: insets.bottom}]}>
-      <Text className='text-2xl mx-3 font-semibold p-2'>Categories</Text>
-      <View className='flex-row justify-center items-center p-5'>
+    <View style={[ styles.constainer, {paddingBottom: insets.bottom}]}>
+      <Text className=' mt-2 text-2xl font-semibold p-2 mx-2'>Categories</Text>
+      <View className='mt-5 flex-row justify-center items-center mx-2'>
         {
             mock.map(data => {
                 const IconComponent = data.icon
                 return (
                     <Pressable 
                         key={data.id}
-                        onPress={() => router.push("/screens/client/ClientHomeScreen")}
-                        className='w-1/5 h-1/2 flex flex-col justify-center items-center active:opacity-20'
+                        onPress={() => router.push("/screens/client/_tabs/ClientHomeScreen")}
+                        className='w-1/5 h-1/2 flex flex-col justify-center items-center active:opacity-20 '
                     >
-                        <View className='px-4 py-4 rounded-xl' style={{backgroundColor: data.backColor}} >
+                        <View className='px-3 py-3 rounded-xl' style={{backgroundColor: data.backColor}} >
                             <IconComponent size={25} color={data.color} />
                         </View>
-                        <Text className='text-sm mt-2' numberOfLines={1}>{data.title}</Text>
+                        <Text className='text-sm mt-2 font-medium text-[#64748B]' numberOfLines={1}>{data.title}</Text>
                     </Pressable>
             )})
         }
@@ -73,6 +73,7 @@ export default CategoriesView
 const styles = StyleSheet.create({
     constainer: {
         width: "100%",
-        height: "20%",
-    }
+        height: "18%",
+        alignSelf: 'center'
+    },
 })

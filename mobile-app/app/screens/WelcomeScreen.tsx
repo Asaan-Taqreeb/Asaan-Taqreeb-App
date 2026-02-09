@@ -15,15 +15,15 @@ export default function WelcomeScreen() {
       title: "Plan an Event",
       subText: "Browse venues & book services",
       icon: "calendar-day",
-      color: "#3B3F91",
-      link: "/screens/client/ClientHomeScreen" as const
+      color: "#4546E5",
+      link: "/screens/client/Component/OnBoardingScreen" as const
     },
     {
       keyRole: "Vendor",
       title: "List Services",
       subText: "Grow your business with us",
       icon: "briefcase",
-      color: "#F7A015",
+      color: "#F97316",
       link: "/screens/vendor/VendorHomeScreen" as const
     }
   ]
@@ -31,15 +31,15 @@ export default function WelcomeScreen() {
   return (
     <>
       <View style={[style.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]} >
-        <View className="bg-[#3B3F91] rounded-b-[70] p-12 mb-20">
+        <View className="bg-[#4546E5] rounded-b-[70] p-12 mb-20">
           <View className="flex flex-row justify-start items-center gap-2 mb-5">
-            <View className="bg-[#F7F6F2] rounded-xl px-2 py-2 border">
-              <PartyPopper size={20} color={"#F7A015"} />
+            <View className="bg-[#F8FAFC] rounded-xl px-2 py-2 border border-[#64748B]">
+              <PartyPopper size={20} color={"#F97316"} />
             </View>
-            <Text className="text-lg text-white">Asaan Taqreeb</Text>
+            <Text className="text-lg font-medium text-[#F8FAFC]">Asaan Taqreeb</Text>
           </View>
-          <Text className="text-4xl font-bold text-white mb-2">Welcome!</Text>
-          <Text className="text-3xl font-normal text-white">Who are you today?</Text>
+          <Text className="text-4xl font-bold text-[#F8FAFC] mb-2">Welcome!</Text>
+          <Text className="text-3xl font-medium text-[#F8FAFC]">Who are you today?</Text>
         </View>
 
         <View>
@@ -47,18 +47,18 @@ export default function WelcomeScreen() {
             <Pressable 
               key={role.keyRole} 
               onPress={() => router.push(role.link)}
-              className="active:opacity-80"
+              className="active:opacity-85"
             >
               <View 
-                className="px-6 py-10 bg-gray-100 self-center rounded-[30] flex justify-center items-center flex-row gap-10 mb-12"
+                className="px-6 py-10 bg-[#F8FAFC] self-center rounded-[30] flex justify-center items-center flex-row gap-10 mb-12"
                 style={style.cardShadow}
               >
-                <View className="bg-gray-200 px-2 py-2 rounded-xl">
+                <View className="px-4 py-3 rounded-xl bg-slate-100" >
                   <Icon name={role.icon} color={role.color} size={35} />
                 </View>
                 <View>
                   <Text className="text-2xl font-bold">{role.title}</Text>
-                  <Text className="text-lg text-gray-600">{role.subText}</Text>
+                  <Text className="text-lg text-[#64748B]">{role.subText}</Text>
                 </View>
               </View>
             </Pressable>
@@ -73,10 +73,10 @@ const style = StyleSheet.create({
   container: {
     width: "100%",
     height: "100%",
-    backgroundColor: "#F7F6F2",
+    backgroundColor: "#F8FAFC",
   },
   cardShadow: {
-    shadowColor: "#000",
+    shadowColor: "black",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
