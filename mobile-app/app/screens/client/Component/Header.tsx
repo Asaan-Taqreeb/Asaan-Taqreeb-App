@@ -34,7 +34,7 @@ const Header = () => {
         <View className=''>
           <Icon name={"bell"} size={20} />
         </View>
-        <Pressable onPress={() => router.push("/screens/client/Component/ClientProfileScreen")}>
+        <Pressable onPress={() => router.push("/screens/client/_tabs/ClientHomeScreen")}>
           <Avatar.Text
             size={35}
             label='MZ'

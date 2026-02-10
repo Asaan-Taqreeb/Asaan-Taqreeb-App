@@ -75,7 +75,7 @@ useEffect(() => {
       <Pressable className='active:opacity-70 mb-36' 
         onPress={() => router.push("/screens/client/_tabs/ClientHomeScreen")}
       >
-        <Text className='text-xl self-center bg-[#22C55E] w-1/2 py-4 rounded-xl text-center font-bold text-[#F8FAFC]'>Countinue</Text>
+        <Text className='text-xl self-center bg-indigo-600 w-1/2 py-4 rounded-xl text-center font-bold text-[#F8FAFC]'>Countinue</Text>
       </Pressable>
     </View>
   )
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
   container: {
     width: "100%",
     height: "100%",
-    backgroundColor: "#F8FAFC"
+    backgroundColor: "#FAFAFA"
   },
   textDecoartion: {
     borderBottomWidth: 2,
