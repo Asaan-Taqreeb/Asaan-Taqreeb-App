@@ -1,15 +1,43 @@
-import { CircleX, SlidersHorizontal, X } from 'lucide-react-native'
-import { useState } from 'react'
+import { SlidersHorizontal, X } from 'lucide-react-native'
+import { useEffect, useState } from 'react'
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 
-export default function FilterComponent() {
+type FilterValues = {
+    location: string
+    maxPrice: string
+}
+
+type FilterComponentProps = {
+    values: FilterValues
+    onApply: (values: FilterValues) => void
+    onReset: () => void
+}
+
+export default function FilterComponent({ values, onApply, onReset }: FilterComponentProps) {
   const [isFilterVisible, setFilterVisible] = useState(false)
-  const [price, setPrice] = useState("")
+    const [price, setPrice] = useState(values.maxPrice)
+    const [selectedLocation, setSelectedLocation] = useState(values.location)
   const placesArr = ["Garden", "Nazimabad", "Shahrah e Faisal", "Gulshan", "Clifton", "DHA"]
 
   const toggleModal = () => {
     setFilterVisible(!isFilterVisible)
   }
+
+    useEffect(() => {
+        setPrice(values.maxPrice)
+        setSelectedLocation(values.location)
+    }, [values.location, values.maxPrice])
+
+    const handleApply = () => {
+        onApply({ location: selectedLocation, maxPrice: price })
+        toggleModal()
+    }
+
+    const handleReset = () => {
+        setPrice("")
+        setSelectedLocation("")
+        onReset()
+    }
 
     return (
     <View>
@@ -44,11 +72,19 @@ export default function FilterComponent() {
                             <Text className='text-xl font-medium'>Location</Text>
                             <View className='flex-row justify-normal items-center mt-2 flex-wrap gap-3'>
                                 {
-                                    placesArr.map((item, index) => (
-                                        <Pressable key={index} className='active:opacity-50 bg-[#FAFAFA] px-4 py-2 rounded-xl'>
-                                            <Text className='text-lg'>{item}</Text>
-                                        </Pressable>
-                                    ))
+                                    placesArr.map((item, index) => {
+                                        const isSelected = selectedLocation === item
+                                        return (
+                                            <Pressable
+                                                key={index}
+                                                className='active:opacity-50 px-4 py-2 rounded-xl'
+                                                style={{ backgroundColor: isSelected ? "#4F46E5" : "#FAFAFA" }}
+                                                onPress={() => setSelectedLocation(isSelected ? "" : item)}
+                                            >
+                                                <Text className='text-lg' style={{ color: isSelected ? "#FAFAFA" : "#0A0A0A" }}>{item}</Text>
+                                            </Pressable>
+                                        )
+                                    })
                             }
                             </View>
                         </View>
@@ -57,16 +93,17 @@ export default function FilterComponent() {
                             <TextInput 
                                 placeholder='E.g. 200000'
                                 onChangeText={setPrice}
+                                value={price}
                                 keyboardType='numeric'
                                 className='border border-gray-100 mt-3 rounded-xl p-4 text-lg' 
                             />
                         </View>
                     </ScrollView>
                     <View className='flex-row justify-around items-center py-5 border-t border-gray-100'>
-                        <Pressable className='active:opacity-50 bg-[#FFFFFF] w-2/5 border border-gray-100 py-5 rounded-xl' style={styles.boxShadow}>
+                        <Pressable className='active:opacity-50 bg-[#FFFFFF] w-2/5 border border-gray-100 py-5 rounded-xl' style={styles.boxShadow} onPress={handleReset}>
                             <Text className='text-xl font-bold text-center text-gray-500'>Reset</Text>
                         </Pressable>
-                        <Pressable className='active:opacity-50 bg-indigo-600 w-2/5 border border-gray-100 py-5 rounded-xl' style={styles.boxShadow}>
+                        <Pressable className='active:opacity-50 bg-indigo-600 w-2/5 border border-gray-100 py-5 rounded-xl' style={styles.boxShadow} onPress={handleApply}>
                             <Text className='text-xl font-bold text-center text-[#FAFAFA]'>Apply Filter</Text>
                         </Pressable>
                     </View>

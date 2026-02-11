@@ -16,7 +16,10 @@ const CategoriesView = () => {
                 return (
                     <Pressable 
                         key={data.id}
-                        onPress={() => router.push("/screens/client/Component/VendorListView")}
+                        onPress={() => router.push({
+                          pathname: "/screens/client/Component/VendorListView",
+                          params: data.key && data.key !== "all" ? { category: data.key } : undefined
+                        })}
                         className='w-1/5 h-1/2 flex flex-col justify-center items-center active:opacity-20 '
                     >
                         <View className='px-3 py-3 rounded-xl' style={{backgroundColor: data.backColor}} >

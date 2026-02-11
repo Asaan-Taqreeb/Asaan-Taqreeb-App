@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import useLocation from './hooks/useLocation'
 import Icon from "react-native-vector-icons/FontAwesome6"
@@ -9,8 +10,17 @@ import { router } from 'expo-router'
 const Header = () => {
   const insets = useSafeAreaInsets()
   const {result, error} = useLocation()
+  const [query, setQuery] = useState("")
   
   const location = Array.isArray(result) ? result[0] : result
+
+  const handleSearchSubmit = (text: string) => {
+    const normalized = text.trim()
+    router.push({
+      pathname: "/screens/client/Component/VendorListView",
+      params: normalized ? { query: normalized } : undefined
+    })
+  }
 
   return (
     <View style={[styles.constainer, {paddingTop: insets.top, paddingBottom: insets.bottom}]}>
@@ -45,7 +55,7 @@ const Header = () => {
         </Pressable>
       </View>
       </View>
-      <SearchBar />
+      <SearchBar value={query} onChange={setQuery} onSubmit={handleSearchSubmit} />
     </View>
   )
 }

@@ -23,24 +23,27 @@ export default function FeaturedVendors() {
             scrollEnabled={false}
             contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 20 }}
             renderItem={({item}) => (
-              <Pressable className="mb-4 active:opacity-70" onPress={() => router.push("/screens/client/Component/DetailScreenPage")}>
+              <Pressable className="mb-4 active:opacity-70" onPress={() => router.push({
+                pathname: "/screens/client/Component/DetailScreenPage",
+                params: { vendor: JSON.stringify(item), category: item.key }
+              })}>
                 <View className="bg-[#FFFFFF] w-full h-36 rounded-xl p-4 flex-row items-center gap-4" style={style.boxShadow}> 
                   <Image 
                     className="rounded-md" 
-                    source={{ uri: item.imageUrl }}
-                    accessibilityLabel={item.title} 
+                    source={{ uri: item.images[0] }}
+                    accessibilityLabel={item.name} 
                     style={{ width: '35%', height: '100%' }} 
                     resizeMode="cover" 
                   />
                   <View className="flex-col flex-1 justify-between">
                     <View>
-                      <Text className="text-xl font-bold mb-1" numberOfLines={1}>{item.title}</Text>
+                      <Text className="text-xl font-bold mb-1" numberOfLines={1}>{item.name}</Text>
                       <View className="flex-row items-center mb-2">
                         <MapPin size={14} color={"#64748B"} />
                         <Text className="text-base text-[#64748B] font-medium ml-1" numberOfLines={1}>{item.location}</Text>
                       </View>
                         {
-                          item.category == "banquet" && <Text className="text-md font-medium mb-1"><Users size={13}  />  {item.capacity} Min</Text>
+                          item.category == "banquet" && <Text className="text-md font-medium mb-1"><Users size={13}  />  {item.minGuests} - {item.maxGuests} Guests</Text>
                         }
                       <View className="flex-row justify-between items-center ">
                         <View className="flex-row items-center gap-2">
@@ -48,7 +51,9 @@ export default function FeaturedVendors() {
                           <Text className="text-base font-medium text-[#F97316]">{item.rating}</Text>
                         </View>
                         {
-                          item.category == "catering" ? <Text className="text-lg font-bold text-[#4F46E5]">PKR {item.budget.toLocaleString()}/head</Text> : <Text className="text-lg font-bold text-[#4F46E5]">PKR {item.budget.toLocaleString()}</Text>
+                          item.category == "banquet" 
+                            ? <Text className="text-lg font-bold text-[#4F46E5]">PKR {(item.price ?? 0).toLocaleString()}</Text>
+                            : <Text className="text-lg font-bold text-[#4F46E5]">PKR {(item.packages?.[0]?.price ?? 0).toLocaleString()}</Text>
                         }
                       </View>
                     </View>
