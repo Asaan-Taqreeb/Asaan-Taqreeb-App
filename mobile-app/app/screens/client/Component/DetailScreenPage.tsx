@@ -85,7 +85,7 @@ export default function DetailScreenPage() {
                             <ChevronRight color="#FAFAFA" />
                         </Pressable>
                         <View className='absolute bottom-3 w-full flex-row justify-center items-center gap-2'>
-                            {imageUrls.map((_, index: number) => (
+                            {imageUrls.map((_: string, index: number) => (
                                 <View
                                     key={index}
                                     className='w-2 h-2 rounded-full'
