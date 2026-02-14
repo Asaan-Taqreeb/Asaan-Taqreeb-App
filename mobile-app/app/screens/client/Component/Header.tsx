@@ -6,6 +6,7 @@ import Icon from "react-native-vector-icons/FontAwesome6"
 import { Avatar } from 'react-native-paper'
 import SearchBar from './SearchBar'
 import { router } from 'expo-router'
+import { Colors, Spacing } from '@/app/constants/theme'
 
 const Header = () => {
   const insets = useSafeAreaInsets()
@@ -23,37 +24,34 @@ const Header = () => {
   }
 
   return (
-    <View style={[styles.constainer, {paddingTop: insets.top, paddingBottom: insets.bottom}]}>
-      <View className='flex flex-row justify-between items-center p-2'>
-      <View>
-        <Text className='text-base font-bold mx-3 mb-1 text-[#64748B]'>Current Location</Text>
-        {error && <Text>Error Message: {error}</Text>}
-        {location ? (
-          <>
-            <View className='flex flex-row items-center gap-2 mx-3'>
-              <Icon name={"location-dot"} size={20} color={"#4F46E5"} />          
-              <Text className='text-xl font-semibold text-[#4F46E5]' >{location.district}, {location.city}</Text>
+    <View style={[styles.container, {paddingTop: insets.top + Spacing.sm, paddingBottom: Spacing.md}]}>
+      <View className='flex flex-row justify-between items-center px-3 py-2'>
+        <View className='flex-1'>
+          <Text className='text-sm font-semibold mx-2 mb-1' style={{color: Colors.textSecondary}}>Current Location</Text>
+          {error && <Text className='text-xs mx-2' style={{color: Colors.error}}>Error: {error}</Text>}
+          {location ? (
+            <View className='flex flex-row items-center gap-2 mx-2'>
+              <Icon name={"location-dot"} size={18} color={Colors.primary} />          
+              <Text className='text-lg font-bold' style={{color: Colors.primary}} numberOfLines={1}>{location.district}, {location.city}</Text>
             </View>
-          </>
-        ) : (
-          <Text>Loading</Text>
-        )
-        }      
-      </View>
-      <View className='flex-row justify-evenly items-center gap-4 mr-2'>
-        <View className=''>
-          <Icon name={"bell"} size={20} />
+          ) : (
+            <Text className='text-sm mx-2' style={{color: Colors.textSecondary}}>Loading...</Text>
+          )}      
         </View>
-        <Pressable className='active:opacity-55' onPress={() => router.push("/screens/client/Component/ProfileView")}>
-          <Avatar.Text
-            size={35}
-            label='MZ'
-            color='#4F46E5'
-            style={{backgroundColor: '#FAFAFA'}}
-            labelStyle={{fontWeight: 'bold'}}
-          />
-        </Pressable>
-      </View>
+        <View className='flex-row justify-center items-center gap-4 mr-1'>
+          <Pressable className='p-2 active:opacity-70'>
+            <Icon name={"bell"} size={20} color={Colors.textPrimary} />
+          </Pressable>
+          <Pressable className='active:opacity-70' onPress={() => router.push("/screens/client/Component/ProfileView")}>
+            <Avatar.Text
+              size={40}
+              label='MZ'
+              color={Colors.primary}
+              style={{backgroundColor: Colors.lightGray}}
+              labelStyle={{fontWeight: 'bold'}}
+            />
+          </Pressable>
+        </View>
       </View>
       <SearchBar value={query} onChange={setQuery} onSubmit={handleSearchSubmit} />
     </View>
@@ -63,11 +61,10 @@ const Header = () => {
 export default Header
 
 const styles = StyleSheet.create({
-  constainer: {
+  container: {
     width: "100%",
-    height: "25%",
-    backgroundColor: "#FFFFFF",
-    borderBottomLeftRadius: "10%",
-    borderBottomRightRadius: "10%"
+    backgroundColor: Colors.white,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   }
 })

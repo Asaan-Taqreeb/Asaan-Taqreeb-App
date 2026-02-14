@@ -15,7 +15,60 @@ const MockData = [
         ],
         minGuests: 200,
         maxGuests: 500,
-        rating: 4.5
+        rating: 4.5,
+        packages: [
+            {
+                id: 1,
+                packageName: "Classic Package",
+                price: 250000,
+                items: [
+                    "Elegant Stage Decoration",
+                    "Fabric Draping (Burgundy & Gold)",
+                    "Entrance Arch Setup",
+                    "Floral Arrangements",
+                    "Professional Lighting",
+                    "Sound System",
+                    "Catering Kitchen Setup",
+                    "Service Staff (4 persons)"
+                ]
+            },
+            {
+                id: 2,
+                packageName: "Premium Package",
+                price: 400000,
+                items: [
+                    "Luxury Stage Decoration",
+                    "Premium Fabric Draping (3 colors)",
+                    "Decorated Entrance Arch",
+                    "Fresh Flower Arrangements",
+                    "Professional LED Lighting",
+                    "Premium Sound System with DJ",
+                    "Catering Kitchen Setup",
+                    "Service Staff (6 persons)",
+                    "Premium Tableware",
+                    "Carpet & Red Carpet"
+                ]
+            },
+            {
+                id: 3,
+                packageName: "Luxury Package",
+                price: 600000,
+                items: [
+                    "Complete Custom Stage Design",
+                    "Premium Imported Fabrics",
+                    "Custom Entrance Gate",
+                    "Fresh Premium Flowers",
+                    "Advanced LED & Spotlight Setup",
+                    "Premium Sound & DJ System",
+                    "Full Catering Kitchen",
+                    "Service Staff (10 persons)",
+                    "Premium Imported Tableware",
+                    "VIP Carpet Setup",
+                    "Photographer Coordination",
+                    "Event Manager Services"
+                ]
+            }
+        ]
     },
     // CATERING
     {

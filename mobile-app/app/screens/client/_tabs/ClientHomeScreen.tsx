@@ -3,14 +3,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Header from "../Component/Header";
 import CategoriesView from "../Component/CategoriesView";
 import FeaturedVendors from "../Component/FeaturedVendors";
+import { Colors } from "@/app/constants/theme";
 
 export default function ClientHomeScreen() {
     const insets = useSafeAreaInsets()
 
   return (
-    <View style={[style.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}>
+    <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}>
       <Header />
-      <ScrollView>
+      <ScrollView showsVerticalScrollIndicator={false}>
         <CategoriesView />
         <FeaturedVendors />
       </ScrollView>
@@ -18,10 +19,10 @@ export default function ClientHomeScreen() {
   )
 }
 
-const style = StyleSheet.create({
+const styles = StyleSheet.create({
     container: {
         width: "100%",
         height: "100%",
-        backgroundColor: "#FAFAFA"
+        backgroundColor: Colors.background
     },
 })

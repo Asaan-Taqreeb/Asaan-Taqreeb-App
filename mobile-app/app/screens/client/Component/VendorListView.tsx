@@ -7,6 +7,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import SearchBar from './SearchBar'
 import CategoryData from './mockData/CategoryData'
 import FilterComponent from './FilterComponent'
+import { Colors, Shadows, Spacing } from '@/app/constants/theme'
 
 export default function VendorListView() {
     const insets = useSafeAreaInsets()
@@ -16,7 +17,25 @@ export default function VendorListView() {
 
     const [query, setQuery] = useState("")
     const [selectedCategory, setSelectedCategory] = useState("all")
-    const [filters, setFilters] = useState({ location: "", maxPrice: "" })
+    const [filters, setFilters] = useState({ 
+      location: "", 
+      minPrice: "", 
+      maxPrice: "",
+      minRating: 0,
+      minGuests: "",
+      maxGuests: ""
+    })
+
+    const activeFiltersCount = useMemo(() => {
+      let count = 0
+      if (filters.location) count++
+      if (filters.minPrice) count++
+      if (filters.maxPrice) count++
+      if (filters.minRating > 0) count++
+      if (filters.minGuests) count++
+      if (filters.maxGuests) count++
+      return count
+    }, [filters])
 
     useEffect(() => {
       if (typeof params.query === "string") {
@@ -31,10 +50,23 @@ export default function VendorListView() {
     const filteredData = useMemo(() => {
       const normalizedQuery = query.trim().toLowerCase()
       const normalizedLocation = filters.location.trim().toLowerCase()
+      const minPriceNumber = Number(filters.minPrice)
       const maxPriceNumber = Number(filters.maxPrice)
+      const hasMinPrice = Number.isFinite(minPriceNumber) && minPriceNumber > 0
       const hasMaxPrice = Number.isFinite(maxPriceNumber) && maxPriceNumber > 0
+      const minGuestsNumber = Number(filters.minGuests)
+      const maxGuestsNumber = Number(filters.maxGuests)
+      const hasMinGuests = Number.isFinite(minGuestsNumber) && minGuestsNumber > 0
+      const hasMaxGuests = Number.isFinite(maxGuestsNumber) && maxGuestsNumber > 0
 
-      return mockData.filter((item) => {
+      console.log('=== FILTER DEBUG ===')
+      console.log('Filters:', filters)
+      console.log('normalizedLocation:', normalizedLocation)
+      console.log('minPrice:', hasMinPrice ? minPriceNumber : 'none')
+      console.log('maxPrice:', hasMaxPrice ? maxPriceNumber : 'none')
+      console.log('minRating:', filters.minRating)
+
+      const filtered = mockData.filter((item) => {
         const matchesCategory =
           selectedCategory === "all" || item.key === selectedCategory
 
@@ -52,94 +84,175 @@ export default function VendorListView() {
           ? item.price 
           : item.packages?.[0]?.price || item.price) || 0
 
-        const matchesPrice = hasMaxPrice ? itemPrice <= maxPriceNumber : true
+        const matchesMinPrice = hasMinPrice ? itemPrice >= minPriceNumber : true
+        const matchesMaxPrice = hasMaxPrice ? itemPrice <= maxPriceNumber : true
 
-        return matchesCategory && matchesQuery && matchesLocation && matchesPrice
+        const matchesRating = filters.minRating > 0 ? (item.rating || 0) >= filters.minRating : true
+
+        const matchesGuestCapacity = (() => {
+          if (!item.minGuests || !item.maxGuests) return true
+          if (hasMinGuests && item.maxGuests < minGuestsNumber) return false
+          if (hasMaxGuests && item.minGuests > maxGuestsNumber) return false
+          return true
+        })()
+
+        const passes = matchesCategory && matchesQuery && matchesLocation && matchesMinPrice && matchesMaxPrice && matchesRating && matchesGuestCapacity
+        
+        if (!passes && (normalizedLocation || hasMinPrice || hasMaxPrice || filters.minRating > 0 || hasMinGuests || hasMaxGuests)) {
+          console.log(`${item.name} filtered out:`, {
+            matchesCategory,
+            matchesQuery,
+            matchesLocation,
+            matchesMinPrice,
+            matchesMaxPrice,
+            matchesRating,
+            matchesGuestCapacity,
+            itemLocation: item.location,
+            itemPrice,
+            itemRating: item.rating
+          })
+        }
+
+        return passes
       })
-    }, [mockData, query, selectedCategory, filters.location, filters.maxPrice])
+
+      console.log(`Filtered ${filtered.length} out of ${mockData.length} vendors`)
+      console.log('===================')
+
+      return filtered
+    }, [mockData, query, selectedCategory, filters])
 
   return (
-    <View style={[styles.container ,{paddingTop: insets.top, paddingBottom: insets.bottom}]}>
-        <View className='h-24 flex-row justify-between items-center gap-5 border-b border-gray-300 mx-5'>
-          <View className='flex-row justify-normal items-center gap-5'>
-            <Pressable className='bg-gray-100 rounded-full px-2 py-2' onPress={() => router.push("/screens/client/_tabs/ClientHomeScreen")}>
-              <ArrowLeft color={"#4546E5"} />
+    <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}>
+        <View className='flex-row justify-between items-center gap-4 px-5 py-5' style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
+          <View className='flex-row items-center gap-4 flex-1'>
+            <Pressable className='rounded-full p-2 active:opacity-70' style={{backgroundColor: Colors.lightGray}} onPress={() => router.push("/screens/client/_tabs/ClientHomeScreen")}>
+              <ArrowLeft color={Colors.primary} size={24} />
             </Pressable>
-            <Text className='text-2xl font-bold'>Browse Vendors</Text>
+            <Text className='text-xl font-extrabold flex-1' style={{color: Colors.textPrimary}} numberOfLines={1}>Browse Vendors</Text>
           </View>
-          <FilterComponent
-            values={filters}
-            onApply={setFilters}
-            onReset={() => setFilters({ location: "", maxPrice: "" })}
-          />
+          <View>
+            <FilterComponent
+              values={filters}
+              onApply={setFilters}
+              onReset={() => setFilters({ location: "", minPrice: "", maxPrice: "", minRating: 0, minGuests: "", maxGuests: "" })}
+            />
+            {activeFiltersCount > 0 && (
+              <View className='absolute -top-1 -right-1 rounded-full px-1.5 py-0.5' style={{backgroundColor: Colors.error, minWidth: 20}}>
+                <Text className='text-xs font-bold text-center' style={{color: Colors.white}}>{activeFiltersCount}</Text>
+              </View>
+            )}
+          </View>
         </View>
-        <View className='bg-[#FFFFFF] h-44'>
+        <View style={{backgroundColor: Colors.white, paddingBottom: Spacing.md}}>
           <SearchBar value={query} onChange={setQuery} />
-          <ScrollView horizontal={true}>
-            <View className='mt-2 mx-5 flex-row justify-evenly items-center gap-4'>
-              {
-                categoryData.map((item) => (
-                  <Pressable
-                    key={item.id} 
-                    className='active:opacity-50 flex-row items-center gap-2 px-3 py-4 rounded-xl'
-                    style={{ backgroundColor: selectedCategory === item.key ? "#4F46E5" : "#FAFAFA" }}
-                    onPress={() => setSelectedCategory(item.key || "all")}
-                  >
-                    <item.icon size={18} color={selectedCategory === item.key ? "#FAFAFA" : "#0A0A0A"} />
-                    <Text className='text-base font-medium' style={{ color: selectedCategory === item.key ? "#FAFAFA" : "#0A0A0A" }}>{item.title}</Text>
-                  </Pressable>
-                ))
-              }
+          <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
+            <View className='flex-row items-center gap-3 px-5' style={{marginTop: Spacing.md}}>
+              {categoryData.map((item) => (
+                <Pressable
+                  key={item.id} 
+                  className='flex-row items-center gap-2 px-4 py-3 rounded-xl active:opacity-70'
+                  style={{ backgroundColor: selectedCategory === item.key ? Colors.primary : Colors.lightGray }}
+                  onPress={() => setSelectedCategory(item.key || "all")}
+                >
+                  <item.icon size={18} color={selectedCategory === item.key ? Colors.white : Colors.textPrimary} />
+                  <Text className='text-sm font-semibold' style={{ color: selectedCategory === item.key ? Colors.white : Colors.textPrimary }}>{item.title}</Text>
+                </Pressable>
+              ))}
             </View>
           </ScrollView>
+          {activeFiltersCount > 0 && (
+            <View className='px-5 mt-3'>
+              <Text className='text-xs font-semibold mb-2' style={{color: Colors.textSecondary}}>Active Filters:</Text>
+              <View className='flex-row flex-wrap gap-2'>
+                {filters.location && (
+                  <View className='px-3 py-1.5 rounded-lg' style={{backgroundColor: Colors.primaryLight}}>
+                    <Text className='text-xs font-semibold' style={{color: Colors.white}}>📍 {filters.location}</Text>
+                  </View>
+                )}
+                {filters.minPrice && (
+                  <View className='px-3 py-1.5 rounded-lg' style={{backgroundColor: Colors.success}}>
+                    <Text className='text-xs font-semibold' style={{color: Colors.white}}>Min: PKR {Number(filters.minPrice).toLocaleString()}</Text>
+                  </View>
+                )}
+                {filters.maxPrice && (
+                  <View className='px-3 py-1.5 rounded-lg' style={{backgroundColor: Colors.success}}>
+                    <Text className='text-xs font-semibold' style={{color: Colors.white}}>Max: PKR {Number(filters.maxPrice).toLocaleString()}</Text>
+                  </View>
+                )}
+                {filters.minRating > 0 && (
+                  <View className='px-3 py-1.5 rounded-lg' style={{backgroundColor: Colors.rating}}>
+                    <Text className='text-xs font-semibold' style={{color: Colors.white}}>⭐ {filters.minRating}+</Text>
+                  </View>
+                )}
+                {filters.minGuests && (
+                  <View className='px-3 py-1.5 rounded-lg' style={{backgroundColor: Colors.info}}>
+                    <Text className='text-xs font-semibold' style={{color: Colors.white}}>Min: {filters.minGuests} guests</Text>
+                  </View>
+                )}
+                {filters.maxGuests && (
+                  <View className='px-3 py-1.5 rounded-lg' style={{backgroundColor: Colors.info}}>
+                    <Text className='text-xs font-semibold' style={{color: Colors.white}}>Max: {filters.maxGuests} guests</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
         </View>
-        <ScrollView className='mt-5'>
-          <FlatList
-            data={filteredData}
-            keyExtractor={(item) => item.id.toString()}
-            scrollEnabled={false}
-            contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 20 }}
-            renderItem={({item}) => (
-              <Pressable className="mb-4 active:opacity-70" onPress={() => router.push({
+        <ScrollView className='flex-1' style={{marginTop: Spacing.md}}>
+          {filteredData.length === 0 ? (
+            <View className='flex-1 items-center justify-center py-20'>
+              <Text className='text-xl font-bold mb-2' style={{color: Colors.textSecondary}}>No vendors found</Text>
+              <Text className='text-sm text-center px-8' style={{color: Colors.textTertiary}}>Try adjusting your filters or search criteria</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={filteredData}
+              keyExtractor={(item) => item.id.toString()}
+              scrollEnabled={false}
+              contentContainerStyle={{ paddingHorizontal: Spacing.md, paddingBottom: Spacing.xl }}
+              renderItem={({item}) => (
+              <Pressable className="mb-4 active:opacity-80" onPress={() => router.push({
                 pathname: "/screens/client/Component/DetailScreenPage",
                 params: { vendor: JSON.stringify(item), category: item.key }
               })}>
-                <View className="bg-[#FFFFFF] w-full h-36 rounded-xl p-4 flex-row items-center gap-4" style={styles.boxShadow}> 
+                <View className="rounded-2xl p-4 flex-row items-center gap-3" style={[{backgroundColor: Colors.white}, Shadows.medium]}> 
                   <Image 
-                    className="rounded-md" 
+                    className="rounded-xl" 
                     source={{ uri: item.images[0] }}
                     accessibilityLabel={item.name} 
-                    style={{ width: '35%', height: '100%' }} 
+                    style={{ width: '35%', height: 140 }} 
                     resizeMode="cover" 
                   />
-                  <View className="flex-col flex-1 justify-between">
+                  <View className="flex-col flex-1 justify-between h-full">
                     <View>
-                      <Text className="text-xl font-bold mb-1" numberOfLines={1}>{item.name}</Text>
+                      <Text className="text-lg font-extrabold mb-1" style={{color: Colors.textPrimary}} numberOfLines={1}>{item.name}</Text>
                       <View className="flex-row items-center mb-2">
-                        <MapPin size={14} color={"#64748B"} />
-                        <Text className="text-base text-[#64748B] font-medium ml-1" numberOfLines={1}>{item.location}</Text>
+                        <MapPin size={14} color={Colors.textSecondary} />
+                        <Text className="text-sm font-medium ml-1 flex-1" style={{color: Colors.textSecondary}} numberOfLines={1}>{item.location}</Text>
                       </View>
-                      {
-                        item.category == "banquet" && <Text className="text-md font-medium mb-1"><Users size={13}  />  {item.minGuests} - {item.maxGuests} Guests</Text>
-                      }
-                      <View className="flex-row justify-between items-center ">
-                        <View className="flex-row items-center gap-2">
-                          <Star size={15} fill="#F97316" color="#F97316" />
-                          <Text className="text-base font-medium text-[#F97316]">{item.rating}</Text>
+                      {item.category === "banquet" && (
+                        <View className="flex-row items-center mb-2">
+                          <Users size={14} color={Colors.textSecondary} />
+                          <Text className="text-sm font-medium ml-1" style={{color: Colors.textSecondary}}>{item.minGuests} - {item.maxGuests} Guests</Text>
                         </View>
-                        {
-                          item.category == "banquet" 
-                            ? <Text className="text-lg font-bold text-[#4F46E5]">PKR {item.price?.toLocaleString()}</Text>
-                            : <Text className="text-lg font-bold text-[#4F46E5]">PKR {item.packages?.[0]?.price?.toLocaleString()}</Text>
-                        }
+                      )}
+                      <View className="flex-row justify-between items-center mt-2">
+                        <View className="flex-row items-center gap-1">
+                          <Star size={14} fill={Colors.rating} color={Colors.rating} />
+                          <Text className="text-sm font-bold" style={{color: Colors.rating}}>{item.rating}</Text>
+                        </View>
+                        <Text className="text-base font-extrabold" style={{color: Colors.primary}}>
+                          PKR {item.category === "banquet" ? (item.price ?? 0).toLocaleString() : (item.packages?.[0]?.price ?? 0).toLocaleString()}
+                        </Text>
                       </View>
                     </View>
-                        
                   </View>
                 </View>
               </Pressable>
             )}
           />
+          )}
         </ScrollView>
     </View>
   )
@@ -149,13 +262,6 @@ const styles = StyleSheet.create({
     container: {
         width: "100%",
         height: "100%",
-        backgroundColor: "#FAFAFA"
+        backgroundColor: Colors.background
     },
-    boxShadow: {
-          shadowColor: "#0A0A0A",
-          shadowOffset: { width: 0, height: 5 },
-          shadowOpacity: 0.5,
-          shadowRadius: 5,
-          elevation: 8, // For Android
-        }
 }) 
