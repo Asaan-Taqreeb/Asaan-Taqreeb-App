@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router'
-import { CircleAlert, Dot, MapPin, Star, Circle, ChevronLeft, ChevronRight, X, ArrowLeft, Plus } from 'lucide-react-native'
+import { CircleAlert, Dot, MapPin, Star, Circle, ChevronLeft, ChevronRight, X, ArrowLeft, Plus, MessageCircle } from 'lucide-react-native'
 import { useState } from 'react'
 import { Dimensions, ScrollView, Modal, TextInput } from 'react-native'
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native'
@@ -484,6 +484,20 @@ export default function DetailScreenPage() {
                 </View>
             </View>
         </Modal>
+
+        {/* Floating Chat Button */}
+        <Pressable
+            className='absolute bottom-6 right-6 rounded-full p-4 active:opacity-80'
+            style={[{backgroundColor: categoryColor}, Shadows.large]}
+            onPress={() => {
+                router.push({
+                    pathname: "/screens/client/Component/VendorChatScreen",
+                    params: { vendor: JSON.stringify(vendor) }
+                })
+            }}
+        >
+            <MessageCircle color={Colors.white} size={28} fill={Colors.white} />
+        </Pressable>
     </View>
   )
 }
