@@ -7,7 +7,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import SearchBar from './SearchBar'
 import CategoryData from './mockData/CategoryData'
 import FilterComponent from './FilterComponent'
-import { Colors, Shadows, Spacing } from '@/app/constants/theme'
+import { Colors, Shadows, Spacing } from '@/app/_constants/theme'
 
 export default function VendorListView() {
     const insets = useSafeAreaInsets()

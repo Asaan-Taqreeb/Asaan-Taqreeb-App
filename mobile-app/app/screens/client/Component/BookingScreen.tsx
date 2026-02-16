@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View, TextInput } from 'react-native'
 import { Calendar } from "react-native-calendars"
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Colors, getCategoryColor, Shadows, Spacing } from '@/app/constants/theme'
+import { Colors, getCategoryColor, Shadows, Spacing } from '@/app/_constants/theme'
 
 export default function BookingScreen() {
     const insets = useSafeAreaInsets()
@@ -33,6 +33,7 @@ export default function BookingScreen() {
     const [customStartTime, setCustomStartTime] = useState('')
     const [customEndTime, setCustomEndTime] = useState('')
     const [location, setLocation] = useState('')
+    const [specialRequests, setSpecialRequests] = useState('')
     const [selectedAddons, setSelectedAddons] = useState<{[key: number]: boolean}>({})
     const [expandedAddons, setExpandedAddons] = useState<{[key: number]: boolean}>({})
 
@@ -262,6 +263,24 @@ export default function BookingScreen() {
                     </View>
                 </View>
             )}
+
+            {/* Special Requests */}
+            <View className='px-5 mb-6'>
+                <Text className='text-xl font-extrabold mb-2' style={{color: Colors.textPrimary}}>Special Requests</Text>
+                <Text className='text-sm font-medium mb-3' style={{color: Colors.textSecondary}}>Let the vendor know about any specific requirements or preferences</Text>
+                <View className='rounded-2xl p-4' style={[{backgroundColor: Colors.white, borderWidth: 2, borderColor: Colors.border}, Shadows.medium]}>
+                    <TextInput
+                        placeholder='e.g., Dietary restrictions, specific decorations, timing preferences, etc.'
+                        value={specialRequests}
+                        onChangeText={setSpecialRequests}
+                        className='text-sm'
+                        style={{color: Colors.textPrimary, minHeight: 100, textAlignVertical: 'top'}}
+                        placeholderTextColor={Colors.textTertiary}
+                        multiline
+                        numberOfLines={4}
+                    />
+                </View>
+            </View>
             
             {/* Optional Add-ons */}
             <View className='px-5 mb-6'>
@@ -350,6 +369,16 @@ export default function BookingScreen() {
                             <Text className='text-xs font-bold' style={{color: Colors.textSecondary}}>Location</Text>
                             <Text className='text-sm font-bold flex-1 text-right' style={{color: Colors.textPrimary}} numberOfLines={2}>
                                 {location || 'Not provided'}
+                            </Text>
+                        </View>
+                    )}
+
+                    {/* Special Requests */}
+                    {specialRequests && (
+                        <View className='flex-row justify-between items-start mb-3'>
+                            <Text className='text-xs font-bold' style={{color: Colors.textSecondary}}>Special Requests</Text>
+                            <Text className='text-sm font-bold flex-1 text-right' style={{color: Colors.textPrimary}} numberOfLines={3}>
+                                {specialRequests}
                             </Text>
                         </View>
                     )}

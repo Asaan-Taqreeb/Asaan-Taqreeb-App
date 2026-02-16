@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { Clock, MapPin, Users, Calendar, CheckCircle, XCircle, AlertCircle, CreditCard, X } from 'lucide-react-native'
-import { Colors, getCategoryColor, Shadows, Spacing } from '@/app/constants/theme'
+import { Colors, getCategoryColor, Shadows, Spacing } from '@/app/_constants/theme'
 
 type BookingStatus = 'pending' | 'approved' | 'rejected' | 'confirmed' | 'completed'
 

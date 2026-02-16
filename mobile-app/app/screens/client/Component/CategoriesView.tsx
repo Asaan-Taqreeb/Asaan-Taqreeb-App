@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import CategoryData from "./mockData/CategoryData"
-import { Colors, Spacing } from '@/app/constants/theme'
+import { Colors, Spacing } from '@/app/_constants/theme'
 
 const CategoriesView = () => {
     const insets = useSafeAreaInsets()

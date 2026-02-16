@@ -13,6 +13,9 @@ export const Colors = {
   photo: '#008B8B', // Teal
   parlor: '#E91E63', // Pink
   
+  // Vendor Dashboard Color
+  vendor: '#4F46E5', // Indigo - matches primary
+  
   // Background Colors
   background: '#FAFAFA',
   white: '#FFFFFF',

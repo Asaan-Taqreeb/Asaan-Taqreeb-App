@@ -5,7 +5,7 @@ import { Bot } from "lucide-react-native";
 import Header from "../Component/Header";
 import CategoriesView from "../Component/CategoriesView";
 import FeaturedVendors from "../Component/FeaturedVendors";
-import { Colors, Shadows } from "@/app/constants/theme";
+import { Colors, Shadows } from "@/app/_constants/theme";
 
 export default function ClientHomeScreen() {
     const insets = useSafeAreaInsets()
