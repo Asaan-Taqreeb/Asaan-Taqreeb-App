@@ -3,7 +3,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Star, MapPin, Users } from "lucide-react-native";
 import { router } from "expo-router";
 import MockData from "../Component/mockData/VendorsMockData"
-import { Colors, Shadows, Spacing } from "@/app/constants/theme";
+import { Colors, Shadows, Spacing } from "@/app/_constants/theme";
 
 export default function FeaturedVendors() {
     const insets = useSafeAreaInsets()

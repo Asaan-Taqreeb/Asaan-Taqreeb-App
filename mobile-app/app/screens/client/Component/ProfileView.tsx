@@ -1,9 +1,9 @@
 import { router } from 'expo-router'
-import { ArrowLeft, CheckCircle, CircleQuestionMark, CreditCard, LogOut } from 'lucide-react-native'
+import { ArrowLeft, CheckCircle, CircleQuestionMark, CreditCard, LogOut, Calendar } from 'lucide-react-native'
 import { Pressable, StyleSheet, Text, View, ScrollView } from 'react-native'
 import { Avatar } from 'react-native-paper'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Colors, Shadows, Spacing } from '@/app/constants/theme'
+import { Colors, Shadows, Spacing } from '@/app/_constants/theme'
 
 export default function ProfileView() {
   const insets = useSafeAreaInsets()
@@ -37,6 +37,28 @@ export default function ProfileView() {
                     </View>
                 </View>
                 <View className='gap-4 px-5 pb-6'>
+                    {/* About Me */}
+                    <Pressable 
+                        className='px-6 flex-row items-center rounded-2xl gap-4 active:opacity-80' 
+                        style={[styles.menuItem, Shadows.medium]}
+                        onPress={() => router.push('/screens/client/Component/ClientAboutMeScreen')}
+                    >
+                        <View className='p-3 rounded-xl' style={{backgroundColor: '#dbeafe'}}>
+                            <CheckCircle size={22} color={Colors.primary} />
+                        </View>
+                        <Text className='text-base font-semibold flex-1' style={{color: Colors.textPrimary}}>About Me</Text>
+                    </Pressable>
+                    {/* Booking History */}
+                    <Pressable 
+                        className='px-6 flex-row items-center rounded-2xl gap-4 active:opacity-80' 
+                        style={[styles.menuItem, Shadows.medium]}
+                        onPress={() => router.push('/screens/client/Component/BookingHistoryScreen')}
+                    >
+                        <View className='p-3 rounded-xl' style={{backgroundColor: '#fef3c7'}}>
+                            <Calendar size={22} color={Colors.warning} />
+                        </View>
+                        <Text className='text-base font-semibold flex-1' style={{color: Colors.textPrimary}}>My Bookings</Text>
+                    </Pressable>
                     {/* Payment Method */}
                     <Pressable 
                         className='px-6 flex-row items-center rounded-2xl gap-4 active:opacity-80' 

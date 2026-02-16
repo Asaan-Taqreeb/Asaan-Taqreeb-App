@@ -1,7 +1,7 @@
 import { SlidersHorizontal, X, Star } from 'lucide-react-native'
 import { useEffect, useState } from 'react'
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
-import { Colors, Shadows, Spacing } from '@/app/constants/theme'
+import { Colors, Shadows, Spacing } from '@/app/_constants/theme'
 
 type FilterValues = {
     location: string

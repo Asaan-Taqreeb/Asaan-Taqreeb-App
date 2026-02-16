@@ -3,8 +3,8 @@ import { ArrowLeft, Send } from 'lucide-react-native'
 import { useState, useRef, useEffect } from 'react'
 import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Colors, getCategoryColor } from '@/app/constants/theme'
-import { getChatById, addMessageToChat, Message } from '@/app/utils/chatStorage'
+import { Colors, getCategoryColor } from '@/app/_constants/theme'
+import { getChatById, addMessageToChat, Message } from '@/app/_utils/chatStorage'
 
 export default function VendorChatScreen() {
     const insets = useSafeAreaInsets()

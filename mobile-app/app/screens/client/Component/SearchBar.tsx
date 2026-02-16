@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, TextInput, View } from 'react-native'
 import { Search } from 'lucide-react-native'
-import { Colors, Shadows, Spacing } from '@/app/constants/theme'
+import { Colors, Shadows, Spacing } from '@/app/_constants/theme'
 
 type SearchBarProps = {
     value: string

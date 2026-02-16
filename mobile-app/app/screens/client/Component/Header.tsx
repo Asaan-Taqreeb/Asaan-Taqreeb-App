@@ -6,7 +6,7 @@ import Icon from "react-native-vector-icons/FontAwesome6"
 import { Avatar } from 'react-native-paper'
 import SearchBar from './SearchBar'
 import { router } from 'expo-router'
-import { Colors, Spacing } from '@/app/constants/theme'
+import { Colors, Spacing } from '@/app/_constants/theme'
 
 const Header = () => {
   const insets = useSafeAreaInsets()

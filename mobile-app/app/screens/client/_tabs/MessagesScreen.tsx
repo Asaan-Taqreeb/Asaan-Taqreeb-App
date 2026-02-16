@@ -4,8 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useFocusEffect } from 'expo-router'
 import { router } from 'expo-router'
 import { MessageCircle, Bot, Trash2, MapPin } from 'lucide-react-native'
-import { Colors, getCategoryColor, Shadows } from '@/app/constants/theme'
-import { getAllChats, clearAllChats, deleteChat, ChatConversation } from '@/app/utils/chatStorage'
+import { Colors, getCategoryColor, Shadows } from '@/app/_constants/theme'
+import { getAllChats, clearAllChats, deleteChat, ChatConversation } from '@/app/_utils/chatStorage'
 
 export default function MessagesScreen() {
   const insets = useSafeAreaInsets()

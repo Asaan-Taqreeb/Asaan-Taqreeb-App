@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Dimensions, ScrollView, Modal, TextInput } from 'react-native'
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Colors, getCategoryColor, Shadows, Spacing } from '@/app/constants/theme'
+import { Colors, getCategoryColor, Shadows, Spacing } from '@/app/_constants/theme'
 
 export default function DetailScreenPage() {
     const insets = useSafeAreaInsets()
