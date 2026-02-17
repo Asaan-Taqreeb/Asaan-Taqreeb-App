@@ -1,15 +1,13 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import CategoryData from "./mockData/CategoryData"
 import { Colors, Spacing } from '@/app/_constants/theme'
 
 const CategoriesView = () => {
-    const insets = useSafeAreaInsets()
     const mock = CategoryData
   return (
-    <View style={[styles.container, {paddingBottom: insets.bottom}]}>
-      <Text className='text-2xl font-bold px-4 mb-4' style={{color: Colors.textPrimary}}>Categories</Text>
+    <View style={styles.container}>
+      <Text className='text-2xl font-bold px-4 mb-3' style={{color: Colors.textPrimary}}>Categories</Text>
       <View className='flex-row justify-evenly items-center px-2 flex-wrap'>
         {
             mock.map(data => {
@@ -40,6 +38,7 @@ export default CategoriesView
 const styles = StyleSheet.create({
     container: {
         width: "100%",
-        paddingVertical: Spacing.xl,
+        paddingTop: Spacing.md,
+        paddingBottom: Spacing.sm,
     },
 })

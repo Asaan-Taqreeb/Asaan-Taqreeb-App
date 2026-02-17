@@ -279,20 +279,20 @@ export default function BookingScreen() {
                       <View className='flex-row items-center gap-2'>
                         <Calendar size={16} color={categoryColor} />
                         <Text className='text-sm font-medium' style={{color: Colors.textSecondary}}>
-                          Date: <Text className='font-bold' style={{color: Colors.textPrimary}}>{formatDate(booking.date)}</Text>
+                          Date: <Text className='font-bold' style={{color: Colors.textSecondary}}>{formatDate(booking.date)}</Text>
                         </Text>
                       </View>
                       <View className='flex-row items-center gap-2'>
                         <Clock size={16} color={categoryColor} />
                         <Text className='text-sm font-medium' style={{color: Colors.textSecondary}}>
-                          Time: <Text className='font-bold' style={{color: Colors.textPrimary}}>{booking.time}</Text>
+                          Time: <Text className='font-bold' style={{color: Colors.textSecondary}}>{booking.time}</Text>
                         </Text>
                       </View>
                       {booking.guestCount && (
                         <View className='flex-row items-center gap-2'>
                           <Users size={16} color={categoryColor} />
                           <Text className='text-sm font-medium' style={{color: Colors.textSecondary}}>
-                            Guests: <Text className='font-bold' style={{color: Colors.textPrimary}}>{booking.guestCount}</Text>
+                            Guests: <Text className='font-bold' style={{color: Colors.textSecondary}}>{booking.guestCount}</Text>
                           </Text>
                         </View>
                       )}
@@ -300,7 +300,7 @@ export default function BookingScreen() {
                         <View className='flex-row items-start gap-2'>
                           <MapPin size={16} color={categoryColor} className='mt-0.5' />
                           <Text className='text-sm font-medium flex-1' style={{color: Colors.textSecondary}}>
-                            Location: <Text className='font-bold' style={{color: Colors.textPrimary}}>{booking.location}</Text>
+                            Location: <Text className='font-bold' style={{color: Colors.textSecondary}}>{booking.location}</Text>
                           </Text>
                         </View>
                       )}

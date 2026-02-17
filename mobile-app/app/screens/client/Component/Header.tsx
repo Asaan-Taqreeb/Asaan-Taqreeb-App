@@ -1,6 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useState } from 'react'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import useLocation from './hooks/useLocation'
 import Icon from "react-native-vector-icons/FontAwesome6"
 import { Avatar } from 'react-native-paper'
@@ -9,7 +8,6 @@ import { router } from 'expo-router'
 import { Colors, Spacing } from '@/app/_constants/theme'
 
 const Header = () => {
-  const insets = useSafeAreaInsets()
   const {result, error} = useLocation()
   const [query, setQuery] = useState("")
   
@@ -24,8 +22,8 @@ const Header = () => {
   }
 
   return (
-    <View style={[styles.container, {paddingTop: insets.top + Spacing.sm, paddingBottom: Spacing.md}]}>
-      <View className='flex flex-row justify-between items-center px-3 py-2'>
+    <View style={styles.container}>
+      <View className='flex flex-row justify-between items-center px-3 py-3'>
         <View className='flex-1'>
           <Text className='text-sm font-semibold mx-2 mb-1' style={{color: Colors.textSecondary}}>Current Location</Text>
           {error && <Text className='text-xs mx-2' style={{color: Colors.error}}>Error: {error}</Text>}

@@ -1,17 +1,15 @@
 import { View, Text, StyleSheet, Image, Pressable, FlatList } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Star, MapPin, Users } from "lucide-react-native";
 import { router } from "expo-router";
 import MockData from "../Component/mockData/VendorsMockData"
 import { Colors, Shadows, Spacing } from "@/app/_constants/theme";
 
 export default function FeaturedVendors() {
-    const insets = useSafeAreaInsets()
     const mockData = MockData
 
   return (
-    <View style={[styles.container, {paddingBottom: insets.bottom}]}>
-        <View className="mt-4">
+    <View style={styles.container}>
+        <View className="mt-2">
           <View className="flex-row justify-between items-center px-4 mb-3">
             <Text className="text-2xl font-bold" style={{color: Colors.textPrimary}}>Top Rated</Text>
             <Pressable className="active:opacity-70" onPress={() => router.push("/screens/client/Component/VendorListView")}>
@@ -22,7 +20,7 @@ export default function FeaturedVendors() {
             data={mockData}
             keyExtractor={(item) => item.id.toString()}
             scrollEnabled={false}
-            contentContainerStyle={{ paddingHorizontal: Spacing.md, paddingBottom: Spacing.xl }}
+            contentContainerStyle={{ paddingHorizontal: Spacing.md, paddingBottom: Spacing.md }}
             renderItem={({item}) => (
               <Pressable className="mb-4 active:opacity-80" onPress={() => router.push({
                 pathname: "/screens/client/Component/DetailScreenPage",

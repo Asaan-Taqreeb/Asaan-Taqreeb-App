@@ -11,7 +11,7 @@ export default function ClientHomeScreen() {
     const insets = useSafeAreaInsets()
 
   return (
-    <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}>
+    <View style={[styles.container, {paddingTop: insets.top}]}>
       <Header />
       <ScrollView showsVerticalScrollIndicator={false}>
         <CategoriesView />

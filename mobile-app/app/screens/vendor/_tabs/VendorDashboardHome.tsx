@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Bell, DollarSign, CheckCircle, XCircle, Clock, ChevronRight, Plus } from 'lucide-react-native';
+import { Bell, DollarSign, CheckCircle, XCircle, Clock, ChevronRight, Plus, Calendar } from 'lucide-react-native';
 import { Colors, Shadows } from '@/app/_constants/theme';
 import { getOrderStats, getRecentOrders } from '../_mockData/OrdersData';
 import OrderCard from '../Component/OrderCard';
@@ -208,28 +208,44 @@ export default function VendorDashboardHome() {
               </Text>
             </TouchableOpacity>
           </View>
-          
-          {/* Manage Packages Button */}
-          <TouchableOpacity
-            className="bg-white rounded-2xl p-4 border border-gray-100 flex-row items-center mt-3"
-            style={Shadows.small}
-            onPress={() => router.push('/screens/vendor/Component/PackageManagementScreen')}
-            activeOpacity={0.7}
-          >
-            <View className="w-12 h-12 rounded-full items-center justify-center"
-              style={{ backgroundColor: Colors.vendor + '20' }}
+
+          <View className="flex-row gap-3 mb-3">
+            <TouchableOpacity
+              className="flex-1 bg-white rounded-2xl p-4 border border-gray-100"
+              style={Shadows.small}
+              onPress={() => router.push('/screens/vendor/Component/VendorCalendarScreen')}
             >
-              <Plus size={24} color={Colors.vendor} />
-            </View>
-            <View className="ml-4 flex-1">
-              <Text className="text-base font-semibold" style={{ color: Colors.textPrimary }}>
-                Manage Packages
+              <View className="w-10 h-10 rounded-full items-center justify-center mb-2"
+                style={{ backgroundColor: '#8B5CF620' }}
+              >
+                <Calendar size={20} color="#8B5CF6" />
+              </View>
+              <Text className="text-sm font-semibold" style={{ color: Colors.textPrimary }}>
+                Calendar
               </Text>
-              <Text className="text-sm text-gray-500 mt-1">
-                Add, edit, or remove your service packages
+              <Text className="text-xs text-gray-500 mt-1">
+                Manage bookings
               </Text>
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className="flex-1 bg-white rounded-2xl p-4 border border-gray-100"
+              style={Shadows.small}
+              onPress={() => router.push('/screens/vendor/Component/PackageManagementScreen')}
+            >
+              <View className="w-10 h-10 rounded-full items-center justify-center mb-2"
+                style={{ backgroundColor: Colors.vendor + '20' }}
+              >
+                <Plus size={20} color={Colors.vendor} />
+              </View>
+              <Text className="text-sm font-semibold" style={{ color: Colors.textPrimary }}>
+                Packages
+              </Text>
+              <Text className="text-xs text-gray-500 mt-1">
+                Add or edit
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </View>
