@@ -71,17 +71,26 @@ const useLocation = () => {
                 const {latitude, longitude} = coords;
                 setLatitude(latitude)
                 setLongitude(longitude)
-                let response = await Location.reverseGeocodeAsync({
-                    latitude,
-                    longitude
-                })
-                setResult(response)
                 
-                // Cache the location
-                await cacheLocation(latitude, longitude, response)
-                
-                console.log("Fresh location fetched: ", response)
-                setError("") // Clear any previous errors
+                try {
+                    let response = await Location.reverseGeocodeAsync({
+                        latitude,
+                        longitude
+                    })
+                    setResult(response)
+                    
+                    // Cache the location
+                    await cacheLocation(latitude, longitude, response)
+                    
+                    console.log("Fresh location fetched: ", response)
+                    setError("") // Clear any previous errors
+                } catch (geocodeError) {
+                    console.log("Geocoding service unavailable:", geocodeError)
+                    // If geocoding fails but we have cached location, use it
+                    if (!hasCached) {
+                        setError("Location service unavailable")
+                    }
+                }
             }
         } catch (error) {
             console.log("Error getting location:", error)

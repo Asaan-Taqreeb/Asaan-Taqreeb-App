@@ -1,12 +1,29 @@
 import { router } from 'expo-router'
 import { ArrowLeft, CheckCircle, CircleQuestionMark, CreditCard, LogOut, Calendar } from 'lucide-react-native'
 import { Pressable, StyleSheet, Text, View, ScrollView } from 'react-native'
-import { Avatar } from 'react-native-paper'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors, Shadows, Spacing } from '@/app/_constants/theme'
+import { useUser } from '@/app/_context/UserContext'
+import Avatar from '@/app/_components/Avatar'
+import { logoutUser } from '@/app/_utils/authApi'
 
 export default function ProfileView() {
   const insets = useSafeAreaInsets()
+  const { user, setUser, loading } = useUser()
+
+  console.log('ProfileView - loading:', loading)
+  console.log('ProfileView - user:', user)
+  console.log('ProfileView - user?.name:', user?.name)
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser()
+      setUser(null)
+      router.replace('/screens/WelcomeScreen')
+    } catch (error) {
+      console.log('Logout error:', error)
+    }
+  }
 
     return (
         <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}>
@@ -19,16 +36,14 @@ export default function ProfileView() {
                 </View>
                 <View style={[styles.profileCard, Shadows.medium]} className='px-5 py-6 rounded-3xl w-11/12 self-center my-6'>
                     <View className='flex-row justify-around items-center'>
-                        <Avatar.Text
-                            size={80}
-                            label='MZ'
+                        <Avatar
+                            name={user?.name || 'U'}
+                            size='lg'
                             color={Colors.primary}
-                            style={{backgroundColor: Colors.lightGray, borderRadius: 100}}
-                            labelStyle={{fontWeight: 'bold'}}
                         />
                         <View className='flex-1 ml-4'>
-                            <Text className='text-lg font-bold' style={{color: Colors.textPrimary}}>Mirza Zain</Text>
-                            <Text className='text-sm font-medium mt-1' style={{color: Colors.textSecondary}} numberOfLines={1}>mirzazain269@gmail.com</Text>
+                            <Text className='text-lg font-bold' style={{color: Colors.textPrimary}}>{user?.name || 'User'}</Text>
+                            <Text className='text-sm font-medium mt-1' style={{color: Colors.textSecondary}} numberOfLines={1}>{user?.email || 'user@email.com'}</Text>
                             <View className='flex-row items-center mt-3'>
                                 <CheckCircle size={16} color={Colors.success} />
                                 <Text className='text-sm font-bold ml-1' style={{color: Colors.success}}>Verified ID</Text>
@@ -83,7 +98,7 @@ export default function ProfileView() {
                     <Pressable 
                         className='px-6 flex-row items-center rounded-2xl gap-4 active:opacity-80' 
                         style={[styles.menuItem, Shadows.medium]}
-                        onPress={() => router.push("/screens/WelcomeScreen")}
+                        onPress={handleLogout}
                     >
                         <View className='p-3 rounded-xl' style={{backgroundColor: '#ffe4e6'}}>
                             <LogOut size={22} color={Colors.error} />

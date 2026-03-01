@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,20 +13,36 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, Save } from 'lucide-react-native';
 import { Colors } from '@/app/_constants/theme';
+import { useUser } from '@/app/_context/UserContext';
 
 export default function AboutMeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user } = useUser();
 
-  // Mock data - in real app, fetch from backend
-  const [businessName, setBusinessName] = useState('Royal Banquet Hall');
-  const [phoneNumber, setPhoneNumber] = useState('+92 300 1234567');
-  const [email, setEmail] = useState('contact@royalbanquet.com');
-  const [address, setAddress] = useState('Gulberg, Lahore, Pakistan');
-  const [about, setAbout] = useState('Royal Banquet Hall is a premium event venue in the heart of Lahore. We specialize in weddings, corporate events, and social gatherings. With over 10 years of experience, we provide top-notch services and unforgettable experiences.');
-  const [workingHours, setWorkingHours] = useState('9:00 AM - 11:00 PM');
-  const [website, setWebsite] = useState('www.royalbanquet.com');
-  const [experience, setExperience] = useState('10+ years');
+  // Initialize with user data from context, fallback to empty values
+  const [businessName, setBusinessName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [email, setEmail] = useState('');
+  const [address, setAddress] = useState('');
+  const [about, setAbout] = useState('');
+  const [workingHours, setWorkingHours] = useState('');
+  const [website, setWebsite] = useState('');
+  const [experience, setExperience] = useState('');
+
+  useEffect(() => {
+    if (user) {
+      setBusinessName(user.name || user.businessName || '')
+      setEmail(user.email || '')
+      // Other fields from user if available
+      if (user.phoneNumber) setPhoneNumber(user.phoneNumber)
+      if (user.address) setAddress(user.address)
+      if (user.about) setAbout(user.about)
+      if (user.workingHours) setWorkingHours(user.workingHours)
+      if (user.website) setWebsite(user.website)
+      if (user.experience) setExperience(user.experience)
+    }
+  }, [user])
 
   const handleSave = () => {
     // Validation

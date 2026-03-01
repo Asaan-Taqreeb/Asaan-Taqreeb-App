@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,18 +13,32 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, Save } from 'lucide-react-native';
 import { Colors } from '@/app/_constants/theme';
+import { useUser } from '@/app/_context/UserContext';
 
 export default function ClientAboutMeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user } = useUser();
 
-  // Mock data - in real app, fetch from backend
-  const [fullName, setFullName] = useState('Mirza Zain');
-  const [phoneNumber, setPhoneNumber] = useState('+92 300 1234567');
-  const [email, setEmail] = useState('mirzazain269@gmail.com');
-  const [address, setAddress] = useState('Lahore, Pakistan');
+  // Initialize with user data from context, fallback to empty values
+  const [fullName, setFullName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [email, setEmail] = useState('');
+  const [address, setAddress] = useState('');
   const [bio, setBio] = useState('');
   const [preferences, setPreferences] = useState('');
+
+  useEffect(() => {
+    if (user) {
+      setFullName(user.name || '')
+      setEmail(user.email || '')
+      // Other fields from user if available
+      if (user.phoneNumber) setPhoneNumber(user.phoneNumber)
+      if (user.address) setAddress(user.address)
+      if (user.bio) setBio(user.bio)
+      if (user.preferences) setPreferences(user.preferences)
+    }
+  }, [user])
 
   const handleSave = () => {
     // Validation

@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,10 +20,28 @@ import {
   Mail,
 } from 'lucide-react-native';
 import { Colors, Shadows } from '@/app/_constants/theme';
+import { useUser } from '@/app/_context/UserContext';
+import Avatar from '@/app/_components/Avatar';
+import { logoutUser } from '@/app/_utils/authApi';
 
 export default function VendorProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user, setUser, loading } = useUser();
+
+  console.log('VendorProfileScreen - loading:', loading);
+  console.log('VendorProfileScreen - user:', user);
+  console.log('VendorProfileScreen - user?.name:', user?.name);
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      setUser(null);
+      router.replace('/screens/WelcomeScreen');
+    } catch (error) {
+      console.log('Logout error:', error);
+    }
+  };
 
   const ProfileOption = ({ icon: Icon, title, subtitle, onPress }: {
     icon: any;
@@ -81,13 +98,10 @@ export default function VendorProfileScreen() {
             style={{ backgroundColor: Colors.vendor, ...Shadows.medium }}
           >
             <View className="flex-row items-center">
-              <Image
-                source={{ uri: 'https://i.pravatar.cc/150?img=60' }}
-                className="w-20 h-20 rounded-full border-4 border-white"
-              />
+              <Avatar name={user?.name || 'V'} size="lg" />
               <View className="ml-4 flex-1">
                 <Text className="text-white text-xl font-bold">
-                  Royal Banquet Hall
+                  {user?.name || 'Vendor'}
                 </Text>
                 <View className="flex-row items-center mt-2">
                   <Star size={16} color="#FCD34D" fill="#FCD34D" />
@@ -105,19 +119,19 @@ export default function VendorProfileScreen() {
               <View className="flex-row items-center mb-2">
                 <MapPin size={16} color="#FFFFFF" />
                 <Text className="text-white text-sm ml-2">
-                  Gulberg, Lahore
+                  Location not added
                 </Text>
               </View>
               <View className="flex-row items-center mb-2">
                 <Phone size={16} color="#FFFFFF" />
                 <Text className="text-white text-sm ml-2">
-                  +92 300 1234567
+                  Phone not added
                 </Text>
               </View>
               <View className="flex-row items-center">
                 <Mail size={16} color="#FFFFFF" />
                 <Text className="text-white text-sm ml-2">
-                  contact@royalbanquet.com
+                  {user?.email || 'email@example.com'}
                 </Text>
               </View>
             </View>
@@ -171,10 +185,7 @@ export default function VendorProfileScreen() {
         {/* Logout */}
         <View className="px-5 mt-6">
           <TouchableOpacity
-            onPress={() => {
-              // Handle logout
-              router.push('/');
-            }}
+            onPress={handleLogout}
             activeOpacity={0.8}
             className="bg-red-50 rounded-2xl p-4 flex-row items-center justify-center"
             style={Shadows.small}

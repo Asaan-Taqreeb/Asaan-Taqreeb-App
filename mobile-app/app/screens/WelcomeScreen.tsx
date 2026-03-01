@@ -17,7 +17,7 @@ export default function WelcomeScreen() {
       icon: "calendar-day",
       color: "#4546E5",
       borderColor: "#6366F1",
-      link: "/screens/client/Component/OnBoardingScreen" as const
+      link: "/screens/client/Component/LoginScreen" as const
     },
     {
       keyRole: "Vendor",
@@ -26,7 +26,7 @@ export default function WelcomeScreen() {
       icon: "briefcase",
       color: "#F59E0B",
       borderColor: "#FBBF24",
-      link: "/screens/vendor/VendorHomeScreen" as const
+      link: "/screens/vendor/VendorLoginScreen" as const
     }
   ]
 

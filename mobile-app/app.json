@@ -56,7 +56,8 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Allow location mobileapp to use your location"
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
