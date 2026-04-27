@@ -1,8 +1,11 @@
-import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, type Href } from "expo-router";
+import { useFocusEffect } from '@react-navigation/native'
 import { Building2, Utensils, Camera, Sparkles } from "lucide-react-native";
 import { Colors, Shadows } from "@/app/_constants/theme";
+import { getMyVendorServices } from '@/app/_utils/servicesApi'
+import React from 'react'
 
 interface ServiceType {
   id: string;
@@ -10,11 +13,13 @@ interface ServiceType {
   description: string;
   icon: any;
   color: string;
-  route: string;
+  route: Href;
 }
 
 export default function VendorHomeScreen() {
   const insets = useSafeAreaInsets();
+  const [isChecking, setIsChecking] = React.useState(true)
+  const [lockedCategory, setLockedCategory] = React.useState<string | null>(null)
 
   const services: ServiceType[] = [
     {
@@ -34,7 +39,7 @@ export default function VendorHomeScreen() {
       route: '/screens/vendor/CateringServiceForm'
     },
     {
-      id: 'photography',
+      id: 'photo',
       title: 'Photography Service',
       description: 'Create photography packages and showcase portfolio',
       icon: Camera,
@@ -51,9 +56,65 @@ export default function VendorHomeScreen() {
     }
   ];
 
+  useFocusEffect(
+    React.useCallback(() => {
+      let isActive = true
+
+      const checkExistingServices = async () => {
+        setIsChecking(true)
+        try {
+          const existingServices = await getMyVendorServices()
+          if (!isActive) return
+
+          if (existingServices.length > 0) {
+            const firstCategory = String(existingServices[0]?.category || '').toLowerCase()
+            setLockedCategory(firstCategory || null)
+            router.replace('/screens/vendor/_tabs/VendorDashboardHome')
+            return
+          }
+
+          setLockedCategory(null)
+        } catch {
+          setLockedCategory(null)
+        } finally {
+          if (isActive) {
+            setIsChecking(false)
+          }
+        }
+      }
+
+      checkExistingServices()
+
+      return () => {
+        isActive = false
+      }
+    }, [])
+  )
+
   const handleServiceSelect = (service: ServiceType) => {
+    if (lockedCategory && service.id !== lockedCategory) {
+      Alert.alert(
+        'Service Locked',
+        'This vendor account already has a service category. You cannot add a different category with the same email.'
+      )
+      return
+    }
+
     router.push(service.route);
   };
+
+  if (isChecking) {
+    return (
+      <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}> 
+        <View className='px-6 py-6' style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
+          <Text className='text-3xl font-extrabold' style={{color: Colors.textPrimary}}>Welcome Vendor! 👋</Text>
+          <Text className='text-base font-medium mt-2' style={{color: Colors.textSecondary}}>
+            Checking your service setup...
+          </Text>
+        </View>
+      </View>
+    )
+  }
 
   return (
     <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}>

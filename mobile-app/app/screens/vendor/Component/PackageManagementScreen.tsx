@@ -1,71 +1,258 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
+  Modal,
   TextInput,
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, Plus, Trash2, Edit, Package } from 'lucide-react-native';
 import { Colors, Shadows } from '@/app/_constants/theme';
+import { createVendorService, getMyVendorServices, type ServiceListItem } from '@/app/_utils/servicesApi';
 
-// Mock data - in real app, fetch from backend
-const mockPackages = [
-  {
-    id: '1',
-    name: 'Premium Wedding Package',
-    price: 150000,
-    description: 'Complete wedding setup with decoration, sound system, and catering',
-    items: ['Hall Decoration', 'Sound System', 'Stage Setup', 'Lighting'],
-  },
-  {
-    id: '2',
-    name: 'Standard Package',
-    price: 80000,
-    description: 'Basic hall booking with essential amenities',
-    items: ['Hall Booking', 'Basic Sound System', 'Seating Arrangement'],
-  },
-  {
-    id: '3',
-    name: 'Deluxe Package',
-    price: 200000,
-    description: 'Luxury package with premium services',
-    items: ['Premium Decoration', 'Professional DJ', 'Photography', 'Catering'],
-  },
-];
+type UiPackage = {
+  id: string
+  name: string
+  price: number
+  description: string
+  items: string[]
+}
+
+type UiOptionalService = {
+  id: string
+  name: string
+  price: number
+  category: string
+}
+
+type UiOptionalDraft = {
+  id: string
+  name: string
+  price: string
+  category: string
+}
 
 export default function PackageManagementScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [packages, setPackages] = useState(mockPackages);
+  const [services, setServices] = useState<ServiceListItem[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [showOptionalManager, setShowOptionalManager] = useState(false)
+  const [optionalDraft, setOptionalDraft] = useState<UiOptionalDraft[]>([])
+  const [isSavingOptionalServices, setIsSavingOptionalServices] = useState(false)
+
+  const activeService = useMemo(() => {
+    if (!services.length) return null
+
+    return [...services].sort((a, b) => {
+      const aTime = new Date(a.updatedAt || a.createdAt || 0).getTime()
+      const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime()
+      return bTime - aTime
+    })[0]
+  }, [services])
+
+  const packages: UiPackage[] = useMemo(() => {
+    if (!activeService) return []
+
+    const fallbackItems = [activeService.name, activeService.category]
+    const serviceDescription = activeService.about || `Package from ${activeService.name}`
+
+    return (activeService.packages || []).map((pkg, index) => ({
+      id: String(index),
+      name: String(pkg.packageName || `Package ${index + 1}`),
+      price: Number(pkg.price || 0),
+      description: serviceDescription,
+      items:
+        Array.isArray(pkg.items) && pkg.items.length > 0
+          ? pkg.items
+          : [
+              ...(Array.isArray(pkg.mainCourse) ? pkg.mainCourse : []),
+              ...(Array.isArray(pkg.desserts) ? pkg.desserts : []),
+              ...(Array.isArray(pkg.drinks) ? pkg.drinks : []),
+            ].length > 0
+              ? [
+                  ...(Array.isArray(pkg.mainCourse) ? pkg.mainCourse : []),
+                  ...(Array.isArray(pkg.desserts) ? pkg.desserts : []),
+                  ...(Array.isArray(pkg.drinks) ? pkg.drinks : []),
+                ]
+              : fallbackItems,
+    }))
+  }, [activeService])
+
+  const optionalServices: UiOptionalService[] = useMemo(() => {
+    if (!activeService) return []
+
+    return (activeService.optionalServices || []).map((item, index) => ({
+      id: `${activeService.serviceId || activeService.id}-optional-${index}`,
+      name: String(item.name || `Optional ${index + 1}`),
+      price: Number(item.price || 0),
+      category: activeService.category,
+    }))
+  }, [activeService])
+
+  React.useEffect(() => {
+    if (!showOptionalManager) return
+
+    setOptionalDraft(
+      optionalServices.length > 0
+        ? optionalServices.map((item, index) => ({
+            id: item.id,
+            name: item.name,
+            price: String(item.price),
+            category: item.category,
+          }))
+        : [{ id: 'new-1', name: '', price: '', category: activeService?.category || 'banquet' }]
+    )
+  }, [showOptionalManager, optionalServices, activeService?.category])
+
+  const primaryCategory = activeService?.category
+
+  const getServiceFormRoute = () => {
+    if (primaryCategory === 'banquet') return '/screens/vendor/BanquetServiceForm'
+    if (primaryCategory === 'catering') return '/screens/vendor/CateringServiceForm'
+    if (primaryCategory === 'photo') return '/screens/vendor/PhotographyServiceForm'
+    if (primaryCategory === 'parlor') return '/screens/vendor/ParlorServiceForm'
+    return null
+  }
+
+  const openServiceForm = () => {
+    const route = getServiceFormRoute()
+    if (!route) {
+      Alert.alert('Info', 'Create a service first to manage packages.')
+      return
+    }
+    router.push(route)
+  }
+
+  const openOptionalManager = () => {
+    if (!activeService) {
+      Alert.alert('Info', 'Create a service first to manage optional items.')
+      return
+    }
+
+    setShowOptionalManager(true)
+  }
+
+  const addOptionalDraft = () => {
+    setOptionalDraft((current) => [
+      ...current,
+      {
+        id: `new-${Date.now()}-${current.length}`,
+        name: '',
+        price: '',
+        category: activeService?.category || 'banquet',
+      },
+    ])
+  }
+
+  const updateOptionalDraft = (id: string, field: 'name' | 'price', value: string) => {
+    setOptionalDraft((current) =>
+      current.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              [field]: field === 'price' ? value.replace(/[^0-9]/g, '') : value,
+            }
+          : item
+      )
+    )
+  }
+
+  const removeOptionalDraft = (id: string) => {
+    setOptionalDraft((current) => current.filter((item) => item.id !== id))
+  }
+
+  const saveOptionalDraft = async () => {
+    if (!activeService) return
+
+    const hasPartialRow = optionalDraft.some((item) => {
+      const hasName = item.name.trim().length > 0
+      const hasPrice = item.price.trim().length > 0
+      return (hasName && !hasPrice) || (!hasName && hasPrice)
+    })
+
+    if (hasPartialRow) {
+      Alert.alert('Error', 'Each optional service needs both a name and a price, or leave the row blank.')
+      return
+    }
+
+    const nextOptionalServices = optionalDraft
+      .map((item) => ({
+        name: String(item.name || '').trim(),
+        price: Number(item.price || 0),
+      }))
+      .filter((item) => item.name.length > 0)
+
+    try {
+      setIsSavingOptionalServices(true)
+
+      await createVendorService({
+        category: activeService.category,
+        serviceType: activeService.category,
+        name: activeService.name,
+        location: activeService.location,
+        about: activeService.about,
+        minGuests: activeService.minGuests,
+        maxGuests: activeService.maxGuests,
+        packages: activeService.packages,
+        optionalServices: nextOptionalServices,
+      })
+
+      setShowOptionalManager(false)
+      Alert.alert('Success', 'Optional services updated successfully.')
+      loadPackages()
+    } catch (error: any) {
+      Alert.alert('Failed', error?.message || 'Unable to update optional services right now.')
+    } finally {
+      setIsSavingOptionalServices(false)
+    }
+  }
+
+  const loadPackages = React.useCallback(async () => {
+    try {
+      const data = await getMyVendorServices()
+      setServices(data)
+    } catch (error: any) {
+      setServices([])
+      Alert.alert('Failed', error?.message || 'Unable to load your packages right now.')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useFocusEffect(
+    React.useCallback(() => {
+      setIsLoading(true)
+      loadPackages()
+    }, [loadPackages])
+  )
 
   const handleAddPackage = () => {
     router.push('/screens/vendor/Component/AddEditPackageScreen');
   };
 
-  const handleEditPackage = (packageId: string) => {
+  const handleEditPackage = (pkg: UiPackage) => {
     router.push({
       pathname: '/screens/vendor/Component/AddEditPackageScreen',
-      params: { packageId }
+      params: { packageId: pkg.id, packageData: JSON.stringify(pkg) }
     });
   };
 
-  const handleDeletePackage = (packageId: string, packageName: string) => {
+  const handleDeletePackage = (_packageId: string, packageName: string) => {
     Alert.alert(
       'Delete Package',
-      `Are you sure you want to delete "${packageName}"? This action cannot be undone.`,
+      `Delete "${packageName}" from this screen is not connected yet. You can update packages from the service form for now.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Delete',
-          style: 'destructive',
+          text: 'OK',
           onPress: () => {
-            setPackages(packages.filter(pkg => pkg.id !== packageId));
-            Alert.alert('Success', 'Package deleted successfully');
-            // In real app, delete from backend
+            return
           },
         },
       ]
@@ -117,7 +304,13 @@ export default function PackageManagementScreen() {
             YOUR PACKAGES ({packages.length})
           </Text>
 
-          {packages.map((pkg) => (
+          {isLoading && (
+            <View className="bg-white rounded-2xl p-4 mb-4" style={Shadows.small}>
+              <Text className="text-sm text-gray-500">Loading your packages...</Text>
+            </View>
+          )}
+
+          {!isLoading && packages.map((pkg) => (
             <View
               key={pkg.id}
               className="bg-white rounded-2xl p-4 mb-4"
@@ -162,7 +355,7 @@ export default function PackageManagementScreen() {
               {/* Action Buttons */}
               <View className="flex-row gap-3">
                 <TouchableOpacity
-                  onPress={() => handleEditPackage(pkg.id)}
+                  onPress={() => handleEditPackage(pkg)}
                   className="flex-1 bg-gray-100 rounded-xl py-3 flex-row items-center justify-center"
                   activeOpacity={0.7}
                 >
@@ -186,7 +379,7 @@ export default function PackageManagementScreen() {
             </View>
           ))}
 
-          {packages.length === 0 && (
+          {!isLoading && packages.length === 0 && (
             <View className="items-center justify-center py-20">
               <Package size={48} color="#D1D5DB" />
               <Text className="text-gray-400 text-base mt-4">No packages yet</Text>
@@ -196,7 +389,169 @@ export default function PackageManagementScreen() {
             </View>
           )}
         </View>
+
+        {/* Optional Services */}
+        <View className="px-5 mt-2">
+          <View className="flex-row items-center justify-between mb-3">
+            <Text className="text-xs font-semibold text-gray-400 tracking-wider">
+              OPTIONAL SERVICES ({optionalServices.length})
+            </Text>
+            <TouchableOpacity
+              onPress={openOptionalManager}
+              className="px-3 py-1.5 rounded-lg"
+              style={{ backgroundColor: Colors.vendor + '20' }}
+              activeOpacity={0.8}
+            >
+              <Text className="text-xs font-bold" style={{ color: Colors.vendor }}>
+                Manage
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {!isLoading && optionalServices.length > 0 && optionalServices.map((item) => (
+            <View key={item.id} className="bg-white rounded-2xl p-4 mb-3" style={Shadows.small}>
+              <View className="flex-row justify-between items-center">
+                <View className="flex-1 pr-2">
+                  <Text className="text-base font-bold" style={{ color: Colors.textPrimary }}>
+                    {item.name}
+                  </Text>
+                  <Text className="text-xs mt-1" style={{ color: Colors.textSecondary }}>
+                    {item.category === 'catering' ? 'Optional Dish' : 'Optional Service'}
+                  </Text>
+                </View>
+                <Text className="text-base font-extrabold" style={{ color: Colors.vendor }}>
+                  PKR {item.price.toLocaleString()}
+                </Text>
+              </View>
+            </View>
+          ))}
+
+          {!isLoading && optionalServices.length === 0 && (
+            <View className="bg-white rounded-2xl p-4 mb-4" style={Shadows.small}>
+              <Text className="text-sm text-gray-500">
+                No optional services saved yet. Add them in your service form and submit again.
+              </Text>
+            </View>
+          )}
+        </View>
       </ScrollView>
+
+      <Modal
+        visible={showOptionalManager}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowOptionalManager(false)}
+      >
+        <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}>
+          <View className="bg-white rounded-t-3xl p-5" style={{ maxHeight: '80%' }}>
+            <View className="flex-row items-center justify-between mb-4">
+              <View>
+                <Text className="text-xl font-extrabold" style={{ color: Colors.textPrimary }}>
+                  Optional Services
+                </Text>
+                <Text className="text-xs font-medium mt-1" style={{ color: Colors.textSecondary }}>
+                  {activeService?.name || 'No active service'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowOptionalManager(false)}
+                className="w-10 h-10 rounded-full items-center justify-center"
+                style={{ backgroundColor: Colors.lightGray }}
+              >
+                <Text className="text-lg font-bold" style={{ color: Colors.textPrimary }}>×</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View className="mb-4">
+                <Text className="text-sm font-medium" style={{ color: Colors.textSecondary }}>
+                  Add, edit, or remove optional services for the active package.
+                </Text>
+              </View>
+
+              {optionalDraft.length > 0 ? optionalDraft.map((item, index) => (
+                <View key={item.id} className="bg-gray-50 rounded-2xl p-4 mb-3">
+                  <View className="flex-row items-center justify-between mb-3">
+                    <Text className="text-xs font-semibold tracking-wider" style={{ color: Colors.textSecondary }}>
+                      OPTIONAL ITEM {index + 1}
+                    </Text>
+                    <TouchableOpacity onPress={() => removeOptionalDraft(item.id)}>
+                      <Text className="text-xs font-bold" style={{ color: '#EF4444' }}>
+                        Remove
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View className="mb-3">
+                    <Text className="text-xs font-semibold mb-2" style={{ color: Colors.textPrimary }}>
+                      Name
+                    </Text>
+                    <TextInput
+                      value={item.name}
+                      onChangeText={(value) => updateOptionalDraft(item.id, 'name', value)}
+                      placeholder="e.g., Extra Lighting"
+                      placeholderTextColor="#9CA3AF"
+                      className="bg-white rounded-xl px-4 py-3 text-base"
+                      style={{
+                        borderWidth: 1,
+                        borderColor: '#E5E7EB',
+                        color: Colors.textPrimary,
+                      }}
+                    />
+                  </View>
+
+                  <View>
+                    <Text className="text-xs font-semibold mb-2" style={{ color: Colors.textPrimary }}>
+                      Price
+                    </Text>
+                    <TextInput
+                      value={item.price ? String(item.price) : ''}
+                      onChangeText={(value) => updateOptionalDraft(item.id, 'price', value)}
+                      placeholder="e.g., 5000"
+                      placeholderTextColor="#9CA3AF"
+                      keyboardType="numeric"
+                      className="bg-white rounded-xl px-4 py-3 text-base"
+                      style={{
+                        borderWidth: 1,
+                        borderColor: '#E5E7EB',
+                        color: Colors.textPrimary,
+                      }}
+                    />
+                  </View>
+                </View>
+              )) : (
+                <View className="bg-gray-50 rounded-2xl p-4">
+                  <Text className="text-sm" style={{ color: Colors.textSecondary }}>
+                    No optional items yet. Tap Add Item to create one.
+                  </Text>
+                </View>
+              )}
+
+              <TouchableOpacity
+                onPress={addOptionalDraft}
+                className="rounded-2xl py-4 items-center mt-1"
+                style={{ backgroundColor: Colors.lightGray }}
+                activeOpacity={0.8}
+              >
+                <Text className="font-bold" style={{ color: Colors.textPrimary }}>
+                  Add Item
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+
+            <TouchableOpacity
+              onPress={saveOptionalDraft}
+              className="mt-4 rounded-2xl py-4 items-center"
+              style={{ backgroundColor: Colors.vendor }}
+              activeOpacity={0.8}
+            >
+              <Text className="text-white font-bold">
+                {isSavingOptionalServices ? 'Saving...' : 'Save Changes'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

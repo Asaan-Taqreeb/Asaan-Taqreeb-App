@@ -1,6 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { getAccessToken } from '@/app/_utils/authStorage'
 import { getCurrentUser } from '@/app/_utils/authApi'
+import { SessionExpiredError } from '@/app/_utils/apiClient'
+
+const USER_STORAGE_KEY = 'auth_user_profile'
 
 export interface UserData {
   id?: string
@@ -23,13 +27,45 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<UserData | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const refreshUser = async () => {
+  const saveUserToStorage = useCallback(async (nextUser: UserData | null) => {
+    if (!nextUser) {
+      await AsyncStorage.removeItem(USER_STORAGE_KEY)
+      return
+    }
+
+    await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(nextUser))
+  }, [])
+
+  const loadUserFromStorage = useCallback(async (): Promise<UserData | null> => {
+    try {
+      const raw = await AsyncStorage.getItem(USER_STORAGE_KEY)
+      if (!raw) return null
+      return JSON.parse(raw) as UserData
+    } catch {
+      return null
+    }
+  }, [])
+
+  const setUserState = useCallback((nextUser: UserData | null) => {
+    setUser(nextUser)
+    saveUserToStorage(nextUser).catch((error) => {
+      console.log('Failed to persist user profile:', error)
+    })
+  }, [saveUserToStorage])
+
+  const refreshUser = useCallback(async () => {
+    setLoading(true)
     try {
       const token = await getAccessToken()
       if (!token) {
-        setUser(null)
+        setUserState(null)
         setLoading(false)
         return
+      }
+
+      const cachedUser = await loadUserFromStorage()
+      if (cachedUser) {
+        setUser(cachedUser)
       }
 
       const userData = await getCurrentUser()
@@ -46,21 +82,30 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...userInfo,
       }
       console.log('UserContext refreshUser - loaded user data:', user)
-      setUser(user)
+      setUserState(user)
     } catch (error) {
       console.error('Failed to refresh user:', error)
-      setUser(null)
+      if (error instanceof SessionExpiredError) {
+        setUserState(null)
+      } else {
+        const cachedUser = await loadUserFromStorage()
+        if (cachedUser) {
+          setUser(cachedUser)
+        } else {
+          setUserState(null)
+        }
+      }
     } finally {
       setLoading(false)
     }
-  }
+  }, [loadUserFromStorage, setUserState])
 
   useEffect(() => {
     refreshUser()
-  }, [])
+  }, [refreshUser])
 
   return (
-    <UserContext.Provider value={{ user, loading, setUser, refreshUser }}>
+    <UserContext.Provider value={{ user, loading, setUser: setUserState, refreshUser }}>
       {children}
     </UserContext.Provider>
   )
@@ -72,4 +117,8 @@ export const useUser = () => {
     throw new Error('useUser must be used within UserProvider')
   }
   return context
+}
+
+export default function UserContextRouteStub() {
+  return null
 }

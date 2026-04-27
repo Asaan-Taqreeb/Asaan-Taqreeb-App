@@ -6,6 +6,7 @@ const VendorSignupScreen = () => {
         <SignupScreen 
             role='vendor'
             loginRoute='/screens/vendor/VendorLoginScreen'
+            forgotPasswordRoute='/screens/vendor/VendorForgotPasswordScreen'
         />
     )
 }

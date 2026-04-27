@@ -4,7 +4,7 @@ import useLocation from './hooks/useLocation'
 import Icon from "react-native-vector-icons/FontAwesome6"
 import SearchBar from './SearchBar'
 import { router } from 'expo-router'
-import { Colors, Spacing } from '@/app/_constants/theme'
+import { Colors } from '@/app/_constants/theme'
 import { useUser } from '@/app/_context/UserContext'
 import Avatar from '@/app/_components/Avatar'
 

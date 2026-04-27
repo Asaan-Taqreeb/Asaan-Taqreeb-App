@@ -45,3 +45,7 @@ export const getRefreshToken = async () => getItem(REFRESH_TOKEN_KEY)
 export const clearAuthTokens = async () => {
   await Promise.all([deleteItem(ACCESS_TOKEN_KEY), deleteItem(REFRESH_TOKEN_KEY)])
 }
+
+export default function AuthStorageRouteStub() {
+  return null
+}

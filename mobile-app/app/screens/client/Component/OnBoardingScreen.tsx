@@ -2,7 +2,8 @@ import { router } from 'expo-router'
 import { StyleSheet, Text, View, Image, Pressable, Dimensions, ScrollView } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRef, useEffect } from 'react'
-import { XCircle } from 'lucide-react-native'
+import { useUser } from '@/app/_context/UserContext'
+import { hasSeenOnboarding, markOnboardingSeen } from '@/app/_utils/onboardingStorage'
 
 const DATA = [
   {
@@ -30,6 +31,9 @@ const insets = useSafeAreaInsets()
 const windowDimensions = Dimensions.get('window')
 const scrollViewRef = useRef<ScrollView>(null)
 const currentIndexRef = useRef(0)
+const { user } = useUser()
+
+const userIdentifier = String(user?.id || user?.email || '')
 
 useEffect(() => {
   const interval = setInterval(() => {
@@ -43,6 +47,33 @@ useEffect(() => {
 
   return () => clearInterval(interval)
 }, [windowDimensions.width])
+
+useEffect(() => {
+  let isMounted = true
+
+  const skipIfAlreadySeen = async () => {
+    if (!userIdentifier) return
+    const seenOnboarding = await hasSeenOnboarding(userIdentifier)
+    if (!isMounted) return
+
+    if (seenOnboarding) {
+      router.replace('/screens/client/_tabs/ClientHomeScreen')
+    }
+  }
+
+  skipIfAlreadySeen()
+
+  return () => {
+    isMounted = false
+  }
+}, [userIdentifier])
+
+const handleContinue = async () => {
+  if (userIdentifier) {
+    await markOnboardingSeen(userIdentifier)
+  }
+  router.replace('/screens/client/_tabs/ClientHomeScreen')
+}
 
   return (
     <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}>
@@ -73,7 +104,7 @@ useEffect(() => {
           ))}
         </ScrollView>
       <Pressable className='active:opacity-70 mb-36' 
-        onPress={() => router.push("/screens/client/_tabs/ClientHomeScreen")}
+        onPress={handleContinue}
       >
         <Text className='text-xl self-center bg-indigo-600 w-1/2 py-4 rounded-xl text-center font-bold text-[#F8FAFC]'>Countinue</Text>
       </Pressable>

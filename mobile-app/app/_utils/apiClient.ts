@@ -6,6 +6,13 @@ type ApiFetchOptions = RequestInit & {
   timeout?: number
 }
 
+export class RequestTimeoutError extends Error {
+  constructor(message = 'Request timeout. Please check your internet connection and try again.') {
+    super(message)
+    this.name = 'RequestTimeoutError'
+  }
+}
+
 export class SessionExpiredError extends Error {
   constructor(message = 'Session expired. Please login again.') {
     super(message)
@@ -13,7 +20,7 @@ export class SessionExpiredError extends Error {
   }
 }
 
-const DEFAULT_TIMEOUT = 30000 // 30 seconds
+const DEFAULT_TIMEOUT = 90000 // 90 seconds (mobile-safe default)
 
 const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeout: number = DEFAULT_TIMEOUT): Promise<Response> => {
   const controller = new AbortController()
@@ -29,7 +36,7 @@ const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeout:
   } catch (error: any) {
     clearTimeout(timeoutId)
     if (error.name === 'AbortError') {
-      throw new Error('Request timeout. Please check your internet connection and try again.')
+      throw new RequestTimeoutError()
     }
     throw error
   }
@@ -46,24 +53,38 @@ const parseJsonSafe = async (response: Response) => {
 const getMessageFromPayload = (payload: any, fallback: string) => {
   if (!payload) return fallback
 
+  const extractValidationMessages = (errors: any[]) => {
+    const messages = errors
+      .map((err: any) => {
+        if (typeof err === 'string') return err
+        if (typeof err?.message === 'string') return err.message
+        if (typeof err?.msg === 'string') return err.msg
+        if (typeof err?.error === 'string') return err.error
+        if (typeof err?.path === 'string' && typeof err?.msg === 'string') {
+          return `${err.path}: ${err.msg}`
+        }
+        if (Array.isArray(err?.loc) && typeof err?.msg === 'string') {
+          return `${err.loc.join('.')}: ${err.msg}`
+        }
+        return null
+      })
+      .filter((message: any) => typeof message === 'string')
+
+    return messages.length > 0 ? messages.join(', ') : null
+  }
+
   // Handle array of errors (validation errors)
   if (Array.isArray(payload?.errors) && payload.errors.length > 0) {
-    const firstError = payload.errors[0]
-    if (typeof firstError === 'string') {
-      return firstError
+    const message = extractValidationMessages(payload.errors)
+    if (message) {
+      return message
     }
-    if (typeof firstError?.message === 'string') {
-      return firstError.message
-    }
-    if (typeof firstError?.msg === 'string') {
-      return firstError.msg
-    }
-    // Join multiple error messages
-    const messages = payload.errors
-      .map((err: any) => err?.message || err?.msg || err)
-      .filter((msg: any) => typeof msg === 'string')
-    if (messages.length > 0) {
-      return messages.join(', ')
+  }
+
+  if (Array.isArray(payload?.detail) && payload.detail.length > 0) {
+    const message = extractValidationMessages(payload.detail)
+    if (message) {
+      return message
     }
   }
 
@@ -129,6 +150,7 @@ const refreshAccessToken = async (): Promise<string | null> => {
 
 export const apiFetch = async (url: string, options: ApiFetchOptions = {}) => {
   const { auth = true, timeout = DEFAULT_TIMEOUT, headers, ...rest } = options
+  const method = String(rest.method || 'GET').toUpperCase()
 
   const finalHeaders: Record<string, string> = {
     ...(headers as Record<string, string>),
@@ -145,10 +167,32 @@ export const apiFetch = async (url: string, options: ApiFetchOptions = {}) => {
     }
   }
 
-  let response = await fetchWithTimeout(url, {
-    ...rest,
-    headers: finalHeaders,
-  }, timeout)
+  let response: Response
+
+  try {
+    response = await fetchWithTimeout(
+      url,
+      {
+        ...rest,
+        headers: finalHeaders,
+      },
+      timeout
+    )
+  } catch (error: any) {
+    const isIdempotent = method === 'GET' || method === 'HEAD'
+    if (error instanceof RequestTimeoutError && isIdempotent) {
+      response = await fetchWithTimeout(
+        url,
+        {
+          ...rest,
+          headers: finalHeaders,
+        },
+        Math.max(timeout, DEFAULT_TIMEOUT)
+      )
+    } else {
+      throw error
+    }
+  }
 
   if (!auth || response.status !== 401) {
     return response
@@ -187,4 +231,8 @@ export const apiFetchJson = async <T>(url: string, options: ApiFetchOptions = {}
   }
 
   return (data?.data ?? data) as T
+}
+
+export default function ApiClientRouteStub() {
+  return null
 }

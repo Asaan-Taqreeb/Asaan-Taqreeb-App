@@ -6,6 +6,7 @@ const ClientSignupScreen = () => {
         <SignupScreen 
             role='client'
             loginRoute='/screens/client/Component/LoginScreen'
+            forgotPasswordRoute='/screens/client/Component/ForgotPasswordScreen'
         />
     )
 }

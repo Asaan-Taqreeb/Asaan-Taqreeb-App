@@ -7,10 +7,12 @@ import { useState } from 'react'
 import { extractRoleFromAuthPayload, getCurrentUser, loginUser } from '@/app/_utils/authApi'
 import { clearAuthTokens } from '@/app/_utils/authStorage'
 import { useUser } from '@/app/_context/UserContext'
+import { hasSeenOnboarding } from '@/app/_utils/onboardingStorage'
 
 interface LoginScreenProps {
     role?: 'client' | 'vendor'
     signupRoute?: string
+    forgotPasswordRoute?: string
     onLoginSuccess?: (userData: any) => void
     homeScreenRoute?: string
 }
@@ -18,8 +20,9 @@ interface LoginScreenProps {
 const LoginScreen = ({ 
     role = 'client', 
     signupRoute = '/screens/client/Component/SignupScreen',
+    forgotPasswordRoute = '/screens/client/Component/ForgotPasswordScreen',
     onLoginSuccess,
-    homeScreenRoute = '/screens/client/Component/OnBoardingScreen'
+    homeScreenRoute = '/screens/client/_tabs/ClientHomeScreen'
 }: LoginScreenProps) => {
     const insets = useSafeAreaInsets()
     const router = useRouter()
@@ -29,6 +32,7 @@ const LoginScreen = ({
     // Allow role to be passed via route params or props
     const userRole = (params.role as 'client' | 'vendor') || role
     const redirectSignupRoute = (params.signupRoute as string) || signupRoute
+    const redirectForgotPasswordRoute = (params.forgotPasswordRoute as string) || forgotPasswordRoute
     const redirectHomeRoute = (params.homeScreenRoute as string) || homeScreenRoute
 
     const [email, setEmail] = useState('')
@@ -94,7 +98,15 @@ const LoginScreen = ({
                 onLoginSuccess(data)
             }
 
-            router.push(redirectHomeRoute as any)
+            if (authenticatedRole === 'client') {
+                const identifier = String(userData?.id || userData?.email || '')
+                const seenOnboarding = await hasSeenOnboarding(identifier)
+                const route = seenOnboarding ? '/screens/client/_tabs/ClientHomeScreen' : '/screens/client/Component/OnBoardingScreen'
+                router.replace(route as any)
+                return
+            }
+
+            router.replace(redirectHomeRoute as any)
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Network error. Please check your connection.'
             Alert.alert('Error', errorMessage)
@@ -154,7 +166,7 @@ const LoginScreen = ({
                     />
 
                     {/* Forgot Password */}
-                    <Pressable style={styles.forgotContainer}>
+                    <Pressable style={styles.forgotContainer} onPress={() => router.push(redirectForgotPasswordRoute as any)}>
                         <Text style={styles.forgotText}>Forgot Password?</Text>
                     </Pressable>
 
@@ -176,7 +188,7 @@ const LoginScreen = ({
                 </View>
 
                 <View className='self-center pt-5'>
-                    <Text className='text-base'>Don't Have An Account? <Pressable onPress={() => router.push(redirectSignupRoute as any)}><Text className='text-indigo-600 font-medium underline'>Register Now</Text></Pressable></Text>
+                    <Text className='text-base'>Don&apos;t Have An Account? <Pressable onPress={() => router.push(redirectSignupRoute as any)}><Text className='text-indigo-600 font-medium underline'>Register Now</Text></Pressable></Text>
                 </View>
                 </ScrollView>
             </View>

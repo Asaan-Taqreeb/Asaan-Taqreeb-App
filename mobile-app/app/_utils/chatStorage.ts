@@ -145,3 +145,7 @@ export const getChatCount = async (): Promise<number> => {
     return 0;
   }
 };
+
+export default function ChatStorageRouteStub() {
+  return null
+}

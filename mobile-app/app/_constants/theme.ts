@@ -66,6 +66,10 @@ export const getCategoryColor = (category: string): string => {
   }
 }
 
+export default function ThemeRouteStub() {
+  return null
+}
+
 // Spacing system (following 8pt grid system)
 export const Spacing = {
   xs: 4,

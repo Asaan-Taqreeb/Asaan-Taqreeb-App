@@ -18,10 +18,11 @@ export default function ProfileView() {
   const handleLogout = async () => {
     try {
       await logoutUser()
-      setUser(null)
-      router.replace('/screens/WelcomeScreen')
     } catch (error) {
       console.log('Logout error:', error)
+        } finally {
+            setUser(null)
+            router.replace('/screens/WelcomeScreen')
     }
   }
 

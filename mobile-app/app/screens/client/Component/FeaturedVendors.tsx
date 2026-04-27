@@ -1,11 +1,48 @@
 import { View, Text, StyleSheet, Image, Pressable, FlatList } from "react-native";
 import { Star, MapPin, Users } from "lucide-react-native";
 import { router } from "expo-router";
-import MockData from "../Component/mockData/VendorsMockData"
+import { useEffect, useMemo, useState } from "react";
 import { Colors, Shadows, Spacing } from "@/app/_constants/theme";
+import { getAllServices, ServiceListItem } from '@/app/_utils/servicesApi'
 
 export default function FeaturedVendors() {
-    const mockData = MockData
+    const [vendors, setVendors] = useState<ServiceListItem[]>([])
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+
+    useEffect(() => {
+      let mounted = true
+
+      const loadServices = async () => {
+        try {
+          setLoading(true)
+          setError(null)
+          const services = await getAllServices()
+          if (mounted) {
+            setVendors(services)
+          }
+        } catch (apiError: any) {
+          if (mounted) {
+            setError(apiError?.message || 'Failed to load vendors')
+          }
+        } finally {
+          if (mounted) {
+            setLoading(false)
+          }
+        }
+      }
+
+      loadServices()
+
+      return () => {
+        mounted = false
+      }
+    }, [])
+
+    const topRatedVendors = useMemo(
+      () => [...vendors].sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 6),
+      [vendors]
+    )
 
   return (
     <View style={styles.container}>
@@ -16,8 +53,14 @@ export default function FeaturedVendors() {
               <Text className="text-base font-semibold" style={{color: Colors.primary}}>See All</Text>
             </Pressable>
           </View>
+          {loading && (
+            <Text className="px-4 py-2" style={{color: Colors.textSecondary}}>Loading vendors...</Text>
+          )}
+          {error && !loading && (
+            <Text className="px-4 py-2" style={{color: Colors.error}}>{error}</Text>
+          )}
           <FlatList
-            data={mockData}
+            data={topRatedVendors}
             keyExtractor={(item) => item.id.toString()}
             scrollEnabled={false}
             contentContainerStyle={{ paddingHorizontal: Spacing.md, paddingBottom: Spacing.md }}

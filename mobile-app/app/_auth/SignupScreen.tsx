@@ -9,9 +9,14 @@ import { registerUser } from '@/app/_utils/authApi'
 interface SignupScreenProps {
     role?: 'client' | 'vendor'
     loginRoute?: string
+    forgotPasswordRoute?: string
 }
 
-const SignupScreen = ({ role = 'client', loginRoute = '/screens/client/Component/LoginScreen' }: SignupScreenProps) => {
+const SignupScreen = ({ 
+    role = 'client', 
+    loginRoute = '/screens/client/Component/LoginScreen',
+    forgotPasswordRoute = '/screens/client/Component/ForgotPasswordScreen'
+}: SignupScreenProps) => {
     const insets = useSafeAreaInsets()
     const router = useRouter()
     const params = useLocalSearchParams()
@@ -19,6 +24,7 @@ const SignupScreen = ({ role = 'client', loginRoute = '/screens/client/Component
     // Allow role to be passed via route params or props
     const userRole = (params.role as 'client' | 'vendor') || role
     const redirectLoginRoute = (params.loginRoute as string) || loginRoute
+    const redirectForgotPasswordRoute = (params.forgotPasswordRoute as string) || forgotPasswordRoute
 
     const [name, setName] = useState('')
     const [email, setEmail] = useState('')
@@ -164,6 +170,12 @@ const SignupScreen = ({ role = 'client', loginRoute = '/screens/client/Component
 
                 <View className='mt-5 self-center'>
                     <Text className='text-base'>Already have an account? <Pressable onPress={() => router.push(redirectLoginRoute as any)}><Text className='text-indigo-600 font-medium underline'>Login Here</Text></Pressable></Text>
+                </View>
+
+                <View className='mt-3 self-center'>
+                    <Pressable onPress={() => router.push(redirectForgotPasswordRoute as any)}>
+                        <Text className='text-indigo-600 font-medium underline'>Forgot Password?</Text>
+                    </Pressable>
                 </View>
                 </ScrollView>
             </View>

@@ -14,7 +14,6 @@ import {
   Calendar,
   Clock,
   Users,
-  MapPin,
   MessageCircle,
   CheckCircle,
   XCircle,
@@ -23,13 +22,19 @@ import {
   Plus,
 } from 'lucide-react-native';
 import { Colors, Shadows } from '@/app/_constants/theme';
-import { getOrderById } from '../_mockData/OrdersData';
 
 export default function OrderDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { orderId } = useLocalSearchParams();
-  const order = getOrderById(orderId);
+  const { order: orderParam } = useLocalSearchParams();
+  const parsedOrder = typeof orderParam === 'string' ? (() => {
+    try {
+      return JSON.parse(orderParam)
+    } catch {
+      return null
+    }
+  })() : null
+  const order = parsedOrder;
   const [orderStatus, setOrderStatus] = useState(order?.status || 'pending');
 
   if (!order) {
@@ -268,7 +273,7 @@ export default function OrderDetailScreen() {
               <Text className="text-xs font-semibold text-gray-400 mb-2 tracking-wider">
                 OPTIONAL ADD-ONS
               </Text>
-              {order.optionalItems.map((item, index) => (
+              {order.optionalItems.map((item: { name: string; price: number }, index: number) => (
                 <View key={index} className="flex-row items-center justify-between mb-2">
                   <View className="flex-row items-center flex-1">
                     <Plus size={14} color="#6B7280" />

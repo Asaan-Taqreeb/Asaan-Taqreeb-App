@@ -1,96 +1,51 @@
-import { ScrollView, StyleSheet, Text, View, Pressable, Modal, TextInput } from 'react-native'
-import { useState } from 'react'
+import { ScrollView, StyleSheet, Text, View, Pressable, Modal } from 'react-native'
+import { useEffect, useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { Clock, MapPin, Users, Calendar, CheckCircle, XCircle, AlertCircle, CreditCard, X } from 'lucide-react-native'
-import { Colors, getCategoryColor, Shadows, Spacing } from '@/app/_constants/theme'
+import { Colors, getCategoryColor, Shadows } from '@/app/_constants/theme'
+import { ClientBookingItem, getMyBookings } from '@/app/_utils/bookingsApi'
 
 type BookingStatus = 'pending' | 'approved' | 'rejected' | 'confirmed' | 'completed'
-
-interface Booking {
-  id: number
-  category: string
-  vendorName: string
-  vendorLocation: string
-  packageName: string
-  date: string
-  time: string
-  guestCount?: number
-  location?: string
-  price: number
-  advancePayment: number
-  status: BookingStatus
-  rejectionReason?: string
-  bookingDate: string
-}
 
 export default function BookingScreen() {
   const insets = useSafeAreaInsets()
   const [selectedFilter, setSelectedFilter] = useState<'all' | BookingStatus>('all')
-  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
+  const [selectedBooking, setSelectedBooking] = useState<ClientBookingItem | null>(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'bank' | null>(null)
+  const [bookings, setBookings] = useState<ClientBookingItem[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Mock bookings data (will be from API/database in production)
-  const [bookings] = useState<Booking[]>([
-    {
-      id: 1,
-      category: 'banquet',
-      vendorName: 'Royal Palace Banquet',
-      vendorLocation: 'F-7, Islamabad',
-      packageName: 'Premium Gold Package',
-      date: '2026-03-15',
-      time: 'Evening (9 PM to 12 AM)',
-      guestCount: 500,
-      price: 450000,
-      advancePayment: 225000,
-      status: 'approved',
-      bookingDate: '2026-02-10'
-    },
-    {
-      id: 2,
-      category: 'catering',
-      vendorName: 'Spice Garden Catering',
-      vendorLocation: 'Gulberg, Lahore',
-      packageName: 'Executive Menu',
-      date: '2026-03-20',
-      time: '05:00 PM - 10:00 PM',
-      guestCount: 200,
-      location: 'Pearl Continental Hotel, Mall Road, Lahore',
-      price: 320000,
-      advancePayment: 160000,
-      status: 'pending',
-      bookingDate: '2026-02-14'
-    },
-    {
-      id: 3,
-      category: 'photo',
-      vendorName: 'Perfect Moments Photography',
-      vendorLocation: 'Karachi',
-      packageName: 'Platinum Coverage',
-      date: '2026-04-05',
-      time: '02:00 PM - 11:00 PM',
-      location: 'Beach View Park, Karachi',
-      price: 85000,
-      advancePayment: 42500,
-      status: 'rejected',
-      rejectionReason: 'Already booked for that date. Please select another date or check our availability.',
-      bookingDate: '2026-02-12'
-    },
-    {
-      id: 4,
-      category: 'parlor',
-      vendorName: 'Glam Studio',
-      vendorLocation: 'Blue Area, Islamabad',
-      packageName: 'Bridal Deluxe Package',
-      date: '2026-03-18',
-      time: '10:00 AM - 04:00 PM',
-      price: 45000,
-      advancePayment: 22500,
-      status: 'confirmed',
-      bookingDate: '2026-02-08'
+  useEffect(() => {
+    let mounted = true
+
+    const loadBookings = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+        const response = await getMyBookings()
+        if (mounted) {
+          setBookings(response)
+        }
+      } catch (apiError: any) {
+        if (mounted) {
+          setError(apiError?.message || 'Failed to load bookings')
+        }
+      } finally {
+        if (mounted) {
+          setIsLoading(false)
+        }
+      }
     }
-  ])
+
+    loadBookings()
+
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   const getStatusConfig = (status: BookingStatus) => {
     switch(status) {
@@ -146,7 +101,7 @@ export default function BookingScreen() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   }
 
-  const handlePayNow = (booking: Booking) => {
+  const handlePayNow = (booking: ClientBookingItem) => {
     setSelectedBooking(booking)
     setShowPaymentModal(true)
   }
@@ -206,6 +161,16 @@ export default function BookingScreen() {
 
       {/* Bookings List */}
       <ScrollView className='flex-1' showsVerticalScrollIndicator={false}>
+        {isLoading && (
+          <View className='px-5 pt-4'>
+            <Text className='text-sm font-medium' style={{color: Colors.textSecondary}}>Loading bookings...</Text>
+          </View>
+        )}
+        {error && !isLoading && (
+          <View className='px-5 pt-4'>
+            <Text className='text-sm font-medium' style={{color: Colors.error}}>{error}</Text>
+          </View>
+        )}
         {filteredBookings.length === 0 ? (
           <View className='flex-1 justify-center items-center py-20'>
             <AlertCircle size={64} color={Colors.textTertiary} />

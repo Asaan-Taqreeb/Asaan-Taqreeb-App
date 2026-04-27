@@ -13,21 +13,30 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, Plus, X } from 'lucide-react-native';
 import { Colors } from '@/app/_constants/theme';
+import { createVendorService, getMyVendorServices } from '@/app/_utils/servicesApi';
 
 export default function AddEditPackageScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { packageId } = useLocalSearchParams();
+  const { packageId, packageData } = useLocalSearchParams<{ packageId?: string; packageData?: string }>();
   
   const isEditMode = !!packageId;
+  const [isSaving, setIsSaving] = useState(false)
 
-  // Mock data for edit mode - in real app, fetch from backend
-  const existingPackage = isEditMode ? {
-    name: 'Premium Wedding Package',
-    price: '150000',
-    description: 'Complete wedding setup with decoration, sound system, and catering',
-    items: ['Hall Decoration', 'Sound System', 'Stage Setup', 'Lighting'],
-  } : null;
+  const existingPackage = React.useMemo(() => {
+    if (!isEditMode || !packageData) return null
+    try {
+      const parsed = JSON.parse(String(packageData))
+      return {
+        name: String(parsed?.name || ''),
+        price: String(parsed?.price ?? ''),
+        description: String(parsed?.description || ''),
+        items: Array.isArray(parsed?.items) && parsed.items.length > 0 ? parsed.items.map((item: any) => String(item)) : [''],
+      }
+    } catch {
+      return null
+    }
+  }, [isEditMode, packageData])
 
   const [packageName, setPackageName] = useState(existingPackage?.name || '');
   const [price, setPrice] = useState(existingPackage?.price || '');
@@ -52,7 +61,7 @@ export default function AddEditPackageScreen() {
     setItems(newItems);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Validation
     if (!packageName.trim()) {
       Alert.alert('Error', 'Please enter package name');
@@ -71,21 +80,73 @@ export default function AddEditPackageScreen() {
       return;
     }
 
-    const packageData = {
-      name: packageName,
-      price: parseFloat(price),
-      description,
-      items: items.filter(item => item.trim()),
-    };
+    try {
+      setIsSaving(true)
 
-    console.log('Package Data:', packageData);
-    
-    Alert.alert(
-      'Success',
-      isEditMode ? 'Package updated successfully!' : 'Package created successfully!',
-      [{ text: 'OK', onPress: () => router.back() }]
-    );
-    // In real app, save to backend
+      const services = await getMyVendorServices()
+      if (!services.length) {
+        Alert.alert('Error', 'No existing service found for this vendor account.')
+        return
+      }
+
+      const activeService = [...services].sort((a, b) => {
+        const aTime = new Date(a.updatedAt || a.createdAt || 0).getTime()
+        const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime()
+        return bTime - aTime
+      })[0]
+
+      if (activeService.category === 'catering') {
+        Alert.alert('Info', 'For catering packages (pricePerHead/guestCount), please use the Catering Service form.')
+        return
+      }
+
+      const packagePayload = {
+        packageName: packageName.trim(),
+        price: parseFloat(price),
+        items: items.filter(item => item.trim()),
+      }
+
+      const existingPackages = (activeService.packages || []).map((pkg) => ({
+        packageName: String(pkg.packageName || ''),
+        price: Number(pkg.price || 0),
+        items: Array.isArray(pkg.items) ? pkg.items : [],
+      }))
+
+      const updatedPackages = [...existingPackages]
+      if (isEditMode) {
+        const index = Number(packageId)
+        if (Number.isFinite(index) && index >= 0 && index < updatedPackages.length) {
+          updatedPackages[index] = packagePayload
+        } else {
+          updatedPackages.push(packagePayload)
+        }
+      } else {
+        updatedPackages.push(packagePayload)
+      }
+
+      await createVendorService({
+        category: activeService.category,
+        serviceType: activeService.category,
+        name: activeService.name,
+        location: activeService.location,
+        about: activeService.about,
+        minGuests: activeService.minGuests,
+        maxGuests: activeService.maxGuests,
+        packages: updatedPackages,
+        optionalServices: activeService.optionalServices || [],
+        optionalDishes: activeService.optionalServices || [],
+      })
+
+      Alert.alert(
+        'Success',
+        isEditMode ? 'Package updated successfully!' : 'Package created successfully!',
+        [{ text: 'OK', onPress: () => router.back() }]
+      )
+    } catch (error: any) {
+      Alert.alert('Failed', error?.message || 'Unable to save package. Please try again.')
+    } finally {
+      setIsSaving(false)
+    }
   };
 
   return (
@@ -228,7 +289,7 @@ export default function AddEditPackageScreen() {
           {/* Info Note */}
           <View className="bg-blue-50 rounded-xl p-4 mb-5">
             <Text className="text-sm text-blue-900 leading-5">
-              💡 Tip: Be specific about what's included in your package. Clear descriptions help customers make informed decisions.
+              💡 Tip: Be specific about what&apos;s included in your package. Clear descriptions help customers make informed decisions.
             </Text>
           </View>
         </ScrollView>
@@ -240,9 +301,10 @@ export default function AddEditPackageScreen() {
             className="rounded-2xl py-4 items-center justify-center"
             style={{ backgroundColor: Colors.vendor }}
             activeOpacity={0.8}
+            disabled={isSaving}
           >
             <Text className="text-white text-base font-bold">
-              {isEditMode ? 'Update Package' : 'Create Package'}
+              {isSaving ? 'Saving...' : isEditMode ? 'Update Package' : 'Create Package'}
             </Text>
           </TouchableOpacity>
         </View>

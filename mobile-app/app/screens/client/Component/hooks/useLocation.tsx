@@ -1,5 +1,5 @@
 import * as Location from "expo-location"
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
 const LOCATION_CACHE_KEY = '@user_location_cache'
@@ -11,7 +11,7 @@ const useLocation = () => {
     const [result, setResult] = useState({})
     const [loading, setLoading] = useState(true)
 
-    const getCachedLocation = async () => {
+    const getCachedLocation = useCallback(async () => {
         try {
             const cached = await AsyncStorage.getItem(LOCATION_CACHE_KEY)
             if (cached) {
@@ -26,9 +26,9 @@ const useLocation = () => {
             console.log("Error reading cached location:", error)
         }
         return false
-    }
+    }, [])
 
-    const cacheLocation = async (lat: number, lon: number, locationResult: any) => {
+    const cacheLocation = useCallback(async (lat: number, lon: number, locationResult: any) => {
         try {
             const cacheData = {
                 latitude: lat,
@@ -41,9 +41,9 @@ const useLocation = () => {
         } catch (error) {
             console.log("Error caching location:", error)
         }
-    }
+    }, [])
 
-    const getUserLocation = async () => {
+    const getUserLocation = useCallback(async () => {
         try {
             setLoading(true)
             
@@ -98,11 +98,11 @@ const useLocation = () => {
         } finally {
             setLoading(false)
         }
-    }
+    }, [cacheLocation, getCachedLocation])
     
     useEffect(() => {
         getUserLocation()
-    }, [])
+    }, [getUserLocation])
     
   return {result, error, latitude, longitude, loading}
 }

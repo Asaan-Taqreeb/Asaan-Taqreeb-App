@@ -1,5 +1,5 @@
 import { AUTH_ENDPOINTS } from '@/app/_constants/apiEndpoints'
-import { clearAuthTokens, getRefreshToken, saveAuthTokens } from '@/app/_utils/authStorage'
+import { clearAuthTokens, saveAuthTokens } from '@/app/_utils/authStorage'
 import { apiFetch, apiFetchJson } from '@/app/_utils/apiClient'
 
 type LoginParams = {
@@ -12,6 +12,10 @@ type SignupParams = {
   email: string
   password: string
   role: 'client' | 'vendor'
+}
+
+type ForgotPasswordParams = {
+  email: string
 }
 
 export type AppRole = 'client' | 'vendor'
@@ -94,6 +98,24 @@ export const registerUser = async (params: SignupParams) => {
   )
 
   console.log('Register API response:', response)
+  await saveTokensFromResponse(response)
+  return response
+}
+
+export const forgotPassword = async (params: ForgotPasswordParams) => {
+  const response = await apiFetchJson<any>(
+    AUTH_ENDPOINTS.forgotPassword,
+    {
+      method: 'POST',
+      auth: false,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    },
+    'Unable to process forgot password request.'
+  )
+
   return response
 }
 
@@ -103,6 +125,7 @@ export const getCurrentUser = async () => {
     {
       method: 'GET',
       auth: true,
+      timeout: 120000,
     },
     'Failed to load user profile.'
   )
@@ -112,17 +135,18 @@ export const getCurrentUser = async () => {
 
 export const logoutUser = async () => {
   try {
-    const refreshToken = await getRefreshToken()
-
     await apiFetch(AUTH_ENDPOINTS.logout, {
       method: 'POST',
-      auth: false,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ refreshToken }),
+      auth: true,
     })
+  } catch (error) {
+    // Local logout must still succeed even if server-side logout fails.
+    console.log('Logout API request failed:', error)
   } finally {
     await clearAuthTokens()
   }
+}
+
+export default function AuthApiRouteStub() {
+  return null
 }

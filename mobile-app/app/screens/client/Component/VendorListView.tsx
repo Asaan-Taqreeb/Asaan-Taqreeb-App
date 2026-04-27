@@ -2,18 +2,19 @@ import { FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View } from '
 import React, { useEffect, useMemo, useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ArrowLeft, MapPin, Star, Users } from 'lucide-react-native'
-import MockData from './mockData/VendorsMockData'
 import { router, useLocalSearchParams } from 'expo-router'
 import SearchBar from './SearchBar'
-import CategoryData from './mockData/CategoryData'
 import FilterComponent from './FilterComponent'
 import { Colors, Shadows, Spacing } from '@/app/_constants/theme'
+import { getAllServices, ServiceListItem } from '@/app/_utils/servicesApi'
+import { buildClientCategoryCards } from './categoryConfig'
 
 export default function VendorListView() {
     const insets = useSafeAreaInsets()
-    const mockData = MockData
-    const categoryData = CategoryData
     const params = useLocalSearchParams<{ query?: string; category?: string }>()
+  const [vendors, setVendors] = useState<ServiceListItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
     const [query, setQuery] = useState("")
     const [selectedCategory, setSelectedCategory] = useState("all")
@@ -47,6 +48,37 @@ export default function VendorListView() {
       }
     }, [params.query, params.category])
 
+    useEffect(() => {
+      let mounted = true
+
+      const loadServices = async () => {
+        try {
+          setLoading(true)
+          setError(null)
+          const services = await getAllServices()
+          if (mounted) {
+            setVendors(services)
+          }
+        } catch (apiError: any) {
+          if (mounted) {
+            setError(apiError?.message || 'Failed to load services')
+          }
+        } finally {
+          if (mounted) {
+            setLoading(false)
+          }
+        }
+      }
+
+      loadServices()
+
+      return () => {
+        mounted = false
+      }
+    }, [])
+
+    const categoryData = useMemo(() => buildClientCategoryCards(vendors), [vendors])
+
     const filteredData = useMemo(() => {
       const normalizedQuery = query.trim().toLowerCase()
       const normalizedLocation = filters.location.trim().toLowerCase()
@@ -66,7 +98,7 @@ export default function VendorListView() {
       console.log('maxPrice:', hasMaxPrice ? maxPriceNumber : 'none')
       console.log('minRating:', filters.minRating)
 
-      const filtered = mockData.filter((item) => {
+      const filtered = vendors.filter((item) => {
         const matchesCategory =
           selectedCategory === "all" || item.key === selectedCategory
 
@@ -116,11 +148,11 @@ export default function VendorListView() {
         return passes
       })
 
-      console.log(`Filtered ${filtered.length} out of ${mockData.length} vendors`)
+      console.log(`Filtered ${filtered.length} out of ${vendors.length} vendors`)
       console.log('===================')
 
       return filtered
-    }, [mockData, query, selectedCategory, filters])
+    }, [vendors, query, selectedCategory, filters])
 
   return (
     <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}>
@@ -200,6 +232,16 @@ export default function VendorListView() {
           )}
         </View>
         <ScrollView className='flex-1' style={{marginTop: Spacing.md}}>
+          {loading && (
+            <View className='px-5 py-2'>
+              <Text className='text-sm font-medium' style={{color: Colors.textSecondary}}>Loading vendors...</Text>
+            </View>
+          )}
+          {error && !loading && (
+            <View className='px-5 py-2'>
+              <Text className='text-sm font-medium' style={{color: Colors.error}}>{error}</Text>
+            </View>
+          )}
           {filteredData.length === 0 ? (
             <View className='flex-1 items-center justify-center py-20'>
               <Text className='text-xl font-bold mb-2' style={{color: Colors.textSecondary}}>No vendors found</Text>

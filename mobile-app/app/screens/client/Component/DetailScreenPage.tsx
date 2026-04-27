@@ -1,8 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router'
 import { CircleAlert, Dot, MapPin, Star, Circle, ChevronLeft, ChevronRight, X, ArrowLeft, Plus, MessageCircle } from 'lucide-react-native'
 import { useState } from 'react'
-import { Dimensions, ScrollView, Modal, TextInput } from 'react-native'
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Dimensions, ScrollView, Modal, TextInput , Image, Pressable, StyleSheet, Text, View, KeyboardAvoidingView, Platform } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors, getCategoryColor, Shadows, Spacing } from '@/app/_constants/theme'
 
@@ -11,6 +10,7 @@ export default function DetailScreenPage() {
     const params = useLocalSearchParams()
     const [expandedPackages, setExpandedPackages] = useState<{[key: number]: boolean}>({})
     const [selectedGuestCount, setSelectedGuestCount] = useState<number | null>(null)
+    const [guestCountInput, setGuestCountInput] = useState('')
     const [showCustomPackage, setShowCustomPackage] = useState(false)
     const [customPackageName, setCustomPackageName] = useState('')
     const [customPackagePrice, setCustomPackagePrice] = useState('')
@@ -29,10 +29,87 @@ export default function DetailScreenPage() {
     if (params.vendor) {
         try {
             vendor = JSON.parse(params.vendor as string)
-        } catch (e) {
+        } catch {
             vendor = null
         }
     }
+
+    const toPositiveNumber = (value: any) => {
+        const parsed = Number(value)
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+    }
+
+    const setGuestCount = (value: string) => {
+        const normalized = value.replace(/[^0-9]/g, '')
+        setGuestCountInput(normalized)
+        setSelectedGuestCount(normalized ? Number(normalized) : null)
+    }
+
+    const formatGuestCapacity = () => {
+        const min = toPositiveNumber(vendor?.minGuests)
+        const max = toPositiveNumber(vendor?.maxGuests)
+
+        if (min && max && max >= min) {
+            return `${min.toLocaleString()} - ${max.toLocaleString()} guests`
+        }
+
+        if (min) {
+            return `${min.toLocaleString()}+ guests`
+        }
+
+        if (max) {
+            return `Up to ${max.toLocaleString()} guests`
+        }
+
+        return 'Guest capacity not specified'
+    }
+
+    const buildGuestOptions = (packageDefaults: number[] = []) => {
+        const min = toPositiveNumber(vendor?.minGuests)
+        const max = toPositiveNumber(vendor?.maxGuests)
+
+        if (min && max && max >= min) {
+            const midpoint = Math.round((min + max) / 2)
+            const options = [min, midpoint, max].filter((value, index, array) => array.indexOf(value) === index)
+            return options.sort((a, b) => a - b)
+        }
+
+        if (packageDefaults.length > 0) {
+            return Array.from(new Set(packageDefaults.filter((value) => Number.isFinite(value) && value > 0))).sort((a, b) => a - b)
+        }
+
+        return []
+    }
+
+    const packageGuestDefaults = vendor?.packages
+        ? vendor.packages
+            .map((pkg: any) => toPositiveNumber(pkg?.guestCount))
+            .filter((value: number | null): value is number => Boolean(value))
+        : []
+
+    const banquetGuestOptions = buildGuestOptions(packageGuestDefaults)
+    const cateringGuestOptions = buildGuestOptions(packageGuestDefaults)
+
+    const renderGuestCountInput = () => (
+        <View className='mt-5'>
+            <Text className='text-lg font-extrabold mb-3' style={{color: Colors.textPrimary}}>Write Guest Count</Text>
+            <View className='rounded-2xl px-4 py-4 flex-row items-center' style={[{backgroundColor: Colors.white, borderWidth: 2, borderColor: Colors.border}, Shadows.medium]}>
+                <TextInput
+                    value={guestCountInput}
+                    onChangeText={setGuestCount}
+                    placeholder='Enter exact guest count'
+                    placeholderTextColor={Colors.textTertiary}
+                    keyboardType='number-pad'
+                    className='flex-1 text-base font-semibold'
+                    style={{color: Colors.textPrimary}}
+                    maxLength={4}
+                />
+            </View>
+            <Text className='text-xs font-medium mt-2' style={{color: Colors.textSecondary}}>
+                You can type the exact number instead of choosing from the suggestions below.
+            </Text>
+        </View>
+    )
 
     const imageUrls = vendor?.images?.length ? vendor.images : []
     const safeImageIndex = imageUrls.length ? Math.min(currentImageIndex, imageUrls.length - 1) : 0
@@ -60,7 +137,11 @@ export default function DetailScreenPage() {
 
 
   return (
-    <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}>
+    <KeyboardAvoidingView
+        style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={insets.top}
+    > 
         <View className='flex-row items-center gap-4 px-5 py-4' style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
             <Pressable className='rounded-full p-2 active:opacity-70' style={{backgroundColor: Colors.lightGray}} onPress={() => router.push("/screens/client/Component/VendorListView")}>
                 <ArrowLeft color={categoryColor} size={24} />
@@ -168,51 +249,70 @@ export default function DetailScreenPage() {
                         <View className='flex-row gap-3'>
                             <View className='flex-1 py-4 px-3 rounded-2xl' style={[{backgroundColor: Colors.white}, Shadows.medium]}>
                                 <Text className='text-xs font-bold text-center mb-1' style={{color: Colors.textSecondary}}>MINIMUM</Text>
-                                <Text className='text-center text-2xl font-extrabold my-2' style={{color: categoryColor}}>{vendor.minGuests}</Text>
+                                <Text className='text-center text-2xl font-extrabold my-2' style={{color: categoryColor}}>{vendor.minGuests ?? '—'}</Text>
                                 <Text className='text-center text-xs font-medium' style={{color: Colors.textSecondary}}>Guests</Text>
                             </View>
                             <View className='flex-1 py-4 px-3 rounded-2xl' style={[{backgroundColor: Colors.white}, Shadows.medium]}>
                                 <Text className='text-xs font-bold text-center mb-1' style={{color: Colors.textSecondary}}>MAXIMUM</Text>
-                                <Text className='text-center text-2xl font-extrabold my-2' style={{color: categoryColor}}>{vendor.maxGuests}</Text>
+                                <Text className='text-center text-2xl font-extrabold my-2' style={{color: categoryColor}}>{vendor.maxGuests ?? '—'}</Text>
                                 <Text className='text-center text-xs font-medium' style={{color: Colors.textSecondary}}>Guests</Text>
                             </View>
                         </View>
 
+                        {renderGuestCountInput()}
+
                         {/* Guest Count Selection */}
-                        <View className='mt-5'>
-                            <Text className='text-lg font-extrabold mb-3' style={{color: Colors.textPrimary}}>Select Guest Count</Text>
-                            <View className='flex-row flex-wrap gap-2'>
-                                {[200, 300, 400, 500].map((count) => (
-                                    <Pressable
-                                        key={count}
-                                        className='flex-1 py-3 px-4 rounded-xl min-w-max active:opacity-80'
-                                        style={{backgroundColor: selectedGuestCount === count ? categoryColor : Colors.lightGray}}
-                                        onPress={() => setSelectedGuestCount(count)}
-                                    >
-                                        <Text className='text-center font-bold text-sm' style={{color: selectedGuestCount === count ? Colors.white : Colors.textPrimary}}>{count}</Text>
-                                    </Pressable>
-                                ))}
+                        {banquetGuestOptions.length > 0 ? (
+                            <View className='mt-5'>
+                                <Text className='text-lg font-extrabold mb-3' style={{color: Colors.textPrimary}}>Quick Select</Text>
+                                <View className='flex-row flex-wrap gap-2'>
+                                    {banquetGuestOptions.map((count) => (
+                                        <Pressable
+                                            key={count}
+                                            className='flex-1 py-3 px-4 rounded-xl min-w-max active:opacity-80'
+                                            style={{backgroundColor: selectedGuestCount === count ? categoryColor : Colors.lightGray}}
+                                            onPress={() => setGuestCount(String(count))}
+                                        >
+                                            <Text className='text-center font-bold text-sm' style={{color: selectedGuestCount === count ? Colors.white : Colors.textPrimary}}>{count}</Text>
+                                        </Pressable>
+                                    ))}
+                                </View>
                             </View>
-                        </View>
+                        ) : (
+                            <View className='mt-5 rounded-xl p-4' style={{backgroundColor: '#fef3c7', borderWidth: 1, borderColor: '#fcd34d'}}>
+                                <Text className='text-sm font-bold text-center' style={{color: Colors.warning}}>
+                                    Guest capacity is not available for this vendor.
+                                </Text>
+                            </View>
+                        )}
                     </View>
                 )}
 
                 {/* Catering Guest Count Selection */}
                 {vendor.category === "catering" && (
                     <View className='px-5 mb-5'>
-                        <Text className='text-lg font-extrabold mb-3' style={{color: Colors.textPrimary}}>Select Guest Count</Text>
-                        <View className='flex-row flex-wrap gap-2'>
-                            {[50, 100, 150, 200, 300, 500].map((count) => (
-                                <Pressable
-                                    key={count}
-                                    className='py-3 px-4 rounded-xl min-w-max active:opacity-80'
-                                    style={{backgroundColor: selectedGuestCount === count ? categoryColor : Colors.lightGray, flex: 1}}
-                                    onPress={() => setSelectedGuestCount(count)}
-                                >
-                                    <Text className='text-center font-bold text-sm' style={{color: selectedGuestCount === count ? Colors.white : Colors.textPrimary}}>{count}</Text>
-                                </Pressable>
-                            ))}
-                        </View>
+                        {renderGuestCountInput()}
+                        <Text className='text-lg font-extrabold mb-3 mt-5' style={{color: Colors.textPrimary}}>Quick Select</Text>
+                        {cateringGuestOptions.length > 0 ? (
+                            <View className='flex-row flex-wrap gap-2'>
+                                {cateringGuestOptions.map((count) => (
+                                    <Pressable
+                                        key={count}
+                                        className='py-3 px-4 rounded-xl min-w-max active:opacity-80'
+                                        style={{backgroundColor: selectedGuestCount === count ? categoryColor : Colors.lightGray, flex: 1}}
+                                        onPress={() => setGuestCount(String(count))}
+                                    >
+                                        <Text className='text-center font-bold text-sm' style={{color: selectedGuestCount === count ? Colors.white : Colors.textPrimary}}>{count}</Text>
+                                    </Pressable>
+                                ))}
+                            </View>
+                        ) : (
+                            <View className='rounded-xl p-4' style={{backgroundColor: '#fef3c7', borderWidth: 1, borderColor: '#fcd34d'}}>
+                                <Text className='text-sm font-bold text-center' style={{color: Colors.warning}}>
+                                    Guest count is not available for this vendor.
+                                </Text>
+                            </View>
+                        )}
                     </View>
                 )}
 
@@ -326,6 +426,8 @@ export default function DetailScreenPage() {
                                     style={{backgroundColor: categoryColor}}
                                     onPress={() => {
                                         const bookingData = {
+                                            serviceId: vendor.serviceId || vendor.id,
+                                            vendorId: vendor.vendorId,
                                             category: vendor.category,
                                             packageName: pkg.packageName,
                                             price: (vendor.category === 'catering' || vendor.category === 'banquet') 
@@ -333,7 +435,8 @@ export default function DetailScreenPage() {
                                                 : pkg.price,
                                             guestCount: selectedGuestCount,
                                             vendorName: vendor.name,
-                                            vendorLocation: vendor.location
+                                            vendorLocation: vendor.location,
+                                            optionalServices: vendor.optionalServices || []
                                         }
                                         router.push({
                                             pathname: "/screens/client/Component/BookingScreen",
@@ -446,13 +549,16 @@ export default function DetailScreenPage() {
                                 style={{backgroundColor: (!customPackageName || !customPackagePrice) ? Colors.borderDark : categoryColor}}
                                 onPress={() => {
                                     const customBookingData = {
+                                        serviceId: vendor.serviceId || vendor.id,
+                                        vendorId: vendor.vendorId,
                                         category: vendor.category,
                                         packageName: customPackageName,
                                         price: parseInt(customPackagePrice) * (selectedGuestCount || 1),
                                         guestCount: selectedGuestCount || 1,
                                         vendorName: vendor.name,
                                         vendorLocation: vendor.location,
-                                        isCustomPackage: true
+                                        isCustomPackage: true,
+                                        optionalServices: vendor.optionalServices || []
                                     }
                                     setShowCustomPackage(false)
                                     setCustomPackageName('')
@@ -498,7 +604,7 @@ export default function DetailScreenPage() {
         >
             <MessageCircle color={Colors.white} size={28} fill={Colors.white} />
         </Pressable>
-    </View>
+    </KeyboardAvoidingView>
   )
 }
 

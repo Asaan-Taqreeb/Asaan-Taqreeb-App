@@ -1,17 +1,55 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bell, DollarSign, CheckCircle, XCircle, Clock, ChevronRight, Plus, Calendar } from 'lucide-react-native';
 import { Colors, Shadows } from '@/app/_constants/theme';
-import { getOrderStats, getRecentOrders } from '../_mockData/OrdersData';
+import { getVendorBookings, type VendorOrderItem } from '@/app/_utils/bookingsApi';
 import OrderCard from '../Component/OrderCard';
 
 export default function VendorDashboardHome() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const stats = getOrderStats();
-  const recentOrders = getRecentOrders(3);
+  const [orders, setOrders] = React.useState<VendorOrderItem[]>([])
+  const [isLoading, setIsLoading] = React.useState(true)
+
+  const loadDashboard = React.useCallback(async () => {
+    try {
+      const data = await getVendorBookings()
+      setOrders(data)
+    } catch {
+      setOrders([])
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useFocusEffect(
+    React.useCallback(() => {
+      setIsLoading(true)
+      loadDashboard()
+    }, [loadDashboard])
+  )
+
+  const sortedOrders = React.useMemo(
+    () => [...orders].sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime()),
+    [orders]
+  )
+
+  const stats = React.useMemo(() => {
+    const totalOrders = orders.length
+    const acceptedOrders = orders.filter((order) => order.status === 'accepted').length
+    const rejectedOrders = orders.filter((order) => order.status === 'rejected').length
+    const pendingOrders = orders.filter((order) => order.status === 'pending').length
+    const totalRevenue = orders
+      .filter((order) => order.status === 'accepted')
+      .reduce((sum, order) => sum + Number(order.totalAmount || 0), 0)
+
+    return { totalOrders, acceptedOrders, rejectedOrders, pendingOrders, totalRevenue }
+  }, [orders])
+
+  const recentOrders = React.useMemo(() => sortedOrders.slice(0, 3), [sortedOrders])
 
   const StatCard = ({ icon: Icon, title, value, color, bgColor }: {
     icon: any;
@@ -51,7 +89,7 @@ export default function VendorDashboardHome() {
               Dashboard
             </Text>
             <Text className="text-sm text-gray-500 mt-1">
-              Welcome back! Here's your overview
+              Welcome back! Here&apos;s your overview
             </Text>
           </View>
           <TouchableOpacity
@@ -151,19 +189,28 @@ export default function VendorDashboardHome() {
             </TouchableOpacity>
           </View>
 
-          {recentOrders.map((order) => (
-            <OrderCard
-              key={order.id}
-              order={order}
-              onPress={() => {
-                // Navigate to order detail
-                router.push({
-                  pathname: '/screens/vendor/Component/OrderDetailScreen',
-                  params: { orderId: order.id }
-                });
-              }}
-            />
-          ))}
+          {isLoading ? (
+            <View className="bg-white rounded-2xl p-4" style={Shadows.small}>
+              <Text className="text-sm text-gray-500">Loading recent orders...</Text>
+            </View>
+          ) : recentOrders.length === 0 ? (
+            <View className="bg-white rounded-2xl p-4" style={Shadows.small}>
+              <Text className="text-sm text-gray-500">No orders yet.</Text>
+            </View>
+          ) : (
+            recentOrders.map((order) => (
+              <OrderCard
+                key={order.id}
+                order={order}
+                onPress={() => {
+                  router.push({
+                    pathname: '/screens/vendor/Component/OrderDetailScreen',
+                    params: { orderId: order.id, order: JSON.stringify(order) }
+                  });
+                }}
+              />
+            ))
+          )}
         </View>
 
         {/* Quick Actions */}

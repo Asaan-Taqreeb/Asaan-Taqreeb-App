@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router'
 import { ArrowLeft, Send } from 'lucide-react-native'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors, getCategoryColor } from '@/app/_constants/theme'
@@ -18,7 +18,7 @@ export default function VendorChatScreen() {
     if (params.vendor) {
         try {
             vendor = JSON.parse(params.vendor as string)
-        } catch (e) {
+        } catch {
             vendor = null
         }
     }
@@ -30,11 +30,7 @@ export default function VendorChatScreen() {
     const chatId = `vendor-${vendorName.toLowerCase().replace(/\s+/g, '-')}`
 
     // Load chat history on mount
-    useEffect(() => {
-        loadChatHistory()
-    }, [])
-
-    const loadChatHistory = async () => {
+    const loadChatHistory = useCallback(async () => {
         const chat = await getChatById(chatId)
         if (chat && chat.messages.length > 0) {
             setMessages(chat.messages)
@@ -56,7 +52,11 @@ export default function VendorChatScreen() {
             })
         }
         setIsLoading(false)
-    }
+    }, [chatId, vendorCategory, vendorLocation, vendorName])
+
+    useEffect(() => {
+        loadChatHistory()
+    }, [loadChatHistory])
 
     useEffect(() => {
         if (!isLoading) {

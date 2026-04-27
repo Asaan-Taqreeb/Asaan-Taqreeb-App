@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { ArrowLeft, Sparkles, Plus, Trash2, X } from "lucide-react-native";
 import { Colors, Shadows } from "@/app/_constants/theme";
 import { useState } from "react";
+import { createVendorService } from '@/app/_utils/servicesApi'
 
 interface Package {
   id: string;
@@ -97,7 +98,7 @@ export default function ParlorServiceForm() {
     ));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Validation
     if (!placeName.trim()) {
       Alert.alert("Error", "Please enter your salon/parlor name");
@@ -143,10 +144,19 @@ export default function ParlorServiceForm() {
         }))
     };
 
-    console.log("Form Data:", formData);
-    Alert.alert("Success", "Parlor/Salon service details saved! You can now view this from your dashboard.", [
-      { text: "OK", onPress: () => router.replace('/screens/vendor/_tabs/VendorDashboardHome') }
-    ]);
+    try {
+      await createVendorService({
+        category: 'parlor',
+        serviceType: 'parlor',
+        ...formData,
+      })
+
+      Alert.alert("Success", "Parlor/Salon service created successfully.", [
+        { text: "OK", onPress: () => router.replace('/screens/vendor/_tabs/VendorDashboardHome') }
+      ])
+    } catch (error: any) {
+      Alert.alert('Failed', error?.message || 'Unable to create service. Please try again.')
+    }
   };
 
   return (

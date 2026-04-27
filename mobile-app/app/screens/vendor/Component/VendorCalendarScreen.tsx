@@ -1,9 +1,11 @@
-import { View, Text, ScrollView, Pressable, StyleSheet, Modal } from 'react-native'
-import { useState } from 'react'
+import { View, Text, ScrollView, Pressable, StyleSheet, Modal, Alert, TextInput } from 'react-native'
+import { useEffect, useMemo, useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ChevronLeft, ChevronRight, Calendar, Lock, CheckCircle, X, Clock, Users, MapPin } from 'lucide-react-native'
-import { Colors, Shadows, Spacing } from '@/app/_constants/theme'
-import { router } from 'expo-router'
+import { Colors, Shadows } from '@/app/_constants/theme'
+import { blockDateForVendor, getVendorAvailability, unblockDateForVendor, type VendorAvailabilityDay } from '@/app/_utils/availabilityApi'
+import { getVendorBookings } from '@/app/_utils/bookingsApi'
+import { useUser } from '@/app/_context/UserContext'
 
 interface BookingDetail {
   id: number
@@ -27,74 +29,112 @@ interface DayData {
 
 export default function VendorCalendarScreen() {
   const insets = useSafeAreaInsets()
+  const { user } = useUser()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [showBookingModal, setShowBookingModal] = useState(false)
-  
-  // Mock blocked dates (will come from backend)
-  const [blockedDates, setBlockedDates] = useState<string[]>([
-    '2026-02-20', '2026-02-27', '2026-03-05'
-  ])
-
-  // Mock bookings (will come from backend)
-  const mockBookings: Record<string, BookingDetail[]> = {
-    '2026-02-15': [
-      {
-        id: 1,
-        clientName: 'Ahmed Khan',
-        packageName: 'Premium Gold Package',
-        time: '7:00 PM - 11:00 PM',
-        guests: 500,
-        status: 'confirmed',
-        amount: 450000
-      }
-    ],
-    '2026-02-20': [
-      {
-        id: 2,
-        clientName: 'Sara Ali',
-        packageName: 'Silver Package',
-        time: '6:00 PM - 10:00 PM',
-        guests: 300,
-        status: 'confirmed',
-        amount: 280000
-      }
-    ],
-    '2026-02-22': [
-      {
-        id: 3,
-        clientName: 'Hassan Raza',
-        packageName: 'Executive Menu',
-        time: '5:00 PM - 9:00 PM',
-        location: 'Pearl Continental, Lahore',
-        status: 'pending',
-        amount: 320000
-      },
-      {
-        id: 4,
-        clientName: 'Fatima Malik',
-        packageName: 'Bridal Deluxe',
-        time: '10:00 AM - 2:00 PM',
-        status: 'confirmed',
-        amount: 45000
-      }
-    ],
-    '2026-03-05': [
-      {
-        id: 5,
-        clientName: 'Bilal Ahmed',
-        packageName: 'Platinum Coverage',
-        time: '3:00 PM - 10:00 PM',
-        location: 'Beach View Park, Karachi',
-        status: 'confirmed',
-        amount: 85000
-      }
-    ]
-  }
+  const [showBlockModal, setShowBlockModal] = useState(false)
+  const [manageDateString, setManageDateString] = useState('')
+  const [blockFromHour, setBlockFromHour] = useState('10')
+  const [blockFromMinute, setBlockFromMinute] = useState('00')
+  const [blockFromPeriod, setBlockFromPeriod] = useState<'AM' | 'PM'>('AM')
+  const [blockToHour, setBlockToHour] = useState('05')
+  const [blockToMinute, setBlockToMinute] = useState('00')
+  const [blockToPeriod, setBlockToPeriod] = useState<'AM' | 'PM'>('PM')
+  const [blockReason, setBlockReason] = useState('Blocked by vendor')
+  const [isSubmittingBlock, setIsSubmittingBlock] = useState(false)
+  const [availabilityDays, setAvailabilityDays] = useState<VendorAvailabilityDay[]>([])
+  const [bookingsByDate, setBookingsByDate] = useState<Record<string, BookingDetail[]>>({})
+  const [isLoading, setIsLoading] = useState(false)
 
   const monthNames = ["January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
   ]
+
+  const blockedDateSet = useMemo(() => {
+    return new Set(availabilityDays.filter((day) => day.isBlocked).map((day) => day.date))
+  }, [availabilityDays])
+
+  const blockedSlotsByDate = useMemo(() => {
+    return availabilityDays.reduce<Record<string, VendorAvailabilityDay[]>>((acc, day) => {
+      if (!day.isBlocked) return acc
+      if (!acc[day.date]) acc[day.date] = []
+      acc[day.date].push(day)
+      return acc
+    }, {})
+  }, [availabilityDays])
+
+  const toDateString = (day: DayData) => {
+    return `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day.date).padStart(2, '0')}`
+  }
+
+  useEffect(() => {
+    let mounted = true
+
+    const loadCalendarData = async () => {
+      if (!user?.id) {
+        if (mounted) {
+          setAvailabilityDays([])
+          setBookingsByDate({})
+        }
+        return
+      }
+
+      try {
+        if (mounted) setIsLoading(true)
+
+        const year = currentDate.getFullYear()
+        const month = currentDate.getMonth()
+        const from = new Date(year, month, 1).toISOString().slice(0, 10)
+        const to = new Date(year, month + 1, 0).toISOString().slice(0, 10)
+
+        const [availability, vendorBookings] = await Promise.all([
+          getVendorAvailability(user.id, from, to),
+          getVendorBookings(),
+        ])
+
+        if (!mounted) return
+
+        setAvailabilityDays(availability)
+
+        const normalizedBookings = vendorBookings.reduce<Record<string, BookingDetail[]>>((acc, booking, index) => {
+          const date = String(booking.eventDate || '').slice(0, 10)
+          if (!date) return acc
+
+          if (!acc[date]) acc[date] = []
+
+          acc[date].push({
+            id: index + 1,
+            clientName: booking.customerName,
+            packageName: booking.packageName,
+            time: booking.eventTime,
+            guests: booking.guestCount,
+            location: undefined,
+            status: booking.status === 'pending' ? 'pending' : 'confirmed',
+            amount: booking.totalAmount,
+          })
+
+          return acc
+        }, {})
+
+        setBookingsByDate(normalizedBookings)
+      } catch (error) {
+        console.log('Failed to load calendar data:', error)
+        if (mounted) {
+          setAvailabilityDays([])
+          setBookingsByDate({})
+        }
+      } finally {
+        if (mounted) setIsLoading(false)
+      }
+    }
+
+    loadCalendarData()
+
+    return () => {
+      mounted = false
+    }
+  }, [currentDate, user?.id])
 
   const getDaysInMonth = (date: Date): DayData[] => {
     const year = date.getFullYear()
@@ -126,14 +166,14 @@ export default function VendorCalendarScreen() {
     for (let i = 1; i <= daysInMonth; i++) {
       const dateObj = new Date(year, month, i)
       const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`
-      const bookings = mockBookings[dateString] || []
+      const bookings = bookingsByDate[dateString] || []
       
       days.push({
         date: i,
         isCurrentMonth: true,
         isToday: dateObj.getTime() === today.getTime(),
         isBooked: bookings.length > 0,
-        isBlocked: blockedDates.includes(dateString),
+        isBlocked: blockedDateSet.has(dateString),
         bookings
       })
     }
@@ -173,15 +213,107 @@ export default function VendorCalendarScreen() {
     }
   }
 
-  const toggleBlockDate = (day: DayData) => {
+  const isValidTime = (value: string) => /^([01]\d|2[0-3]):([0-5]\d)$/.test(value)
+
+  const toTwentyFourHour = (value: string, period: 'AM' | 'PM') => {
+    const [hourRaw, minuteRaw] = String(value || '').split(':')
+    const hour = Number(hourRaw)
+    const minute = Number(minuteRaw)
+
+    if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null
+    if (hour < 1 || hour > 12 || minute < 0 || minute > 59) return null
+
+    let normalizedHour = hour % 12
+    if (period === 'PM') normalizedHour += 12
+    return `${String(normalizedHour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+  }
+
+  const openBlockManager = (day: DayData) => {
     if (!day.isCurrentMonth || day.isBooked) return
-    
-    const dateString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day.date).padStart(2, '0')}`
-    
-    if (blockedDates.includes(dateString)) {
-      setBlockedDates(blockedDates.filter(d => d !== dateString))
-    } else {
-      setBlockedDates([...blockedDates, dateString])
+
+    const dateString = toDateString(day)
+    setManageDateString(dateString)
+    setBlockFromHour('10')
+    setBlockFromMinute('00')
+    setBlockFromPeriod('AM')
+    setBlockToHour('05')
+    setBlockToMinute('00')
+    setBlockToPeriod('PM')
+    setBlockReason('Blocked by vendor')
+    setShowBlockModal(true)
+  }
+
+  const handleBlockWithTime = async () => {
+    if (!manageDateString || isSubmittingBlock) return
+
+    const from24 = toTwentyFourHour(`${blockFromHour}:${blockFromMinute}`, blockFromPeriod)
+    const to24 = toTwentyFourHour(`${blockToHour}:${blockToMinute}`, blockToPeriod)
+
+    if (!from24 || !to24) {
+      Alert.alert('Invalid Time', 'Use 12-hour time values like 09:30 with AM or PM selected.')
+      return
+    }
+
+    if (!isValidTime(from24) || !isValidTime(to24)) {
+      Alert.alert('Invalid Time', 'Please enter valid times.')
+      return
+    }
+
+    if (from24 >= to24) {
+      Alert.alert('Invalid Range', 'End time must be later than start time.')
+      return
+    }
+
+    try {
+      setIsSubmittingBlock(true)
+      const success = await blockDateForVendor(manageDateString, {
+        vendorId: user?.id,
+        reason: blockReason.trim() || 'Blocked by vendor',
+        timeSlot: { from: from24, to: to24 },
+      })
+
+      if (!success) return
+
+      setAvailabilityDays((prev) => {
+        const next = prev.filter((item) => {
+          const sameDate = item.date === manageDateString
+          const sameTime = item.timeSlot?.from === from24 && item.timeSlot?.to === to24
+          return !(sameDate && sameTime)
+        })
+
+        next.push({
+          date: manageDateString,
+          isBlocked: true,
+          isBooked: false,
+          reason: blockReason.trim() || 'Blocked by vendor',
+          timeSlot: { from: from24, to: to24 },
+        })
+
+        return next
+      })
+
+      setShowBlockModal(false)
+    } catch (error: any) {
+      Alert.alert('Failed', error?.message || 'Unable to block this time slot.')
+    } finally {
+      setIsSubmittingBlock(false)
+    }
+  }
+
+  const handleUnblockDate = async () => {
+    if (!manageDateString || isSubmittingBlock) return
+
+    try {
+      setIsSubmittingBlock(true)
+      const success = await unblockDateForVendor(manageDateString, { vendorId: user?.id })
+      if (!success) return
+
+      setAvailabilityDays((prev) => prev.filter((item) => item.date !== manageDateString))
+      setShowBlockModal(false)
+    } catch (error: any) {
+      Alert.alert('Failed', error?.message || 'Unable to unblock this date.')
+    } finally {
+      setIsSubmittingBlock(false)
     }
   }
 
@@ -224,6 +356,12 @@ export default function VendorCalendarScreen() {
             <ChevronRight size={24} color={Colors.textPrimary} />
           </Pressable>
         </View>
+
+        {isLoading && (
+          <View className='px-5 pb-2'>
+            <Text className='text-xs font-semibold' style={{color: Colors.textSecondary}}>Refreshing availability...</Text>
+          </View>
+        )}
 
         {/* Legend */}
         <View className='px-5 pb-3 flex-row flex-wrap gap-3'>
@@ -272,7 +410,7 @@ export default function VendorCalendarScreen() {
                       }
                     ]}
                     onPress={() => handleDatePress(day)}
-                    onLongPress={() => toggleBlockDate(day)}
+                    onLongPress={() => openBlockManager(day)}
                     disabled={!day.isCurrentMonth}
                   >
                     <View className='w-full h-full items-center justify-center p-1'>
@@ -336,10 +474,10 @@ export default function VendorCalendarScreen() {
               • <Text className='font-bold'>Tap</Text> on a date to view bookings
             </Text>
             <Text className='text-sm font-medium leading-relaxed mb-1' style={{color: Colors.textSecondary}}>
-              • <Text className='font-bold'>Long press</Text> on empty dates to block/unblock
+              • <Text className='font-bold'>Long press</Text> on empty dates to manage blocked time slots
             </Text>
             <Text className='text-sm font-medium leading-relaxed' style={{color: Colors.textSecondary}}>
-              • Blocked dates won't be available for client bookings
+              • Blocked dates won&apos;t be available for client bookings
             </Text>
           </View>
         </View>
@@ -352,7 +490,7 @@ export default function VendorCalendarScreen() {
               <View className='flex-row items-center justify-between mb-1'>
                 <CheckCircle size={20} color={Colors.success} />
                 <Text className='text-2xl font-extrabold' style={{color: Colors.success}}>
-                  {Object.keys(mockBookings).filter(date => date.startsWith('2026-02')).length}
+                  {Object.keys(bookingsByDate).filter(date => date.startsWith(`${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`)).length}
                 </Text>
               </View>
               <Text className='text-xs font-medium' style={{color: Colors.textSecondary}}>Bookings</Text>
@@ -362,7 +500,7 @@ export default function VendorCalendarScreen() {
               <View className='flex-row items-center justify-between mb-1'>
                 <Lock size={20} color={Colors.error} />
                 <Text className='text-2xl font-extrabold' style={{color: Colors.error}}>
-                  {blockedDates.filter(date => date.startsWith('2026-02')).length}
+                  {Array.from(blockedDateSet).filter(date => date.startsWith(`${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`)).length}
                 </Text>
               </View>
               <Text className='text-xs font-medium' style={{color: Colors.textSecondary}}>Blocked Days</Text>
@@ -370,6 +508,155 @@ export default function VendorCalendarScreen() {
           </View>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={showBlockModal}
+        transparent={true}
+        animationType='slide'
+        onRequestClose={() => setShowBlockModal(false)}
+      >
+        <View className='flex-1 justify-end' style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
+          <View className='rounded-t-3xl p-5' style={{backgroundColor: Colors.white}}>
+            <View className='flex-row items-center justify-between mb-4'>
+              <View>
+                <Text className='text-xl font-extrabold' style={{color: Colors.textPrimary}}>Manage Availability</Text>
+                <Text className='text-sm font-medium mt-1' style={{color: Colors.textSecondary}}>{manageDateString}</Text>
+              </View>
+              <Pressable
+                className='p-2 rounded-full active:opacity-70'
+                style={{backgroundColor: Colors.lightGray}}
+                onPress={() => setShowBlockModal(false)}
+              >
+                <X size={22} color={Colors.textPrimary} />
+              </Pressable>
+            </View>
+
+            <View className='mb-3'>
+              <Text className='text-xs font-bold mb-2' style={{color: Colors.textSecondary}}>FROM</Text>
+              <View className='flex-row gap-2'>
+                <TextInput
+                  value={blockFromHour}
+                  onChangeText={setBlockFromHour}
+                  placeholder='10'
+                  className='flex-1 rounded-xl px-3 py-3'
+                  style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
+                  placeholderTextColor={Colors.textTertiary}
+                  keyboardType='numeric'
+                  maxLength={2}
+                />
+                <Text className='self-center text-lg font-extrabold' style={{color: Colors.textSecondary}}>:</Text>
+                <TextInput
+                  value={blockFromMinute}
+                  onChangeText={setBlockFromMinute}
+                  placeholder='00'
+                  className='w-20 rounded-xl px-3 py-3'
+                  style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
+                  placeholderTextColor={Colors.textTertiary}
+                  keyboardType='number-pad'
+                  maxLength={2}
+                />
+                <View className='w-24 flex-row gap-1'>
+                  {(['AM', 'PM'] as const).map((period) => (
+                    <Pressable
+                      key={`from-${period}`}
+                      onPress={() => setBlockFromPeriod(period)}
+                      className='flex-1 py-3 rounded-xl active:opacity-80 items-center justify-center'
+                      style={{backgroundColor: blockFromPeriod === period ? Colors.vendor : Colors.lightGray}}
+                    >
+                      <Text className='text-xs font-extrabold' style={{color: blockFromPeriod === period ? Colors.white : Colors.textPrimary}}>{period}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            </View>
+
+            <View className='mb-3'>
+              <Text className='text-xs font-bold mb-2' style={{color: Colors.textSecondary}}>TO</Text>
+              <View className='flex-row gap-2'>
+                <TextInput
+                  value={blockToHour}
+                  onChangeText={setBlockToHour}
+                  placeholder='05'
+                  className='flex-1 rounded-xl px-3 py-3'
+                  style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
+                  placeholderTextColor={Colors.textTertiary}
+                  keyboardType='numeric'
+                  maxLength={2}
+                />
+                <Text className='self-center text-lg font-extrabold' style={{color: Colors.textSecondary}}>:</Text>
+                <TextInput
+                  value={blockToMinute}
+                  onChangeText={setBlockToMinute}
+                  placeholder='00'
+                  className='w-20 rounded-xl px-3 py-3'
+                  style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
+                  placeholderTextColor={Colors.textTertiary}
+                  keyboardType='number-pad'
+                  maxLength={2}
+                />
+                <View className='w-24 flex-row gap-1'>
+                  {(['AM', 'PM'] as const).map((period) => (
+                    <Pressable
+                      key={`to-${period}`}
+                      onPress={() => setBlockToPeriod(period)}
+                      className='flex-1 py-3 rounded-xl active:opacity-80 items-center justify-center'
+                      style={{backgroundColor: blockToPeriod === period ? Colors.vendor : Colors.lightGray}}
+                    >
+                      <Text className='text-xs font-extrabold' style={{color: blockToPeriod === period ? Colors.white : Colors.textPrimary}}>{period}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            </View>
+
+            <View className='mb-4'>
+              <Text className='text-xs font-bold mb-2' style={{color: Colors.textSecondary}}>REASON</Text>
+              <TextInput
+                value={blockReason}
+                onChangeText={setBlockReason}
+                placeholder='Maintenance'
+                className='rounded-xl px-4 py-3'
+                style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
+                placeholderTextColor={Colors.textTertiary}
+              />
+            </View>
+
+            {!!blockedSlotsByDate[manageDateString]?.length && (
+              <View className='mb-4 rounded-xl p-3' style={{backgroundColor: Colors.lightGray}}>
+                <Text className='text-xs font-bold mb-2' style={{color: Colors.textSecondary}}>EXISTING BLOCKED SLOTS</Text>
+                {blockedSlotsByDate[manageDateString].map((entry, index) => (
+                  <Text key={`${entry.id || 'slot'}-${index}`} className='text-sm mb-1' style={{color: Colors.textPrimary}}>
+                    • {entry.timeSlot?.from || '00:00'} - {entry.timeSlot?.to || '23:59'} {entry.reason ? `(${entry.reason})` : ''}
+                  </Text>
+                ))}
+              </View>
+            )}
+
+            <View className='flex-row gap-3'>
+              <Pressable
+                className='flex-1 py-4 rounded-xl active:opacity-80 items-center'
+                style={{backgroundColor: Colors.error}}
+                onPress={handleUnblockDate}
+                disabled={isSubmittingBlock}
+              >
+                <Text className='text-sm font-extrabold' style={{color: Colors.white}}>
+                  {isSubmittingBlock ? 'Please wait...' : 'Unblock Date'}
+                </Text>
+              </Pressable>
+              <Pressable
+                className='flex-1 py-4 rounded-xl active:opacity-80 items-center'
+                style={{backgroundColor: Colors.vendor}}
+                onPress={handleBlockWithTime}
+                disabled={isSubmittingBlock}
+              >
+                <Text className='text-sm font-extrabold' style={{color: Colors.white}}>
+                  {isSubmittingBlock ? 'Please wait...' : 'Block Time'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Booking Details Modal */}
       <Modal

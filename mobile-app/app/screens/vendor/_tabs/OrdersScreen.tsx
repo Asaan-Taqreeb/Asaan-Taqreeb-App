@@ -1,22 +1,54 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Filter } from 'lucide-react-native';
 import { Colors } from '@/app/_constants/theme';
-import { mockOrders, getOrdersByStatus } from '../_mockData/OrdersData';
 import OrderCard from '../Component/OrderCard';
+import { getVendorBookings, VendorOrderItem } from '@/app/_utils/bookingsApi';
 
 export default function OrdersScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [selectedFilter, setSelectedFilter] = useState('all'); // all, pending, accepted, rejected
+  const [orders, setOrders] = useState<VendorOrderItem[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let mounted = true
+
+    const loadOrders = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+        const response = await getVendorBookings()
+        if (mounted) {
+          setOrders(response)
+        }
+      } catch (apiError: any) {
+        if (mounted) {
+          setError(apiError?.message || 'Failed to load orders')
+        }
+      } finally {
+        if (mounted) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    loadOrders()
+
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   const getFilteredOrders = () => {
     if (selectedFilter === 'all') {
-      return mockOrders;
+      return orders;
     }
-    return getOrdersByStatus(selectedFilter);
+    return orders.filter((order) => order.status === selectedFilter)
   };
 
   const filteredOrders = getFilteredOrders();
@@ -78,21 +110,21 @@ export default function OrdersScreen() {
           className="mt-4"
           contentContainerStyle={{ paddingRight: 20 }}
         >
-          <FilterButton label="All" value="all" count={mockOrders.length} />
+          <FilterButton label="All" value="all" count={orders.length} />
           <FilterButton
             label="Pending"
             value="pending"
-            count={getOrdersByStatus('pending').length}
+            count={orders.filter((order) => order.status === 'pending').length}
           />
           <FilterButton
             label="Accepted"
             value="accepted"
-            count={getOrdersByStatus('accepted').length}
+            count={orders.filter((order) => order.status === 'accepted').length}
           />
           <FilterButton
             label="Rejected"
             value="rejected"
-            count={getOrdersByStatus('rejected').length}
+            count={orders.filter((order) => order.status === 'rejected').length}
           />
         </ScrollView>
       </View>
@@ -103,6 +135,16 @@ export default function OrdersScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: 16, paddingBottom: 20 }}
       >
+        {isLoading && (
+          <Text className="text-sm mb-4" style={{ color: Colors.textSecondary }}>
+            Loading orders...
+          </Text>
+        )}
+        {error && !isLoading && (
+          <Text className="text-sm mb-4" style={{ color: Colors.error }}>
+            {error}
+          </Text>
+        )}
         {filteredOrders.length > 0 ? (
           filteredOrders.map((order) => (
             <OrderCard
@@ -111,7 +153,7 @@ export default function OrdersScreen() {
               onPress={() => {
                 router.push({
                   pathname: '/screens/vendor/Component/OrderDetailScreen',
-                  params: { orderId: order.id }
+                  params: { orderId: order.id, order: JSON.stringify(order) }
                 });
               }}
             />

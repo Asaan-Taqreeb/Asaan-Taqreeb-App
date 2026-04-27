@@ -1,10 +1,9 @@
 import { ScrollView, StyleSheet, Text, View, Pressable, Alert, RefreshControl } from 'react-native'
 import { useState, useEffect, useCallback } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useFocusEffect } from 'expo-router'
-import { router } from 'expo-router'
+import { useFocusEffect , router } from 'expo-router'
 import { MessageCircle, Bot, Trash2, MapPin } from 'lucide-react-native'
-import { Colors, getCategoryColor, Shadows } from '@/app/_constants/theme'
+import { Colors, getCategoryColor } from '@/app/_constants/theme'
 import { getAllChats, clearAllChats, deleteChat, ChatConversation } from '@/app/_utils/chatStorage'
 
 export default function MessagesScreen() {
