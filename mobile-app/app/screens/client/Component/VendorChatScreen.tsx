@@ -97,7 +97,14 @@ export default function VendorChatScreen() {
 
             try {
                 const savedMessage = await sendMessage(chatId, targetUserId, textToSend)
-                setMessages(prev => prev.map(m => m._id === optimisticMessage._id ? savedMessage : m))
+                setMessages(prev => {
+                    // If socket already added the real message, just remove the optimistic placeholder
+                    if (prev.some(m => m._id === savedMessage._id)) {
+                        return prev.filter(m => m._id !== optimisticMessage._id)
+                    }
+                    // Otherwise replace the optimistic with the saved message
+                    return prev.map(m => m._id === optimisticMessage._id ? savedMessage : m)
+                })
             } catch (error) {
                 console.error("Failed to send message", error)
                 import('react-native').then(({ Alert }) => Alert.alert('Error', 'Failed to send message. Please try again.'));

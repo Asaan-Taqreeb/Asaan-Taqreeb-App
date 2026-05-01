@@ -85,7 +85,13 @@ export default function ClientChatScreen() {
 
             try {
                 const savedMessage = await sendMessage(chatId, clientId, textToSend)
-                setMessages(prev => prev.map(m => m._id === optimisticMessage._id ? savedMessage : m))
+                setMessages(prev => {
+                    // If socket already added the real message, just remove the optimistic placeholder
+                    if (prev.some(m => m._id === savedMessage._id)) {
+                        return prev.filter(m => m._id !== optimisticMessage._id)
+                    }
+                    return prev.map(m => m._id === optimisticMessage._id ? savedMessage : m)
+                })
             } catch (error) {
                 console.error("Failed to send message", error)
             }
