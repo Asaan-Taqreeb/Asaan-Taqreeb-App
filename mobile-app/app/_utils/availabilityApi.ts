@@ -76,11 +76,14 @@ const normalizeAvailabilityDays = (payload: any): VendorAvailabilityDay[] => {
         status === 'reserved'
       )
 
+      // Only show as booked if type is explicitly 'booked', not 'pending_booking'
+      const displayIsBooked = type === 'booked' ? isBooked : false
+
       return [{
         id: item?._id ? String(item._id) : undefined,
         date,
         isBlocked,
-        isBooked,
+        isBooked: displayIsBooked,
         reason: item?.reason ? String(item.reason) : undefined,
         type: item?.type ? String(item.type) : undefined,
         timeSlot: normalizeTimeSlot(item?.timeSlot),
