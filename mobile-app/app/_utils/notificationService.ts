@@ -1,16 +1,17 @@
-import { BOOKING_ENDPOINTS } from '@/app/_constants/apiEndpoints';
+import { NOTIFICATION_ENDPOINTS } from '@/app/_constants/apiEndpoints';
 import { apiFetchJson } from './apiClient';
 
 export type Notification = {
   id: string;
-  type: 'booking_request' | 'booking_accepted' | 'booking_rejected' | 'booking_cancelled' | 'message';
+  type: 'BOOKING_UPDATE' | 'NEW_MESSAGE' | 'SYSTEM' | string;
   title: string;
   message: string;
+  body?: string;
   bookingId?: string;
   userId?: string;
   isRead: boolean;
   createdAt: string;
-  actionUrl?: string;
+  data?: Record<string, any>;
 };
 
 export type NotificationResponse = {
@@ -20,21 +21,21 @@ export type NotificationResponse = {
 };
 
 /**
- * Get unread notifications for the current user
+ * Get notifications for the current user
  */
-export const getNotifications = async (limit: number = 10): Promise<Notification[]> => {
+export const getNotifications = async (limit: number = 20): Promise<Notification[]> => {
   try {
     const response = await apiFetchJson<any>(
-      `${BOOKING_ENDPOINTS.myBookings.split('/')[0]}/../notifications?limit=${limit}`,
+      `${NOTIFICATION_ENDPOINTS.getAll}?limit=${limit}`,
       { method: 'GET', auth: true },
       'Failed to load notifications'
     );
 
-    const data = Array.isArray(response?.data) ? response.data : [];
-    return data.map((item: any) => ({
+    const raw = Array.isArray(response) ? response : (Array.isArray(response?.data) ? response.data : []);
+    return raw.map((item: any) => ({
       ...item,
       id: item._id || item.id,
-      message: item.body || item.message,
+      message: item.body || item.message || '',
     }));
   } catch (error) {
     console.warn('Notification fetch failed, returning empty list');
@@ -48,12 +49,12 @@ export const getNotifications = async (limit: number = 10): Promise<Notification
 export const getUnreadNotificationCount = async (): Promise<number> => {
   try {
     const response = await apiFetchJson<any>(
-      `${BOOKING_ENDPOINTS.myBookings.split('/')[0]}/../notifications/unread-count`,
+      NOTIFICATION_ENDPOINTS.unreadCount,
       { method: 'GET', auth: true },
       'Failed to load unread count'
     );
 
-    return response?.data?.count || response?.count || 0;
+    return response?.count ?? response?.data?.count ?? 0;
   } catch (error) {
     console.warn('Unread count fetch failed');
     return 0;
@@ -66,7 +67,7 @@ export const getUnreadNotificationCount = async (): Promise<number> => {
 export const markNotificationAsRead = async (notificationId: string): Promise<boolean> => {
   try {
     await apiFetchJson<any>(
-      `${BOOKING_ENDPOINTS.myBookings.split('/')[0]}/../notifications/${notificationId}/read`,
+      NOTIFICATION_ENDPOINTS.markAsRead(notificationId),
       { method: 'PUT', auth: true },
       'Failed to mark notification as read'
     );
@@ -78,12 +79,12 @@ export const markNotificationAsRead = async (notificationId: string): Promise<bo
 };
 
 /**
- * Clear all notifications
+ * Mark all notifications as read
  */
 export const clearAllNotifications = async (): Promise<boolean> => {
   try {
     await apiFetchJson<any>(
-      `${BOOKING_ENDPOINTS.myBookings.split('/')[0]}/../notifications/read-all`,
+      NOTIFICATION_ENDPOINTS.markAllAsRead,
       { method: 'PUT', auth: true },
       'Failed to clear notifications'
     );
@@ -93,3 +94,7 @@ export const clearAllNotifications = async (): Promise<boolean> => {
     return false;
   }
 };
+
+export default function NotificationServiceRouteStub() {
+  return null;
+}

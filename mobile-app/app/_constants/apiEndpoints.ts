@@ -65,6 +65,13 @@ export const MESSAGE_ENDPOINTS = {
   unreadCount: withApiPrefix('/messages/count/unread'),
 }
 
+export const NOTIFICATION_ENDPOINTS = {
+  getAll: withApiPrefix('/notifications'),
+  unreadCount: withApiPrefix('/notifications/unread-count'),
+  markAsRead: (id: string) => withApiPrefix(`/notifications/${id}/read`),
+  markAllAsRead: withApiPrefix('/notifications/read-all'),
+}
+
 export default function ApiEndpointsRouteStub() {
   return null
 }
