@@ -53,7 +53,8 @@ export const Colors = {
 }
 
 // Category color helper
-export const getCategoryColor = (category: string): string => {
+export const getCategoryColor = (category?: string | null): string => {
+  if (!category) return Colors.primary
   switch(category.toLowerCase()) {
     case 'banquet': return Colors.banquet
     case 'catering': return Colors.catering

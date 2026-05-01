@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, Modal, ActivityIndicator, Saf
 import { Bell, X, Check, Clock } from 'lucide-react-native';
 import { Colors } from '@/app/_constants/theme';
 import { useUnreadNotificationCount } from '@/app/_context/NotificationContext';
+import { useSocket } from '@/app/_context/SocketContext';
 import { getNotifications, markNotificationAsRead } from '@/app/_utils/notificationService';
 import type { Notification } from '@/app/_utils/notificationService';
 
@@ -15,10 +16,13 @@ export default function NotificationBell({ userId, userRole }: NotificationBellP
   const [modalVisible, setModalVisible] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const unreadCount = useUnreadNotificationCount(modalVisible);
+  const polledCount = useUnreadNotificationCount(true); // always poll
+  const { unreadNotificationCount: socketCount, clearNotificationCount } = useSocket();
+  const unreadCount = Math.max(polledCount, socketCount);
 
   const openNotifications = async () => {
     setModalVisible(true);
+    clearNotificationCount(); // clear socket-based count when user opens
     setIsLoading(true);
     try {
       const notifs = await getNotifications(50);
