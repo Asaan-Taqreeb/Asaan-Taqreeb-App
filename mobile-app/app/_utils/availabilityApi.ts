@@ -35,34 +35,6 @@ const normalizeTimeSlot = (timeSlot: any): VendorAvailabilityDay['timeSlot'] | u
   return { from, to }
 }
 
-const buildAvailabilityFallbackUrls = (date: string, action: 'block' | 'unblock') => {
-  const baseUrl = new URL(AVAILABILITY_ENDPOINTS.blockAvailability(date))
-  const encodedDate = encodeURIComponent(date)
-
-  return [
-    baseUrl.toString(),
-    `${baseUrl.origin}/api/v1/vendor/availability/${encodedDate}`,
-    `${baseUrl.origin}/api/v1/vendor/availability/${encodedDate}/${action}`,
-    `${baseUrl.origin}/api/v1/vendor/availability/${action}/${encodedDate}`,
-    `${baseUrl.origin}/api/v1/vendor/availability/${action}`,
-    `${baseUrl.origin}/api/v1/vendor/availability`,
-  ]
-}
-
-const buildVendorAvailabilityFallbackUrls = (vendorId: string | number, date: string, action: 'block' | 'unblock') => {
-  const baseUrl = new URL(AVAILABILITY_ENDPOINTS.blockAvailability(date))
-  const encodedVendorId = encodeURIComponent(String(vendorId))
-  const encodedDate = encodeURIComponent(date)
-
-  return [
-    `${baseUrl.origin}/api/v1/vendor/availability/${encodedVendorId}/${encodedDate}`,
-    `${baseUrl.origin}/api/v1/vendor/availability/${encodedVendorId}/${encodedDate}/${action}`,
-    `${baseUrl.origin}/api/v1/vendor/availability/${encodedVendorId}/${action}/${encodedDate}`,
-    `${baseUrl.origin}/api/v1/vendor/availability/${encodedVendorId}/availability/${encodedDate}`,
-    `${baseUrl.origin}/api/v1/vendor/availability/${encodedVendorId}`,
-  ]
-}
-
 const normalizeAvailabilityDays = (payload: any): VendorAvailabilityDay[] => {
   const raw = Array.isArray(payload)
     ? payload
@@ -167,96 +139,73 @@ export const blockDateForVendor = async (
   options?: { vendorId?: string | number; reason?: string; timeSlot?: { from: string; to: string } }
 ) => {
   const body = JSON.stringify({
-    date,
-    vendorId: options?.vendorId,
     timeSlot: options?.timeSlot ?? { from: '10:00', to: '17:00' },
     reason: options?.reason ?? 'Blocked by vendor',
   })
 
-  const fallbackUrls = [
-    ...buildVendorAvailabilityFallbackUrls(options?.vendorId ?? '', date, 'block'),
-    ...buildAvailabilityFallbackUrls(date, 'block'),
-  ]
-  let lastPayload: any = null
+  const url = AVAILABILITY_ENDPOINTS.blockAvailability(date)
+  
+  console.log('[availability] block request', { 
+    url, 
+    vendorId: options?.vendorId, 
+    date, 
+    timeSlot: options?.timeSlot, 
+    reason: options?.reason 
+  })
 
-  for (const url of fallbackUrls) {
-    console.log('[availability] block request', { url, vendorId: options?.vendorId, date, timeSlot: options?.timeSlot, reason: options?.reason })
-    const isRootWrite = url.endsWith('/vendor/availability')
-    const isVendorAwareWrite = url.includes(`/${encodeURIComponent(String(options?.vendorId ?? ''))}/`)
-    const response = await apiFetch(url, {
-      method: isRootWrite ? 'POST' : 'PUT',
-      auth: true,
-      headers: { 'Content-Type': 'application/json' },
-      body,
-    })
+  const response = await apiFetch(url, {
+    method: 'PUT',
+    auth: true,
+    headers: { 'Content-Type': 'application/json' },
+    body,
+  })
 
-    if (response.ok) return true
+  const payload = await parseJsonSafe(response)
 
-    lastPayload = await parseJsonSafe(response)
+  if (!response.ok) {
     console.error('[availability] block failed', {
       url,
       vendorId: options?.vendorId,
       status: response.status,
       statusText: response.statusText,
-      data: lastPayload,
+      data: payload,
     })
-
-    if (response.status !== 404) {
-      throw new Error(lastPayload?.message || lastPayload?.error || 'Failed to block date.')
-    }
+    throw new Error(payload?.message || payload?.error || 'Failed to block date.')
   }
 
-  console.error('[availability] block route not found', {
-    attemptedUrls: fallbackUrls,
-    vendorId: options?.vendorId,
-    date,
-    timeSlot: options?.timeSlot,
-    reason: options?.reason,
-    lastPayload,
-  })
-  throw new Error(lastPayload?.message || lastPayload?.error || 'Route not found for availability block.')
+  return true
 }
 
-export const unblockDateForVendor = async (date: string, options?: { vendorId?: string | number }) => {
-  const fallbackUrls = [
-    ...buildVendorAvailabilityFallbackUrls(options?.vendorId ?? '', date, 'unblock'),
-    ...buildAvailabilityFallbackUrls(date, 'unblock'),
-  ]
-  let lastPayload: any = null
+export const unblockDateForVendor = async (date: string, options?: { vendorId?: string | number; timeSlot?: { from: string; to: string } }) => {
+  const body = JSON.stringify({
+    timeSlot: options?.timeSlot ?? { from: '10:00', to: '17:00' },
+  })
+  
+  const url = AVAILABILITY_ENDPOINTS.unblockAvailability(date)
+  
+  console.log('[availability] unblock request', { url, vendorId: options?.vendorId, date, timeSlot: options?.timeSlot })
 
-  for (const url of fallbackUrls) {
-    console.log('[availability] unblock request', { url, vendorId: options?.vendorId, date })
-    const isRootWrite = url.endsWith('/vendor/availability')
-    const response = await apiFetch(url, {
-      method: isRootWrite ? 'POST' : 'DELETE',
-      auth: true,
-      headers: isRootWrite ? { 'Content-Type': 'application/json' } : undefined,
-      body: isRootWrite ? JSON.stringify({ date, vendorId: options?.vendorId }) : undefined,
-    })
+  const response = await apiFetch(url, {
+    method: 'DELETE',
+    auth: true,
+    headers: { 'Content-Type': 'application/json' },
+    body,
+  })
 
-    if (response.ok) return true
+  const payload = await parseJsonSafe(response)
 
-    lastPayload = await parseJsonSafe(response)
+  if (!response.ok) {
     console.error('[availability] unblock failed', {
       url,
       vendorId: options?.vendorId,
       status: response.status,
       statusText: response.statusText,
-      data: lastPayload,
+      data: payload,
     })
-
-    if (response.status !== 404) {
-      throw new Error(lastPayload?.message || lastPayload?.error || 'Failed to unblock date.')
-    }
+    throw new Error(payload?.message || payload?.error || 'Failed to unblock date.')
   }
 
-  console.error('[availability] unblock route not found', {
-    attemptedUrls: fallbackUrls,
-    vendorId: options?.vendorId,
-    date,
-    lastPayload,
-  })
-  throw new Error(lastPayload?.message || lastPayload?.error || 'Route not found for availability unblock.')
+  return true
 }
 
 export default function AvailabilityApiRouteStub() {

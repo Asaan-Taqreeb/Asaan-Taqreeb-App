@@ -13,7 +13,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, Plus, Trash2, Edit, Package } from 'lucide-react-native';
 import { Colors, Shadows } from '@/app/_constants/theme';
-import { createVendorService, getMyVendorServices, type ServiceListItem } from '@/app/_utils/servicesApi';
+import { createVendorService, getMyVendorServices, deleteVendorService, updateVendorService, type ServiceListItem } from '@/app/_utils/servicesApi';
 
 type UiPackage = {
   id: string
@@ -45,6 +45,7 @@ export default function PackageManagementScreen() {
   const [showOptionalManager, setShowOptionalManager] = useState(false)
   const [optionalDraft, setOptionalDraft] = useState<UiOptionalDraft[]>([])
   const [isSavingOptionalServices, setIsSavingOptionalServices] = useState(false)
+  const [isDeletingService, setIsDeletingService] = useState(false)
 
   const activeService = useMemo(() => {
     if (!services.length) return null
@@ -191,15 +192,7 @@ export default function PackageManagementScreen() {
     try {
       setIsSavingOptionalServices(true)
 
-      await createVendorService({
-        category: activeService.category,
-        serviceType: activeService.category,
-        name: activeService.name,
-        location: activeService.location,
-        about: activeService.about,
-        minGuests: activeService.minGuests,
-        maxGuests: activeService.maxGuests,
-        packages: activeService.packages,
+      await updateVendorService(activeService.id || activeService.serviceId, {
         optionalServices: nextOptionalServices,
       })
 
@@ -243,16 +236,28 @@ export default function PackageManagementScreen() {
     });
   };
 
-  const handleDeletePackage = (_packageId: string, packageName: string) => {
+  const handleDeletePackage = (packageId: string, packageName: string) => {
+    if (!activeService) return
+
     Alert.alert(
-      'Delete Package',
-      `Delete "${packageName}" from this screen is not connected yet. You can update packages from the service form for now.`,
+      'Delete Service',
+      `Are you sure you want to delete "${activeService.name}"? This action cannot be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'OK',
-          onPress: () => {
-            return
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsDeletingService(true)
+              await deleteVendorService(activeService.id || activeService.serviceId)
+              Alert.alert('Success', 'Service deleted successfully.')
+              loadPackages()
+            } catch (error: any) {
+              Alert.alert('Failed', error?.message || 'Unable to delete service. Please try again.')
+            } finally {
+              setIsDeletingService(false)
+            }
           },
         },
       ]

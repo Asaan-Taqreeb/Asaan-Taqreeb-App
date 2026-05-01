@@ -142,7 +142,7 @@ export default function BookingScreen() {
         return sum
     }, 0)
 
-    const totalPrice = bookingData.price + addonsTotal
+    const totalPrice = (bookingData.price * (bookingData.guestCount || 1)) + addonsTotal
     const advancePayment = Math.round(totalPrice * 0.5) // 50% advance
 
     // Get today's date for min date

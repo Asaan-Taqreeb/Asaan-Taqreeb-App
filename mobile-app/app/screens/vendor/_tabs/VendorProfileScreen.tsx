@@ -4,6 +4,7 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -148,7 +149,7 @@ export default function VendorProfileScreen() {
             icon={User}
             title="Edit Profile"
             subtitle="Update your business information"
-            onPress={() => {}}
+            onPress={() => router.push('/screens/vendor/Component/AboutMeScreen')}
           />
           <ProfileOption
             icon={User}
@@ -166,7 +167,7 @@ export default function VendorProfileScreen() {
             icon={Bell}
             title="Notifications"
             subtitle="Manage notification preferences"
-            onPress={() => {}}
+            onPress={() => router.push('/screens/vendor/Component/VendorSettingsScreen')}
           />
         </View>
 
@@ -179,7 +180,9 @@ export default function VendorProfileScreen() {
             icon={HelpCircle}
             title="Help & Support"
             subtitle="Get help with your account"
-            onPress={() => {}}
+            onPress={() => {
+              Alert.alert('Help & Support', 'Contact us at support@asaantaqreeb.com or call +92-300-1234567')
+            }}
           />
         </View>
 

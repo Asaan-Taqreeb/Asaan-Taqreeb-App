@@ -22,6 +22,7 @@ import {
   Plus,
 } from 'lucide-react-native';
 import { Colors, Shadows } from '@/app/_constants/theme';
+import { updateBookingStatus } from '@/app/_utils/bookingsApi';
 
 export default function OrderDetailScreen() {
   const router = useRouter();
@@ -36,6 +37,7 @@ export default function OrderDetailScreen() {
   })() : null
   const order = parsedOrder;
   const [orderStatus, setOrderStatus] = useState(order?.status || 'pending');
+  const [isUpdating, setIsUpdating] = useState(false);
 
   if (!order) {
     return (
@@ -54,10 +56,17 @@ export default function OrderDetailScreen() {
         {
           text: 'Approve',
           style: 'default',
-          onPress: () => {
-            setOrderStatus('accepted');
-            Alert.alert('Success', 'Order has been approved!');
-            // In real app, update backend
+          onPress: async () => {
+            try {
+              setIsUpdating(true)
+              await updateBookingStatus(order.id, 'accepted')
+              setOrderStatus('accepted')
+              Alert.alert('Success', 'Order has been approved!')
+            } catch (error: any) {
+              Alert.alert('Error', error?.message || 'Failed to approve order')
+            } finally {
+              setIsUpdating(false)
+            }
           },
         },
       ]
@@ -73,10 +82,17 @@ export default function OrderDetailScreen() {
         {
           text: 'Reject',
           style: 'destructive',
-          onPress: () => {
-            setOrderStatus('rejected');
-            Alert.alert('Order Rejected', 'The customer will be notified.');
-            // In real app, update backend
+          onPress: async () => {
+            try {
+              setIsUpdating(true)
+              await updateBookingStatus(order.id, 'rejected')
+              setOrderStatus('rejected')
+              Alert.alert('Order Rejected', 'The customer will be notified.')
+            } catch (error: any) {
+              Alert.alert('Error', error?.message || 'Failed to reject order')
+            } finally {
+              setIsUpdating(false)
+            }
           },
         },
       ]
@@ -261,7 +277,7 @@ export default function OrderDetailScreen() {
                 {order.serviceType}
               </Text>
               <Text className="text-lg font-bold mt-2" style={{ color: Colors.vendor }}>
-                PKR {order.packagePrice.toLocaleString()}
+                PKR {order.totalAmount ? order.totalAmount.toLocaleString() : '0'}
               </Text>
             </View>
           </View>
@@ -280,7 +296,7 @@ export default function OrderDetailScreen() {
                     <Text className="text-sm text-gray-700 ml-2">{item.name}</Text>
                   </View>
                   <Text className="text-sm font-semibold" style={{ color: Colors.textPrimary }}>
-                    PKR {item.price.toLocaleString()}
+                    PKR {item.price ? item.price.toLocaleString() : '0'}
                   </Text>
                 </View>
               ))}
@@ -313,7 +329,7 @@ export default function OrderDetailScreen() {
               </Text>
             </View>
             <Text className="text-white text-2xl font-bold">
-              PKR {order.totalAmount.toLocaleString()}
+              PKR {order.totalAmount ? order.totalAmount.toLocaleString() : '0'}
             </Text>
           </View>
         </View>
@@ -328,28 +344,30 @@ export default function OrderDetailScreen() {
           <View className="flex-row gap-3 mb-3">
             <TouchableOpacity
               onPress={handleReject}
+              disabled={isUpdating}
               className="flex-1 bg-red-500 rounded-2xl py-4 items-center justify-center"
-              activeOpacity={0.8}
-              style={Shadows.small}
+              activeOpacity={isUpdating ? 1 : 0.8}
+              style={[Shadows.small, isUpdating && { opacity: 0.5 }]}
             >
               <View className="flex-row items-center">
                 <XCircle size={20} color="#FFFFFF" />
                 <Text className="text-white text-base font-semibold ml-2">
-                  Reject
+                  {isUpdating ? 'Updating...' : 'Reject'}
                 </Text>
               </View>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={handleApprove}
+              disabled={isUpdating}
               className="flex-1 bg-green-500 rounded-2xl py-4 items-center justify-center"
-              activeOpacity={0.8}
-              style={Shadows.small}
+              activeOpacity={isUpdating ? 1 : 0.8}
+              style={[Shadows.small, isUpdating && { opacity: 0.5 }]}
             >
               <View className="flex-row items-center">
                 <CheckCircle size={20} color="#FFFFFF" />
                 <Text className="text-white text-base font-semibold ml-2">
-                  Approve
+                  {isUpdating ? 'Updating...' : 'Approve'}
                 </Text>
               </View>
             </TouchableOpacity>

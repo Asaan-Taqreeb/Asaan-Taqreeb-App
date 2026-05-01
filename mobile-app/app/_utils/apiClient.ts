@@ -233,6 +233,8 @@ export const apiFetchJson = async <T>(url: string, options: ApiFetchOptions = {}
   return (data?.data ?? data) as T
 }
 
+export { parseJsonSafe, getMessageFromPayload }
+
 export default function ApiClientRouteStub() {
   return null
 }

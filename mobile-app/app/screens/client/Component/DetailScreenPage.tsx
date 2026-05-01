@@ -11,6 +11,7 @@ export default function DetailScreenPage() {
     const [expandedPackages, setExpandedPackages] = useState<{[key: number]: boolean}>({})
     const [selectedGuestCount, setSelectedGuestCount] = useState<number | null>(null)
     const [guestCountInput, setGuestCountInput] = useState('')
+    const [guestCountError, setGuestCountError] = useState('')
     const [showCustomPackage, setShowCustomPackage] = useState(false)
     const [customPackageName, setCustomPackageName] = useState('')
     const [customPackagePrice, setCustomPackagePrice] = useState('')
@@ -42,7 +43,29 @@ export default function DetailScreenPage() {
     const setGuestCount = (value: string) => {
         const normalized = value.replace(/[^0-9]/g, '')
         setGuestCountInput(normalized)
-        setSelectedGuestCount(normalized ? Number(normalized) : null)
+        
+        if (!normalized) {
+            setSelectedGuestCount(null)
+            setGuestCountError('')
+            return
+        }
+
+        const numericValue = Number(normalized)
+        const minGuests = toPositiveNumber(vendor?.minGuests)
+
+        if (minGuests && numericValue < minGuests) {
+            setGuestCountError(`Minimum ${minGuests.toLocaleString()} guests required`)
+            return
+        }
+
+        const maxGuests = toPositiveNumber(vendor?.maxGuests)
+        if (maxGuests && numericValue > maxGuests) {
+            setGuestCountError(`Maximum ${maxGuests.toLocaleString()} guests allowed`)
+            return
+        }
+
+        setSelectedGuestCount(numericValue)
+        setGuestCountError('')
     }
 
     const formatGuestCapacity = () => {
@@ -93,7 +116,7 @@ export default function DetailScreenPage() {
     const renderGuestCountInput = () => (
         <View className='mt-5'>
             <Text className='text-lg font-extrabold mb-3' style={{color: Colors.textPrimary}}>Write Guest Count</Text>
-            <View className='rounded-2xl px-4 py-4 flex-row items-center' style={[{backgroundColor: Colors.white, borderWidth: 2, borderColor: Colors.border}, Shadows.medium]}>
+            <View className='rounded-2xl px-4 py-4 flex-row items-center' style={[{backgroundColor: Colors.white, borderWidth: 2, borderColor: guestCountError ? Colors.error : Colors.border}, Shadows.medium]}>
                 <TextInput
                     value={guestCountInput}
                     onChangeText={setGuestCount}
@@ -105,6 +128,11 @@ export default function DetailScreenPage() {
                     maxLength={4}
                 />
             </View>
+            {guestCountError && (
+                <View className='rounded-xl p-3 mt-2' style={{backgroundColor: '#fee2e2', borderWidth: 1, borderColor: '#fca5a5'}}>
+                    <Text style={{color: Colors.error, fontSize: 13, fontWeight: '500'}}>{guestCountError}</Text>
+                </View>
+            )}
             <Text className='text-xs font-medium mt-2' style={{color: Colors.textSecondary}}>
                 You can type the exact number instead of choosing from the suggestions below.
             </Text>
@@ -425,14 +453,15 @@ export default function DetailScreenPage() {
                                     className='rounded-xl py-4 px-4 mt-3 active:opacity-85'
                                     style={{backgroundColor: categoryColor}}
                                     onPress={() => {
+                                        if (guestCountError) {
+                                            return
+                                        }
                                         const bookingData = {
                                             serviceId: vendor.serviceId || vendor.id,
                                             vendorId: vendor.vendorId,
                                             category: vendor.category,
                                             packageName: pkg.packageName,
-                                            price: (vendor.category === 'catering' || vendor.category === 'banquet') 
-                                                ? (pkg.price * (selectedGuestCount || 1))
-                                                : pkg.price,
+                                            price: pkg.price,
                                             guestCount: selectedGuestCount,
                                             vendorName: vendor.name,
                                             vendorLocation: vendor.location,
@@ -545,15 +574,18 @@ export default function DetailScreenPage() {
 
                             <Pressable 
                                 className='py-4 rounded-xl mt-6 active:opacity-85'
-                                disabled={!customPackageName || !customPackagePrice}
-                                style={{backgroundColor: (!customPackageName || !customPackagePrice) ? Colors.borderDark : categoryColor}}
+                                disabled={!customPackageName || !customPackagePrice || !!guestCountError}
+                                style={{backgroundColor: (!customPackageName || !customPackagePrice || !!guestCountError) ? Colors.borderDark : categoryColor}}
                                 onPress={() => {
+                                    if (guestCountError) {
+                                        return
+                                    }
                                     const customBookingData = {
                                         serviceId: vendor.serviceId || vendor.id,
                                         vendorId: vendor.vendorId,
                                         category: vendor.category,
                                         packageName: customPackageName,
-                                        price: parseInt(customPackagePrice) * (selectedGuestCount || 1),
+                                        price: parseInt(customPackagePrice),
                                         guestCount: selectedGuestCount || 1,
                                         vendorName: vendor.name,
                                         vendorLocation: vendor.location,

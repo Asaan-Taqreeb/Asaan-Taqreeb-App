@@ -5,11 +5,11 @@ import { ArrowLeft, Utensils, Plus, Trash2, X } from "lucide-react-native";
 import { Colors, Shadows } from "@/app/_constants/theme";
 import { useState } from "react";
 import { createVendorService } from '@/app/_utils/servicesApi'
+import ImageUploader from "@/app/screens/vendor/Component/ImageUploader";
 
 interface Package {
   id: string;
   packageName: string;
-  price: string;
   pricePerHead: string;
   guestCount: string;
   mainCourse: string[];
@@ -25,13 +25,13 @@ export default function CateringServiceForm() {
   const [location, setLocation] = useState("");
   const [nearbyLandmark, setNearbyLandmark] = useState("");
   const [about, setAbout] = useState("");
+  const [images, setImages] = useState<string[]>([]);
   
   // Packages
   const [packages, setPackages] = useState<Package[]>([
     { 
       id: "1", 
       packageName: "", 
-      price: "", 
       pricePerHead: "",
       guestCount: "",
       mainCourse: [""],
@@ -50,7 +50,6 @@ export default function CateringServiceForm() {
     setPackages([...packages, { 
       id: newId, 
       packageName: "", 
-      price: "", 
       pricePerHead: "",
       guestCount: "",
       mainCourse: [""],
@@ -137,7 +136,7 @@ export default function CateringServiceForm() {
     
     // Validate packages
     for (const pkg of packages) {
-      if (!pkg.packageName.trim() || !pkg.price.trim() || !pkg.pricePerHead.trim() || !pkg.guestCount.trim()) {
+      if (!pkg.packageName.trim() || !pkg.pricePerHead.trim() || !pkg.guestCount.trim()) {
         Alert.alert("Error", "Please complete all package details");
         return;
       }
@@ -153,9 +152,10 @@ export default function CateringServiceForm() {
       location,
       nearbyLandmark,
       about,
+      images,
       packages: packages.map(pkg => ({
         packageName: pkg.packageName,
-        price: parseFloat(pkg.price),
+        price: parseFloat(pkg.pricePerHead),
         pricePerHead: parseFloat(pkg.pricePerHead),
         guestCount: parseInt(pkg.guestCount),
         mainCourse: pkg.mainCourse.filter(item => item.trim()),
@@ -258,6 +258,12 @@ export default function CateringServiceForm() {
           />
         </View>
 
+        <ImageUploader
+          images={images}
+          onImagesChange={setImages}
+          maxImages={5}
+        />
+
         {/* Packages */}
         <View className='rounded-2xl p-5 mb-4' style={[{backgroundColor: Colors.white}, Shadows.medium]}>
           <View className='flex-row justify-between items-center mb-4'>
@@ -294,18 +300,7 @@ export default function CateringServiceForm() {
 
               <View className='flex-row gap-3 mt-3'>
                 <View className='flex-1'>
-                  <Text className='text-sm font-semibold mb-2' style={{color: Colors.textSecondary}}>Total Price (PKR) *</Text>
-                  <TextInput
-                    style={[styles.input, {borderColor: Colors.border, color: Colors.textPrimary}]}
-                    placeholder="120000"
-                    placeholderTextColor={Colors.textTertiary}
-                    value={pkg.price}
-                    onChangeText={(value) => updatePackage(pkg.id, 'price', value)}
-                    keyboardType="numeric"
-                  />
-                </View>
-                <View className='flex-1'>
-                  <Text className='text-sm font-semibold mb-2' style={{color: Colors.textSecondary}}>Per Head (PKR) *</Text>
+                  <Text className='text-sm font-semibold mb-2' style={{color: Colors.textSecondary}}>Price Per Head (PKR) *</Text>
                   <TextInput
                     style={[styles.input, {borderColor: Colors.border, color: Colors.textPrimary}]}
                     placeholder="1200"
@@ -315,17 +310,18 @@ export default function CateringServiceForm() {
                     keyboardType="numeric"
                   />
                 </View>
+                <View className='flex-1'>
+                  <Text className='text-sm font-semibold mb-2' style={{color: Colors.textSecondary}}>Guest Count *</Text>
+                  <TextInput
+                    style={[styles.input, {borderColor: Colors.border, color: Colors.textPrimary}]}
+                    placeholder="200"
+                    placeholderTextColor={Colors.textTertiary}
+                    value={pkg.guestCount}
+                    onChangeText={(value) => updatePackage(pkg.id, 'guestCount', value)}
+                    keyboardType="numeric"
+                  />
+                </View>
               </View>
-
-              <Text className='text-sm font-semibold mb-2 mt-3' style={{color: Colors.textSecondary}}>Guest Count *</Text>
-              <TextInput
-                style={[styles.input, {borderColor: Colors.border, color: Colors.textPrimary}]}
-                placeholder="200"
-                placeholderTextColor={Colors.textTertiary}
-                value={pkg.guestCount}
-                onChangeText={(value) => updatePackage(pkg.id, 'guestCount', value)}
-                keyboardType="numeric"
-              />
 
               {/* Main Course */}
               <View className='flex-row justify-between items-center mt-4 mb-2'>

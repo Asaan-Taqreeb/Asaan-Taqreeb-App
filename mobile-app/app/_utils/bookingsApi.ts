@@ -11,14 +11,13 @@ const firstDefined = <T>(...values: T[]): T | undefined => {
 }
 
 const mapStatus = (status: unknown): 'pending' | 'approved' | 'rejected' | 'confirmed' | 'completed' => {
-  const normalized = String(status ?? 'pending').toLowerCase()
+  const normalized = String(status ?? 'PENDING').toUpperCase()
 
-  if (normalized === 'accepted') return 'approved'
-  if (normalized === 'paid') return 'confirmed'
-  if (normalized === 'done') return 'completed'
-  if (normalized === 'approved' || normalized === 'rejected' || normalized === 'confirmed' || normalized === 'completed') {
-    return normalized
-  }
+  if (normalized === 'APPROVED' || normalized === 'ACCEPTED') return 'approved'
+  if (normalized === 'PAID' || normalized === 'CONFIRMED') return 'confirmed'
+  if (normalized === 'DONE' || normalized === 'COMPLETED') return 'completed'
+  if (normalized === 'REJECTED') return 'rejected'
+  if (normalized === 'PENDING') return 'pending'
 
   return 'pending'
 }
@@ -232,7 +231,7 @@ export const getVendorBookings = async (): Promise<VendorOrderItem[]> => {
   return raw.map((item: any, index: number) => {
     const eventDate = String(firstDefined(item?.eventDate, item?.date, new Date().toISOString().slice(0, 10)))
     const day = new Date(eventDate).toLocaleDateString('en-US', { weekday: 'long' })
-    const normalizedStatus = String(firstDefined(item?.status, 'pending')).toLowerCase()
+    const normalizedStatus = String(firstDefined(item?.status, 'PENDING')).toUpperCase()
     const fromTime = firstDefined(item?.timeSlot?.from, item?.time?.from)
     const toTime = firstDefined(item?.timeSlot?.to, item?.time?.to)
     const displayTime = fromTime && toTime
@@ -250,11 +249,30 @@ export const getVendorBookings = async (): Promise<VendorOrderItem[]> => {
       eventDay: day,
       eventTime: displayTime,
       guestCount: toNumber(firstDefined(item?.guestCount, 0), 0),
-      status: normalizedStatus === 'approved' ? 'accepted' : normalizedStatus === 'rejected' ? 'rejected' : 'pending',
+      status: normalizedStatus === 'APPROVED' ? 'accepted' : normalizedStatus === 'REJECTED' ? 'rejected' : 'pending',
     }
   })
 }
 
-export default function BookingsApiRouteStub() {
-  return null
+export const updateBookingStatus = async (bookingId: string | number, status: 'accepted' | 'rejected', rejectionReason?: string) => {
+  const body: any = {
+    status: status === 'accepted' ? 'APPROVED' : 'REJECTED',
+  }
+  
+  if (status === 'rejected' && rejectionReason) {
+    body.rejectionReason = rejectionReason
+  }
+
+  return apiFetchJson<any>(
+    BOOKING_ENDPOINTS.updateBookingStatus(bookingId),
+    {
+      method: 'PATCH',
+      auth: true,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    },
+    `Failed to update booking status.`
+  )
 }

@@ -5,6 +5,7 @@ import { ArrowLeft, Building2, Plus, Trash2, X } from "lucide-react-native";
 import { Colors, Shadows } from "@/app/_constants/theme";
 import { useState } from "react";
 import { createVendorService } from '@/app/_utils/servicesApi'
+import ImageUploader from "@/app/screens/vendor/Component/ImageUploader";
 
 interface Package {
   id: string;
@@ -21,6 +22,7 @@ export default function BanquetServiceForm() {
   const [location, setLocation] = useState("");
   const [nearbyLandmark, setNearbyLandmark] = useState("");
   const [about, setAbout] = useState("");
+  const [images, setImages] = useState<string[]>([]);
   
   // Banquet specific
   const [minGuests, setMinGuests] = useState("");
@@ -139,6 +141,7 @@ export default function BanquetServiceForm() {
       location,
       nearbyLandmark,
       about,
+      images,
       minGuests: parseInt(minGuests),
       maxGuests: parseInt(maxGuests),
       packages: packages.map(pkg => ({
@@ -267,6 +270,12 @@ export default function BanquetServiceForm() {
               </View>
             </View>
           </View>
+
+          <ImageUploader
+            images={images}
+            onImagesChange={setImages}
+            maxImages={5}
+          />
 
           <View className='rounded-2xl p-5 mb-4' style={[{backgroundColor: Colors.white}, Shadows.medium]}>
             <View className='flex-row justify-between items-center mb-4'>

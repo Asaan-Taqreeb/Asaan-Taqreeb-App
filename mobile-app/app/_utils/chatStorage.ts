@@ -146,6 +146,26 @@ export const getChatCount = async (): Promise<number> => {
   }
 };
 
+// Clear all booking requests (chats with type 'vendor')
+export const clearAllBookingRequests = async (): Promise<void> => {
+  try {
+    const chats = await getAllChats();
+    const filteredChats = chats.filter(chat => chat.type !== 'vendor');
+    await AsyncStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(filteredChats));
+  } catch (error) {
+    console.error('Error clearing booking requests:', error);
+  }
+};
+
+// Delete all vendor booking requests (keeps AI chats)
+export const deleteAllVendorBookingRequests = async (): Promise<void> => {
+  try {
+    await clearAllBookingRequests();
+  } catch (error) {
+    console.error('Error deleting vendor booking requests:', error);
+  }
+};
+
 export default function ChatStorageRouteStub() {
   return null
 }

@@ -5,6 +5,7 @@ import { ArrowLeft, Camera, Plus, Trash2, X } from "lucide-react-native";
 import { Colors, Shadows } from "@/app/_constants/theme";
 import { useState } from "react";
 import { createVendorService } from '@/app/_utils/servicesApi'
+import ImageUploader from "@/app/screens/vendor/Component/ImageUploader";
 
 interface Package {
   id: string;
@@ -21,6 +22,7 @@ export default function PhotographyServiceForm() {
   const [location, setLocation] = useState("");
   const [nearbyLandmark, setNearbyLandmark] = useState("");
   const [about, setAbout] = useState("");
+  const [images, setImages] = useState<string[]>([]);
   
   // Packages
   const [packages, setPackages] = useState<Package[]>([
@@ -131,6 +133,7 @@ export default function PhotographyServiceForm() {
       location,
       nearbyLandmark,
       about,
+      images,
       packages: packages.map(pkg => ({
         packageName: pkg.packageName,
         price: parseFloat(pkg.price),
@@ -231,6 +234,12 @@ export default function PhotographyServiceForm() {
             textAlignVertical="top"
           />
         </View>
+
+        <ImageUploader
+          images={images}
+          onImagesChange={setImages}
+          maxImages={5}
+        />
 
         {/* Packages */}
         <View className='rounded-2xl p-5 mb-4' style={[{backgroundColor: Colors.white}, Shadows.medium]}>

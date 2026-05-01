@@ -1,5 +1,6 @@
 import { AUTH_ENDPOINTS, VENDOR_ENDPOINTS } from '@/app/_constants/apiEndpoints'
-import { apiFetchJson } from '@/app/_utils/apiClient'
+import { apiFetchJson, apiFetch, parseJsonSafe, getMessageFromPayload } from '@/app/_utils/apiClient'
+import { getAccessToken } from '@/app/_utils/authStorage'
 
 export type ServicePackage = {
   id?: string | number
@@ -431,6 +432,122 @@ export const getMyVendorServices = async (): Promise<ServiceListItem[]> => {
   }
 }
 
+export const uploadServiceImages = async (serviceId: string | number, imageUris: string[]) => {
+  const formData = new FormData()
+
+  for (const uri of imageUris) {
+    const filename = uri.split('/').pop() || `image_${Date.now()}.jpg`
+    const match = /\.(\w+)$/.exec(filename)
+    const type = match ? `image/${match[1]}` : 'image/jpeg'
+
+    // For React Native, we need to use the uri directly
+    // FormData will handle the conversion appropriately
+    formData.append('images', {
+      uri,
+      type,
+      name: filename,
+    } as any)
+  }
+
+  const response = await apiFetch(VENDOR_ENDPOINTS.uploadServiceImages(serviceId), {
+    method: 'POST',
+    auth: true,
+    body: formData,
+  })
+
+  const data = await parseJsonSafe(response)
+
+  if (!response.ok) {
+    throw new Error(getMessageFromPayload(data, 'Failed to upload images.'))
+  }
+
+  return data?.data ?? data
+}
+
+export const deleteServiceImage = async (serviceId: string | number, imageUrl: string) => {
+  return apiFetchJson<any>(
+    VENDOR_ENDPOINTS.deleteServiceImage(serviceId),
+    {
+      method: 'DELETE',
+      auth: true,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ imageUrl }),
+    },
+    'Failed to delete image.'
+  )
+}
+
+export const updateVendorService = async (serviceId: string | number, payload: Record<string, any>) => {
+  const body: Record<string, any> = {}
+
+  if (payload.name || payload.location || payload.landmark || payload.about) {
+    body.basicInfo = {
+      ...(payload.name ? { name: payload.name } : {}),
+      ...(payload.location ? { location: payload.location } : {}),
+      ...(payload.landmark ? { landmark: payload.landmark } : {}),
+      ...(payload.about ? { about: payload.about } : {}),
+    }
+  }
+
+  if (payload.minGuests !== undefined || payload.maxGuests !== undefined) {
+    body.capacity = {
+      ...(payload.minGuests !== undefined ? { minGuests: toNumber(payload.minGuests, NaN) } : {}),
+      ...(payload.maxGuests !== undefined ? { maxGuests: toNumber(payload.maxGuests, NaN) } : {}),
+    }
+  }
+
+  if (Array.isArray(payload.images)) {
+    body.images = payload.images
+  }
+
+  if (Array.isArray(payload.optionalServices)) {
+    body.optionalServices = payload.optionalServices
+      .filter((s: any) => s?.name?.trim() && s?.price !== undefined)
+      .map((s: any) => ({ name: String(s.name), price: toNumber(s.price, 0) }))
+  }
+
+  return apiFetchJson<any>(
+    VENDOR_ENDPOINTS.updateService(serviceId),
+    {
+      method: 'PUT',
+      auth: true,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    },
+    'Failed to update service.'
+  )
+}
+
+export const deleteVendorService = async (serviceId: string | number) => {
+  return apiFetchJson<any>(
+    VENDOR_ENDPOINTS.deleteService(serviceId),
+    {
+      method: 'DELETE',
+      auth: true,
+    },
+    'Failed to delete service.'
+  )
+}
+
+export const getServiceById = async (serviceId: string | number): Promise<ServiceListItem | null> => {
+  try {
+    const response = await apiFetchJson<any>(
+      VENDOR_ENDPOINTS.serviceById(serviceId),
+      { method: 'GET', auth: false },
+      'Failed to load service.'
+    )
+    return mapServiceToUi(response)
+  } catch (error) {
+    console.error('Error loading service:', error)
+    return null
+  }
+}
+
+// Helper imports needed for image upload
 export default function ServicesApiRouteStub() {
   return null
 }

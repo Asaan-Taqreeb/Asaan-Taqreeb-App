@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Bell, DollarSign, CheckCircle, XCircle, Clock, ChevronRight, Plus, Calendar } from 'lucide-react-native';
+import { Bell, DollarSign, CheckCircle, XCircle, Clock, ChevronRight, Plus, Calendar, Image as ImageIcon } from 'lucide-react-native';
 import { Colors, Shadows } from '@/app/_constants/theme';
 import { getVendorBookings, type VendorOrderItem } from '@/app/_utils/bookingsApi';
 import OrderCard from '../Component/OrderCard';
@@ -292,6 +292,28 @@ export default function VendorDashboardHome() {
                 Add or edit
               </Text>
             </TouchableOpacity>
+          </View>
+
+          <View className="flex-row gap-3">
+            <TouchableOpacity
+              className="flex-1 bg-white rounded-2xl p-4 border border-gray-100"
+              style={Shadows.small}
+              onPress={() => router.push('/screens/vendor/Component/ServiceImageManager')}
+            >
+              <View className="w-10 h-10 rounded-full items-center justify-center mb-2"
+                style={{ backgroundColor: '#06B6D420' }}
+              >
+                <ImageIcon size={20} color="#06B6D4" />
+              </View>
+              <Text className="text-sm font-semibold" style={{ color: Colors.textPrimary }}>
+                Images
+              </Text>
+              <Text className="text-xs text-gray-500 mt-1">
+                Manage photos
+              </Text>
+            </TouchableOpacity>
+
+            <View className="flex-1" />
           </View>
         </View>
       </ScrollView>

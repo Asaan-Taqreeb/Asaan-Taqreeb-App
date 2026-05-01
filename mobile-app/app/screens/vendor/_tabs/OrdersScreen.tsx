@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Filter } from 'lucide-react-native';
+import { Filter, RotateCw } from 'lucide-react-native';
 import { Colors } from '@/app/_constants/theme';
 import OrderCard from '../Component/OrderCard';
 import { getVendorBookings, VendorOrderItem } from '@/app/_utils/bookingsApi';
@@ -13,35 +13,26 @@ export default function OrdersScreen() {
   const [selectedFilter, setSelectedFilter] = useState('all'); // all, pending, accepted, rejected
   const [orders, setOrders] = useState<VendorOrderItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const loadOrders = async (isRefresh = false) => {
+    try {
+      if (isRefresh) setIsRefreshing(true)
+      else setIsLoading(true)
+      setError(null)
+      const response = await getVendorBookings()
+      setOrders(response)
+    } catch (apiError: any) {
+      setError(apiError?.message || 'Failed to load orders')
+    } finally {
+      if (isRefresh) setIsRefreshing(false)
+      else setIsLoading(false)
+    }
+  }
+
   useEffect(() => {
-    let mounted = true
-
-    const loadOrders = async () => {
-      try {
-        setIsLoading(true)
-        setError(null)
-        const response = await getVendorBookings()
-        if (mounted) {
-          setOrders(response)
-        }
-      } catch (apiError: any) {
-        if (mounted) {
-          setError(apiError?.message || 'Failed to load orders')
-        }
-      } finally {
-        if (mounted) {
-          setIsLoading(false)
-        }
-      }
-    }
-
     loadOrders()
-
-    return () => {
-      mounted = false
-    }
   }, [])
 
   const getFilteredOrders = () => {
@@ -134,18 +125,34 @@ export default function OrdersScreen() {
         className="flex-1 px-5"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: 16, paddingBottom: 20 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => loadOrders(true)}
+            tintColor={Colors.vendor}
+          />
+        }
       >
+        {error && !isLoading && (
+          <View className="mb-4 p-4 rounded-xl" style={{backgroundColor: '#fee2e2', borderWidth: 1, borderColor: '#fca5a5'}}>
+            <Text className="text-sm font-semibold mb-3" style={{color: Colors.error}}>
+              {error}
+            </Text>
+            <TouchableOpacity
+              className="py-2 px-4 rounded-lg"
+              style={{backgroundColor: Colors.error}}
+              onPress={() => loadOrders()}
+            >
+              <Text className="text-white font-semibold text-center text-sm">Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
         {isLoading && (
           <Text className="text-sm mb-4" style={{ color: Colors.textSecondary }}>
             Loading orders...
           </Text>
         )}
-        {error && !isLoading && (
-          <Text className="text-sm mb-4" style={{ color: Colors.error }}>
-            {error}
-          </Text>
-        )}
-        {filteredOrders.length > 0 ? (
+        {!isLoading && filteredOrders.length > 0 ? (
           filteredOrders.map((order) => (
             <OrderCard
               key={order.id}
@@ -158,7 +165,7 @@ export default function OrdersScreen() {
               }}
             />
           ))
-        ) : (
+        ) : !isLoading && (
           <View className="items-center justify-center py-20">
             <Text className="text-gray-400 text-base" style={{ color: Colors.textPrimary + '50' }}>
               No orders found
