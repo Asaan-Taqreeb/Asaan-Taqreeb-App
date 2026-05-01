@@ -164,7 +164,9 @@ const getServiceOwnerId = (service: any) => {
   )
 
   if (typeof owner === 'object' && owner !== null) {
-    return String(firstDefined((owner as any)?._id, (owner as any)?.id, ''))
+    const id = firstDefined((owner as any)?._id, (owner as any)?.id);
+    if (id) return String(id);
+    if (typeof owner.toString === 'function') return owner.toString();
   }
 
   return String(owner || '')
@@ -177,6 +179,12 @@ const dedupeLatestServiceSnapshots = (services: any[]) => {
 
   for (const service of sorted) {
     const ownerId = getServiceOwnerId(service)
+    
+    // Skip orphaned services completely to hide ghost data
+    if (!ownerId || service.user === null) {
+      continue
+    }
+
     const category = String(firstDefined(service?.category, service?.serviceType, service?.type, '')).toLowerCase()
     const fallbackId = String(firstDefined(service?._id, service?.id, service?.serviceId, Math.random().toString(36).slice(2)))
     const name = String(firstDefined(service?.basicInfo?.name, service?.name, service?.title, '')).toLowerCase().trim()

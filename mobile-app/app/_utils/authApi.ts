@@ -147,6 +147,21 @@ export const logoutUser = async () => {
   }
 }
 
+export const deleteUserAccount = async () => {
+  try {
+    await apiFetchJson<any>(
+      AUTH_ENDPOINTS.me,
+      {
+        method: 'DELETE',
+        auth: true,
+      },
+      'Failed to delete account.'
+    )
+  } finally {
+    await clearAuthTokens()
+  }
+}
+
 export default function AuthApiRouteStub() {
   return null
 }

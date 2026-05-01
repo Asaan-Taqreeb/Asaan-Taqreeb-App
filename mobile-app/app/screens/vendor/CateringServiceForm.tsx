@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import { ArrowLeft, Utensils, Plus, Trash2, X } from "lucide-react-native";
 import { Colors, Shadows } from "@/app/_constants/theme";
 import { useState } from "react";
-import { createVendorService } from '@/app/_utils/servicesApi'
+import { createVendorService, uploadServiceImages } from '@/app/_utils/servicesApi'
 import ImageUploader from "@/app/screens/vendor/Component/ImageUploader";
 
 interface Package {
@@ -171,11 +171,21 @@ export default function CateringServiceForm() {
     };
 
     try {
-      await createVendorService({
+      const result = await createVendorService({
         category: 'catering',
         serviceType: 'catering',
         ...formData,
       })
+
+      // Upload images if any were selected
+      const newServiceId = result?._id || result?.id || result?.data?._id || result?.data?.id
+      if (newServiceId && images.length > 0) {
+        try {
+          await uploadServiceImages(newServiceId, images)
+        } catch (imgError) {
+          console.warn('Images could not be uploaded, but service was created:', imgError)
+        }
+      }
 
       Alert.alert("Success", "Catering service created successfully.", [
         { text: "OK", onPress: () => router.replace('/screens/vendor/_tabs/VendorDashboardHome') }

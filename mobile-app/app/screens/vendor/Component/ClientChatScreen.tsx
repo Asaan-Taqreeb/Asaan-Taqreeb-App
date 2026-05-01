@@ -3,12 +3,12 @@ import { ArrowLeft, Send } from 'lucide-react-native'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Colors, getCategoryColor } from '@/app/_constants/theme'
+import { Colors } from '@/app/_constants/theme'
 import { getChatHistory, sendMessage, markChatAsRead, Message } from '@/app/_utils/messagesApi'
 import { useSocket } from '@/app/_context/SocketContext'
 import { useUser } from '@/app/_context/UserContext'
 
-export default function VendorChatScreen() {
+export default function ClientChatScreen() {
     const insets = useSafeAreaInsets()
     const params = useLocalSearchParams()
     const scrollViewRef = useRef<ScrollView>(null)
@@ -16,27 +16,16 @@ export default function VendorChatScreen() {
     const [messages, setMessages] = useState<Message[]>([])
     const [isLoading, setIsLoading] = useState(true)
 
-    let vendor = null
-    if (params.vendor) {
-        try {
-            vendor = JSON.parse(params.vendor as string)
-        } catch {
-            vendor = null
-        }
-    }
-
-    const vendorName = vendor?.name || "Vendor"
-    const vendorCategory = vendor?.category || ""
-    const vendorLocation = vendor?.location || ""
-    const categoryColor = vendor ? getCategoryColor(vendor.category) : Colors.primary
-    const targetUserId = vendor?.userId || vendor?.vendorId;
+    // Params will include the client's info
+    const clientId = params.clientId as string
+    const clientName = params.clientName as string || "Client"
+    const chatId = params.chatId as string
 
     const { socket } = useSocket()
     const { user } = useUser()
 
-    const chatId = (params.chatId as string) || (user?.id && targetUserId ? `chat_${user.id}_${targetUserId}` : `vendor-${vendorName.toLowerCase().replace(/\s+/g, '-')}`)
-
     const loadChatHistory = useCallback(async () => {
+        if (!chatId) return
         try {
             const history = await getChatHistory(chatId)
             setMessages(history)
@@ -59,7 +48,6 @@ export default function VendorChatScreen() {
 
         socket.on('receiveMessage', (newMessage: Message) => {
             setMessages((prev) => {
-                // Check if we already have it (optimistic update)
                 if (prev.some((msg) => msg._id === newMessage._id)) return prev;
                 return [...prev, newMessage];
             })
@@ -79,7 +67,7 @@ export default function VendorChatScreen() {
     }, [messages, isLoading])
 
     const handleSend = async () => {
-        if (message.trim() && targetUserId) {
+        if (message.trim() && clientId && chatId) {
             const textToSend = message.trim()
             setMessage('')
             
@@ -88,7 +76,7 @@ export default function VendorChatScreen() {
                 _id: Date.now().toString(),
                 chatId,
                 senderId: { _id: user?.id as string, name: user?.name as string, email: '' },
-                receiverId: { _id: targetUserId, name: vendorName, email: '' },
+                receiverId: { _id: clientId, name: clientName, email: '' },
                 text: textToSend,
                 isRead: false,
                 createdAt: new Date().toISOString()
@@ -96,15 +84,11 @@ export default function VendorChatScreen() {
             setMessages(prev => [...prev, optimisticMessage])
 
             try {
-                const savedMessage = await sendMessage(chatId, targetUserId, textToSend)
+                const savedMessage = await sendMessage(chatId, clientId, textToSend)
                 setMessages(prev => prev.map(m => m._id === optimisticMessage._id ? savedMessage : m))
             } catch (error) {
                 console.error("Failed to send message", error)
-                import('react-native').then(({ Alert }) => Alert.alert('Error', 'Failed to send message. Please try again.'));
             }
-        } else {
-            console.warn("Missing message text or vendor user ID");
-            import('react-native').then(({ Alert }) => Alert.alert('Error', 'Cannot send message: Vendor ID is missing. This service might not be fully configured.'));
         }
     }
 
@@ -129,17 +113,17 @@ export default function VendorChatScreen() {
             keyboardVerticalOffset={0}
         >
             {/* Header */}
-            <View className='flex-row items-center gap-4 px-5 py-4' style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
+            <View className='flex-row items-center gap-4 px-5 py-4' style={{borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.white}}>
                 <Pressable
                     className='rounded-full p-2 active:opacity-70'
                     style={{backgroundColor: Colors.lightGray}}
                     onPress={() => router.back()}
                 >
-                    <ArrowLeft color={categoryColor} size={24} />
+                    <ArrowLeft color={Colors.primary} size={24} />
                 </Pressable>
                 <View className='flex-1'>
-                    <Text className='text-xl font-extrabold' style={{color: Colors.textPrimary}}>{vendorName}</Text>
-                    <Text className='text-xs font-medium' style={{color: Colors.textSecondary}}>Online</Text>
+                    <Text className='text-xl font-extrabold' style={{color: Colors.textPrimary}}>{clientName}</Text>
+                    <Text className='text-xs font-medium' style={{color: Colors.textSecondary}}>Client</Text>
                 </View>
             </View>
 
@@ -160,7 +144,7 @@ export default function VendorChatScreen() {
                         <View
                             className='px-4 py-3 rounded-2xl max-w-[75%]'
                             style={{
-                                backgroundColor: isUser ? categoryColor : Colors.white,
+                                backgroundColor: isUser ? Colors.primary : Colors.white,
                                 borderWidth: !isUser ? 1 : 0,
                                 borderColor: Colors.border
                             }}
@@ -195,7 +179,7 @@ export default function VendorChatScreen() {
                     />
                     <Pressable
                         className='rounded-full p-3 active:opacity-80'
-                        style={{backgroundColor: message.trim() ? categoryColor : Colors.borderDark}}
+                        style={{backgroundColor: message.trim() ? Colors.primary : Colors.borderDark}}
                         onPress={handleSend}
                         disabled={!message.trim()}
                     >

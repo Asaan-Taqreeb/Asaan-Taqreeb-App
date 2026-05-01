@@ -157,6 +157,8 @@ export const createBooking = async (payload: CreateBookingPayload) => {
     location: payload.location,
     specialRequests: payload.specialRequests,
     selectedAddons,
+    totalAmount: payload.totalAmount,
+    advancePayment: payload.advancePayment,
   }
 
   return apiFetchJson<any>(

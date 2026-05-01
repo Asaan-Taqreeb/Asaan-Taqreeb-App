@@ -58,6 +58,7 @@ export const BOOKING_ENDPOINTS = {
 }
 
 export const MESSAGE_ENDPOINTS = {
+  userChats: withApiPrefix('/messages'),
   chatHistory: (chatId: string | number) => withApiPrefix(`/messages/${chatId}`),
   sendMessage: withApiPrefix('/messages'),
   markChatAsRead: (chatId: string | number) => withApiPrefix(`/messages/${chatId}/read`),

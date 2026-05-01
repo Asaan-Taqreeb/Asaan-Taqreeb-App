@@ -5,7 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors, Shadows, Spacing } from '@/app/_constants/theme'
 import { useUser } from '@/app/_context/UserContext'
 import Avatar from '@/app/_components/Avatar'
-import { logoutUser } from '@/app/_utils/authApi'
+import { logoutUser, deleteUserAccount } from '@/app/_utils/authApi'
+import { Alert } from 'react-native'
 
 export default function ProfileView() {
   const insets = useSafeAreaInsets()
@@ -20,10 +21,33 @@ export default function ProfileView() {
       await logoutUser()
     } catch (error) {
       console.log('Logout error:', error)
-        } finally {
-            setUser(null)
-            router.replace('/screens/WelcomeScreen')
+    } finally {
+      setUser(null)
+      router.replace('/screens/WelcomeScreen')
     }
+  }
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to permanently delete your account? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Permanently',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteUserAccount()
+              setUser(null)
+              router.replace('/screens/WelcomeScreen')
+            } catch (err) {
+              Alert.alert('Error', 'Failed to delete account')
+            }
+          }
+        }
+      ]
+    )
   }
 
     return (
@@ -105,6 +129,17 @@ export default function ProfileView() {
                             <LogOut size={22} color={Colors.error} />
                         </View>
                         <Text className='text-base font-semibold flex-1' style={{color: Colors.error}}>Log Out</Text>
+                    </Pressable>
+                    {/* Delete Account */}
+                    <Pressable 
+                        className='px-6 flex-row items-center rounded-2xl gap-4 active:opacity-80' 
+                        style={[styles.menuItem, Shadows.medium]}
+                        onPress={handleDeleteAccount}
+                    >
+                        <View className='p-3 rounded-xl' style={{backgroundColor: '#ffe4e6'}}>
+                            <LogOut size={22} color={Colors.error} />
+                        </View>
+                        <Text className='text-base font-semibold flex-1' style={{color: Colors.error}}>Delete Account</Text>
                     </Pressable>
                 </View>
             </ScrollView>

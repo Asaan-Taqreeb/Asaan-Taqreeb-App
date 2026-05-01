@@ -156,7 +156,7 @@ export const apiFetch = async (url: string, options: ApiFetchOptions = {}) => {
     ...(headers as Record<string, string>),
   }
 
-  if (!finalHeaders['Content-Type'] && rest.body) {
+  if (!finalHeaders['Content-Type'] && rest.body && !(rest.body instanceof FormData)) {
     finalHeaders['Content-Type'] = 'application/json'
   }
 

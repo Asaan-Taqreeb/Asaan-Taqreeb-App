@@ -23,7 +23,7 @@ import {
 import { Colors, Shadows } from '@/app/_constants/theme';
 import { useUser } from '@/app/_context/UserContext';
 import Avatar from '@/app/_components/Avatar';
-import { logoutUser } from '@/app/_utils/authApi';
+import { logoutUser, deleteUserAccount } from '@/app/_utils/authApi';
 
 export default function VendorProfileScreen() {
   const router = useRouter();
@@ -43,6 +43,29 @@ export default function VendorProfileScreen() {
       setUser(null);
       router.replace('/screens/WelcomeScreen');
     }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to permanently delete your vendor account? All your services and bookings will be removed. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Permanently',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteUserAccount();
+              setUser(null);
+              router.replace('/screens/WelcomeScreen');
+            } catch (err) {
+              Alert.alert('Error', 'Failed to delete account');
+            }
+          }
+        }
+      ]
+    );
   };
 
   const ProfileOption = ({ icon: Icon, title, subtitle, onPress }: {
@@ -186,8 +209,8 @@ export default function VendorProfileScreen() {
           />
         </View>
 
-        {/* Logout */}
-        <View className="px-5 mt-6">
+        {/* Logout & Delete */}
+        <View className="px-5 mt-6 gap-3">
           <TouchableOpacity
             onPress={handleLogout}
             activeOpacity={0.8}
@@ -197,6 +220,17 @@ export default function VendorProfileScreen() {
             <LogOut size={20} color="#EF4444" />
             <Text className="text-red-500 text-base font-semibold ml-2">
               Logout
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleDeleteAccount}
+            activeOpacity={0.8}
+            className="bg-red-100 rounded-2xl p-4 flex-row items-center justify-center"
+            style={Shadows.small}
+          >
+            <Text className="text-red-600 text-base font-semibold">
+              Delete Account
             </Text>
           </TouchableOpacity>
         </View>
