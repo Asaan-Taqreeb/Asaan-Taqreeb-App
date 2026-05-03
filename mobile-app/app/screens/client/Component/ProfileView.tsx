@@ -1,6 +1,6 @@
 import { router } from 'expo-router'
 import { ArrowLeft, CheckCircle, CircleQuestionMark, CreditCard, LogOut, Calendar } from 'lucide-react-native'
-import { Pressable, StyleSheet, Text, View, ScrollView } from 'react-native'
+import { Pressable, StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors, Shadows, Spacing } from '@/app/_constants/theme'
 import { useUser } from '@/app/_context/UserContext'
@@ -10,17 +10,13 @@ import { Alert } from 'react-native'
 
 export default function ProfileView() {
   const insets = useSafeAreaInsets()
-  const { user, setUser, loading } = useUser()
-
-  console.log('ProfileView - loading:', loading)
-  console.log('ProfileView - user:', user)
-  console.log('ProfileView - user?.name:', user?.name)
+  const { user, setUser } = useUser()
 
   const handleLogout = async () => {
     try {
       await logoutUser()
     } catch (error) {
-      console.log('Logout error:', error)
+      // Logout error handled quietly
     } finally {
       setUser(null)
       router.replace('/screens/WelcomeScreen')
@@ -57,90 +53,94 @@ export default function ProfileView() {
                     <Pressable className='rounded-full p-2 active:opacity-70' style={{backgroundColor: Colors.lightGray}} onPress={() => router.push("/screens/client/_tabs/ClientHomeScreen")}>
                         <ArrowLeft color={Colors.primary} size={24} />
                     </Pressable>
-                    <Text className='text-xl font-extrabold' style={{color: Colors.textPrimary}}>Profile Overview</Text>
+                    <Text className='text-lg font-bold' style={{color: Colors.textPrimary}}>Profile Overview</Text>
                 </View>
-                <View style={[styles.profileCard, Shadows.medium]} className='px-5 py-6 rounded-3xl w-11/12 self-center my-6'>
-                    <View className='flex-row justify-around items-center'>
+
+                <View style={[styles.profileCard, Shadows.small]} className='px-6 py-8 rounded-3xl w-11/12 self-center my-6'>
+                    <View className='flex-row items-center'>
                         <Avatar
                             name={user?.name || 'U'}
                             size='lg'
                             color={Colors.primary}
                         />
                         <View className='flex-1 ml-4'>
-                            <Text className='text-lg font-bold' style={{color: Colors.textPrimary}}>{user?.name || 'User'}</Text>
+                            <Text className='text-xl font-bold' style={{color: Colors.textPrimary}}>{user?.name || 'User'}</Text>
                             <Text className='text-sm font-medium mt-1' style={{color: Colors.textSecondary}} numberOfLines={1}>{user?.email || 'user@email.com'}</Text>
-                            <View className='flex-row items-center mt-3'>
-                                <CheckCircle size={16} color={Colors.success} />
-                                <Text className='text-sm font-bold ml-1' style={{color: Colors.success}}>Verified ID</Text>
-                            </View>
+                            <TouchableOpacity 
+                                className="mt-3 bg-gray-50 border border-gray-100 rounded-lg py-1.5 px-3 self-start"
+                                onPress={() => router.push('/screens/client/Component/ClientAboutMeScreen')}
+                            >
+                                <Text className="text-[10px] font-bold text-gray-500 uppercase">Edit Profile</Text>
+                            </TouchableOpacity>
                         </View>
                     </View>
                 </View>
-                <View className='gap-4 px-5 pb-6'>
-                    {/* About Me */}
+
+                <View className='gap-3 px-5 pb-8'>
+                    <Text className='text-xs font-bold mb-1 px-1' style={{color: Colors.textTertiary}}>ACCOUNT SETTINGS</Text>
+                    
                     <Pressable 
-                        className='px-6 flex-row items-center rounded-2xl gap-4 active:opacity-80' 
-                        style={[styles.menuItem, Shadows.medium]}
+                        className='px-5 flex-row items-center rounded-2xl gap-4 active:opacity-80 py-4' 
+                        style={styles.menuItem}
                         onPress={() => router.push('/screens/client/Component/ClientAboutMeScreen')}
                     >
-                        <View className='p-3 rounded-xl' style={{backgroundColor: '#dbeafe'}}>
-                            <CheckCircle size={22} color={Colors.primary} />
+                        <View className='p-2.5 rounded-xl' style={{backgroundColor: Colors.infoLight}}>
+                            <CheckCircle size={20} color={Colors.info} />
                         </View>
                         <Text className='text-base font-semibold flex-1' style={{color: Colors.textPrimary}}>About Me</Text>
                     </Pressable>
-                    {/* Booking History */}
+
                     <Pressable 
-                        className='px-6 flex-row items-center rounded-2xl gap-4 active:opacity-80' 
-                        style={[styles.menuItem, Shadows.medium]}
+                        className='px-5 flex-row items-center rounded-2xl gap-4 active:opacity-80 py-4' 
+                        style={styles.menuItem}
                         onPress={() => router.push('/screens/client/Component/BookingHistoryScreen')}
                     >
-                        <View className='p-3 rounded-xl' style={{backgroundColor: '#fef3c7'}}>
-                            <Calendar size={22} color={Colors.warning} />
+                        <View className='p-2.5 rounded-xl' style={{backgroundColor: Colors.warningLight}}>
+                            <Calendar size={20} color={Colors.warning} />
                         </View>
                         <Text className='text-base font-semibold flex-1' style={{color: Colors.textPrimary}}>My Bookings</Text>
                     </Pressable>
-                    {/* Payment Method */}
+
                     <Pressable 
-                        className='px-6 flex-row items-center rounded-2xl gap-4 active:opacity-80' 
-                        style={[styles.menuItem, Shadows.medium]}
+                        className='px-5 flex-row items-center rounded-2xl gap-4 active:opacity-80 py-4' 
+                        style={styles.menuItem}
                     >
-                        <View className='p-3 rounded-xl' style={{backgroundColor: '#dcfce7'}}>
-                            <CreditCard size={22} color={Colors.success} />
+                        <View className='p-2.5 rounded-xl' style={{backgroundColor: Colors.successLight}}>
+                            <CreditCard size={20} color={Colors.success} />
                         </View>
                         <Text className='text-base font-semibold flex-1' style={{color: Colors.textPrimary}}>Payment Methods</Text>
                     </Pressable>
-                    {/* Help Center */}
+
+                    <Text className='text-xs font-bold mt-4 mb-1 px-1' style={{color: Colors.textTertiary}}>SUPPORT & LEGAL</Text>
+
                     <Pressable 
-                        className='px-6 flex-row items-center rounded-2xl gap-4 active:opacity-80' 
-                        style={[styles.menuItem, Shadows.medium]}
+                        className='px-5 flex-row items-center rounded-2xl gap-4 active:opacity-80 py-4' 
+                        style={styles.menuItem}
+                        onPress={() => Alert.alert('Help Center', 'Our support team is available 24/7 at support@asaantaqreeb.com or call +92 300 1234567')}
                     >
-                        <View className='p-3 rounded-xl' style={{backgroundColor: '#fef3c7'}}>
-                            <CircleQuestionMark size={22} color={Colors.warning} />
+                        <View className='p-2.5 rounded-xl' style={{backgroundColor: Colors.lightGray}}>
+                            <CircleQuestionMark size={20} color={Colors.textSecondary} />
                         </View>
                         <Text className='text-base font-semibold flex-1' style={{color: Colors.textPrimary}}>Help Center</Text>
                     </Pressable>
-                    {/* Log Out */}
+
                     <Pressable 
-                        className='px-6 flex-row items-center rounded-2xl gap-4 active:opacity-80' 
-                        style={[styles.menuItem, Shadows.medium]}
+                        className='px-5 flex-row items-center rounded-2xl gap-4 active:opacity-80 py-4 mt-6' 
+                        style={[styles.menuItem, {backgroundColor: '#FEF2F2', borderColor: '#FEE2E2'}]}
                         onPress={handleLogout}
                     >
-                        <View className='p-3 rounded-xl' style={{backgroundColor: '#ffe4e6'}}>
-                            <LogOut size={22} color={Colors.error} />
+                        <View className='p-2.5 rounded-xl' style={{backgroundColor: Colors.white}}>
+                            <LogOut size={20} color={Colors.error} />
                         </View>
-                        <Text className='text-base font-semibold flex-1' style={{color: Colors.error}}>Log Out</Text>
+                        <Text className='text-base font-bold flex-1' style={{color: Colors.error}}>Log Out</Text>
                     </Pressable>
-                    {/* Delete Account */}
-                    <Pressable 
-                        className='px-6 flex-row items-center rounded-2xl gap-4 active:opacity-80' 
-                        style={[styles.menuItem, Shadows.medium]}
+
+                    <TouchableOpacity 
+                        className='mt-8 mb-10 items-center justify-center'
                         onPress={handleDeleteAccount}
                     >
-                        <View className='p-3 rounded-xl' style={{backgroundColor: '#ffe4e6'}}>
-                            <LogOut size={22} color={Colors.error} />
-                        </View>
-                        <Text className='text-base font-semibold flex-1' style={{color: Colors.error}}>Delete Account</Text>
-                    </Pressable>
+                        <Text className='text-xs font-bold uppercase tracking-widest' style={{color: Colors.textTertiary, opacity: 0.6}}>Delete Account Permanently</Text>
+                    </TouchableOpacity>
                 </View>
             </ScrollView>
         </View>
@@ -155,10 +155,12 @@ const styles = StyleSheet.create({
     },
     profileCard: {
         backgroundColor: Colors.white,
+        borderWidth: 1,
+        borderColor: Colors.border,
     },
     menuItem: {
         backgroundColor: Colors.white,
-        paddingVertical: Spacing.xl,
-        minHeight: 80,
+        borderWidth: 1,
+        borderColor: Colors.border,
     }
 })

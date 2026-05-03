@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Modal, ActivityIndicator, SafeAreaView } from 'react-native';
-import { Bell, X, Check, Clock } from 'lucide-react-native';
-import { Colors } from '@/app/_constants/theme';
-import { useUnreadNotificationCount } from '@/app/_context/NotificationContext';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Modal, ActivityIndicator, SafeAreaView, Pressable } from 'react-native';
+import { Bell, X, Check, Clock, MessageSquare, Info } from 'lucide-react-native';
+import { Colors, Shadows } from '@/app/_constants/theme';
+import { useNotifications } from '@/app/_context/NotificationContext';
 import { useSocket } from '@/app/_context/SocketContext';
-import { getNotifications, markNotificationAsRead } from '@/app/_utils/notificationService';
+import { markNotificationAsRead } from '@/app/_utils/notificationService';
 import type { Notification } from '@/app/_utils/notificationService';
 
 interface NotificationBellProps {
@@ -14,267 +14,191 @@ interface NotificationBellProps {
 
 export default function NotificationBell({ userId, userRole }: NotificationBellProps) {
   const [modalVisible, setModalVisible] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const polledCount = useUnreadNotificationCount(true); // always poll
+  const { notifications, unreadCount: polledCount, refresh, markAsRead, markAllAsRead } = useNotifications(true);
   const { unreadNotificationCount: socketCount, clearNotificationCount } = useSocket();
-  const unreadCount = Math.max(polledCount, socketCount);
+  
+  // Combine counts, ensuring we don't double count if both systems are active
+  const displayCount = Math.max(polledCount, socketCount);
 
   const openNotifications = async () => {
     setModalVisible(true);
-    clearNotificationCount(); // clear socket-based count when user opens
-    setIsLoading(true);
-    try {
-      const notifs = await getNotifications(50);
-      setNotifications(notifs);
-    } catch (error) {
-      console.error('Failed to load notifications:', error);
-    } finally {
-      setIsLoading(false);
-    }
+    clearNotificationCount(); // reset socket count
+    refresh(); // refresh polling count
   };
 
   const handleNotificationPress = async (notification: Notification) => {
     if (!notification.isRead) {
-      await markNotificationAsRead(notification.id);
-      setNotifications((prev) =>
-        prev.map((n) =>
-          n.id === notification.id ? { ...n, isRead: true } : n
-        )
-      );
+      await markAsRead(notification.id);
     }
 
-    // Handle navigation based on notification type
+    // Handle navigation based on notification type or actionUrl
     if (notification.actionUrl) {
-      // TODO: Navigate to the action URL
-      console.log('Navigate to:', notification.actionUrl);
+      // Logic for navigation would go here
     }
+  };
+
+  const handleMarkAllRead = async () => {
+    await markAllAsRead();
   };
 
   const getNotificationIcon = (type: string) => {
+    const size = 16;
     switch (type) {
       case 'booking_request':
-        return <Clock size={16} color={Colors.warning} />;
+        return <Clock size={size} color={Colors.warning} />;
       case 'booking_accepted':
-        return <Check size={16} color={Colors.success} />;
+        return <Check size={size} color={Colors.success} />;
       case 'booking_rejected':
-        return <X size={16} color={Colors.error} />;
+        return <X size={size} color={Colors.error} />;
+      case 'new_message':
+        return <MessageSquare size={size} color={userRole === 'vendor' ? Colors.vendor : Colors.primary} />;
       default:
-        return <Bell size={16} color={Colors.textSecondary} />;
+        return <Info size={size} color={Colors.info} />;
     }
   };
 
-  const getNotificationColor = (type: string) => {
+  const getStatusBg = (type: string) => {
     switch (type) {
-      case 'booking_request':
-        return '#fff3cd';
-      case 'booking_accepted':
-        return '#d4edda';
-      case 'booking_rejected':
-        return '#f8d7da';
-      default:
-        return '#e9ecef';
+      case 'booking_request': return Colors.warningLight;
+      case 'booking_accepted': return Colors.successLight;
+      case 'booking_rejected': return Colors.errorLight;
+      default: return Colors.lightGray;
     }
   };
 
   return (
     <>
-      {/* Notification Bell Button */}
       <TouchableOpacity
         onPress={openNotifications}
-        style={{
-          position: 'relative',
-          padding: 8,
-        }}
+        className="relative p-2 rounded-xl active:bg-gray-100"
+        style={{ backgroundColor: Colors.white }}
       >
-        <Bell size={24} color={Colors.textPrimary} />
-        {unreadCount > 0 && (
+        <Bell size={20} color={Colors.textPrimary} />
+        {displayCount > 0 && (
           <View
-            style={{
-              position: 'absolute',
-              top: 4,
-              right: 4,
-              backgroundColor: Colors.error,
-              borderRadius: 10,
-              width: 20,
-              height: 20,
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
+            className="absolute top-1 right-1 bg-red-500 rounded-full items-center justify-center border-2 border-white"
+            style={{ width: 18, height: 18, backgroundColor: Colors.error }}
           >
-            <Text
-              style={{
-                color: 'white',
-                fontSize: 12,
-                fontWeight: '700',
-              }}
-            >
-              {unreadCount > 9 ? '9+' : unreadCount}
+            <Text className="text-white font-bold text-[9px]">
+              {displayCount > 9 ? '9+' : displayCount}
             </Text>
           </View>
         )}
       </TouchableOpacity>
 
-      {/* Notifications Modal */}
       <Modal
         visible={modalVisible}
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         onRequestClose={() => setModalVisible(false)}
       >
-        <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
-          {/* Header */}
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              backgroundColor: Colors.white,
-              borderBottomWidth: 1,
-              borderBottomColor: Colors.border,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 18,
-                fontWeight: '700',
-                color: Colors.textPrimary,
-              }}
-            >
-              Notifications
-            </Text>
-            <TouchableOpacity
-              onPress={() => setModalVisible(false)}
-              style={{
-                padding: 8,
-                borderRadius: 20,
-                backgroundColor: '#f0f0f0',
-              }}
-            >
-              <X size={20} color={Colors.textPrimary} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Notifications List */}
-          {isLoading ? (
-            <View
-              style={{
-                flex: 1,
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
-            >
-              <ActivityIndicator size="large" color={Colors.primary} />
-            </View>
-          ) : notifications.length === 0 ? (
-            <View
-              style={{
-                flex: 1,
-                justifyContent: 'center',
-                alignItems: 'center',
-                paddingHorizontal: 16,
-              }}
-            >
-              <Bell size={48} color={Colors.border} />
-              <Text
-                style={{
-                  marginTop: 16,
-                  fontSize: 16,
-                  color: Colors.textSecondary,
-                  textAlign: 'center',
-                }}
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <SafeAreaView className="flex-1 mt-20 bg-white rounded-t-[32px]" style={Shadows.medium}>
+            {/* Header */}
+            <View className="flex-row justify-between items-center px-6 py-6 border-b border-gray-100">
+              <View className="flex-1">
+                <Text className="text-xl font-bold" style={{ color: Colors.textPrimary }}>Notifications</Text>
+                <View className="flex-row items-center mt-0.5">
+                  <Text className="text-xs font-medium mr-3" style={{ color: Colors.textSecondary }}>
+                    {displayCount > 0 ? `${displayCount} unread` : 'All caught up'}
+                  </Text>
+                  {displayCount > 0 && (
+                    <TouchableOpacity onPress={handleMarkAllRead}>
+                      <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: userRole === 'vendor' ? Colors.vendor : Colors.primary }}>Mark all as read</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={() => setModalVisible(false)}
+                className="w-10 h-10 rounded-full items-center justify-center bg-gray-100"
               >
-                No notifications yet
-              </Text>
+                <X size={20} color={Colors.textPrimary} />
+              </TouchableOpacity>
             </View>
-          ) : (
-            <ScrollView
-              style={{ flex: 1 }}
-              contentContainerStyle={{ paddingVertical: 8 }}
-              showsVerticalScrollIndicator={false}
-            >
-              {notifications.map((notification) => (
-                <TouchableOpacity
-                  key={notification.id}
-                  onPress={() => handleNotificationPress(notification)}
-                  style={{
-                    marginVertical: 4,
-                    marginHorizontal: 12,
-                    paddingHorizontal: 12,
-                    paddingVertical: 12,
-                    backgroundColor: notification.isRead
-                      ? Colors.white
-                      : '#f0f7ff',
-                    borderRadius: 12,
-                    borderLeftWidth: 4,
-                    borderLeftColor: getNotificationColor(notification.type),
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    alignItems: 'flex-start',
-                  }}
-                >
-                  <View style={{ flex: 1, marginRight: 12 }}>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        marginBottom: 4,
-                      }}
+
+            {/* List */}
+            {notifications.length === 0 ? (
+              <View className="flex-1 justify-center items-center px-10">
+                <View className="w-20 h-20 rounded-3xl bg-gray-50 items-center justify-center mb-6">
+                  <Bell size={32} color={Colors.textTertiary} />
+                </View>
+                <Text className="text-lg font-bold text-center" style={{ color: Colors.textSecondary }}>No Notifications</Text>
+                <Text className="text-sm font-medium mt-2 text-center text-gray-400">
+                  We&apos;ll notify you when something important happens!
+                </Text>
+              </View>
+            ) : (
+              <ScrollView 
+                className="flex-1"
+                contentContainerStyle={{ padding: 20 }}
+                showsVerticalScrollIndicator={false}
+              >
+                {notifications.map((notification) => (
+                  <Pressable
+                    key={notification.id}
+                    onPress={() => handleNotificationPress(notification)}
+                    className="mb-4 p-4 rounded-2xl flex-row"
+                    style={{ 
+                      backgroundColor: notification.isRead ? Colors.white : Colors.lightGray + '40',
+                      borderWidth: 1,
+                      borderColor: notification.isRead ? Colors.border : Colors.border,
+                    }}
+                  >
+                    <View 
+                      className="w-10 h-10 rounded-xl items-center justify-center mr-4"
+                      style={{ backgroundColor: getStatusBg(notification.type) + '30' }}
                     >
                       {getNotificationIcon(notification.type)}
-                      <Text
-                        style={{
-                          marginLeft: 8,
-                          fontSize: 14,
-                          fontWeight: '600',
-                          color: Colors.textPrimary,
-                          flex: 1,
-                        }}
+                    </View>
+
+                    <View className="flex-1">
+                      <View className="flex-row justify-between items-start mb-1">
+                        <Text 
+                          className="text-sm font-bold flex-1 mr-2" 
+                          style={{ color: Colors.textPrimary }}
+                          numberOfLines={1}
+                        >
+                          {notification.title}
+                        </Text>
+                        <Text className="text-[10px] font-bold text-gray-400">
+                          {new Date(notification.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </Text>
+                      </View>
+                      
+                      <Text 
+                        className="text-xs font-medium leading-relaxed" 
+                        style={{ color: Colors.textSecondary }}
+                        numberOfLines={2}
                       >
-                        {notification.title}
+                        {notification.message}
                       </Text>
+
                       {!notification.isRead && (
-                        <View
-                          style={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: 4,
-                            backgroundColor: Colors.primary,
-                            marginLeft: 8,
-                          }}
-                        />
+                        <View className="mt-2 flex-row items-center">
+                          <View className="w-1.5 h-1.5 rounded-full bg-blue-500 mr-1.5" style={{backgroundColor: userRole === 'vendor' ? Colors.vendor : Colors.primary}} />
+                          <Text className="text-[10px] font-bold uppercase tracking-widest" style={{color: userRole === 'vendor' ? Colors.vendor : Colors.primary}}>New Alert</Text>
+                        </View>
                       )}
                     </View>
-                    <Text
-                      style={{
-                        fontSize: 12,
-                        color: Colors.textSecondary,
-                        marginBottom: 4,
-                      }}
-                    >
-                      {notification.message}
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 11,
-                        color: Colors.textTertiary,
-                      }}
-                    >
-                      {new Date(notification.createdAt).toLocaleDateString()} at{' '}
-                      {new Date(notification.createdAt).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          )}
-        </SafeAreaView>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            )}
+            
+            <View className="p-6 border-t border-gray-100">
+              <TouchableOpacity 
+                className="py-4 rounded-2xl items-center justify-center"
+                style={{ backgroundColor: Colors.lightGray }}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text className="text-sm font-bold" style={{ color: Colors.textPrimary }}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+        </View>
       </Modal>
     </>
   );
 }
+

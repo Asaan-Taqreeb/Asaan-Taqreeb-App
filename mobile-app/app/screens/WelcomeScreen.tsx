@@ -1,9 +1,9 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Icon from "react-native-vector-icons/FontAwesome6"
-import { PartyPopper } from "lucide-react-native"
+import { User, Store, ChevronRight } from "lucide-react-native"
 import { useRouter } from "expo-router";
-
+import { Colors, Shadows } from "@/app/_constants/theme";
+import AppLogo from "./client/Component/AppLogo";
 
 export default function WelcomeScreen() {
   const insets = useSafeAreaInsets()
@@ -13,78 +13,89 @@ export default function WelcomeScreen() {
     {
       keyRole: "Client",
       title: "I want to Book",
-      subText: "Venues, Food, Parlor & more.",
-      icon: "calendar-day",
-      color: "#4546E5",
-      borderColor: "#6366F1",
+      subText: "Venues, Food, Decor & more.",
+      icon: User,
+      color: Colors.accent, // Electric Blue
+      bgColor: '#EFF6FF',
       link: "/screens/client/Component/LoginScreen" as const
     },
     {
       keyRole: "Vendor",
       title: "I am a Vendor",
-      subText: "List services and get orders.",
-      icon: "briefcase",
-      color: "#F59E0B",
-      borderColor: "#FBBF24",
+      subText: "List services & get orders.",
+      icon: Store,
+      color: Colors.primary, // Electric Cyan
+      bgColor: Colors.primaryMuted,
       link: "/screens/vendor/VendorLoginScreen" as const
     }
   ]
 
   return (
-    <>
-      <View style={[style.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]} >
-        <View className="bg-indigo-600 rounded-b-[100] p-12 mb-20">
-          <View className="flex flex-row justify-start items-center gap-2 mb-5">
-            <View className="bg-[#F8FAFC] rounded-xl px-2 py-2 border border-[#64748B]">
-              <PartyPopper size={20} color={"#7C3AED"} />
-            </View>
-            <Text className="text-lg font-medium text-[#FAFAFA]">Asaan Taqreeb</Text>
-          </View>
-          <Text className="text-4xl font-bold text-[#FAFAFA] mb-2">Welcome!</Text>
-          <Text className="text-3xl font-medium text-[#FAFAFA]">Who are you today?</Text>
+    <View style={[style.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]} >
+      <View className="flex-1 justify-center px-6">
+        <View className="items-center mb-16">
+          <AppLogo size="medium" />
         </View>
 
+        <View className="gap-5">
           {roles.map(role => (
             <Pressable 
               key={role.keyRole} 
               onPress={() => router.push(role.link)}
-              className="active:opacity-85"
+              className="active:opacity-90"
             >
               <View 
-                className="w-11/12 py-10 bg-[#FAFAFA] self-center rounded-[30] mb-12"
-                style={style.cardShadow}
+                className="flex-row items-center p-6 rounded-[24px]"
+                style={[style.cardShadow, { backgroundColor: Colors.white }]}
               >
-                <View className="flex-row justify-evenly items-center ">
-                  <View className="px-4 py-3 rounded-2xl bg-gray-100" style={{borderWidth: 1, borderColor: role.borderColor}} >
-                    <Icon name={role.icon} color={role.color} size={35} />
-                  </View>
-                  <View>
-                    <Text className="text-2xl font-bold">{role.title}</Text>
-                    <Text className="text-lg text-gray-400">{role.subText}</Text>
-                  </View>
+                <View 
+                  className="w-16 h-16 rounded-2xl items-center justify-center" 
+                  style={{ backgroundColor: role.bgColor }} 
+                >
+                  <role.icon color={role.color} size={30} />
                 </View>
+                
+                <View className="flex-1 ml-5">
+                  <Text className="text-xl font-extrabold" style={{ color: Colors.textPrimary }}>
+                    {role.title}
+                  </Text>
+                  <Text className="text-sm font-medium mt-1" style={{ color: Colors.textSecondary }}>
+                    {role.subText}
+                  </Text>
+                </View>
+
+                <ChevronRight size={20} color={Colors.textTertiary} />
               </View>
             </Pressable>
           ))}
+        </View>
       </View>
-    </>
+
+      <Text className="text-center text-xs font-bold mb-4 uppercase tracking-widest" style={{ color: Colors.textTertiary }}>
+        Asaan Taqreeb • Premium
+      </Text>
+    </View>
   )
 };
 
 const style = StyleSheet.create({
   container: {
-    width: "100%",
-    height: "100%",
-    backgroundColor: "#FAFAFA",
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  logoBox: {
+    backgroundColor: Colors.vendor, // Midnight Navy
+    borderRadius: 24,
+    width: 80,
+    height: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cardShadow: {
-    shadowColor: "black",
+    shadowColor: Colors.shadow,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8, // For Android
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 4,
   },
-  backBorder: {
-    borderWidth: 1
-  }
 })

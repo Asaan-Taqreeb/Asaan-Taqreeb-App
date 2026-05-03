@@ -15,14 +15,14 @@ const sizeMap = {
 
 const generateColorFromHash = (str: string): string => {
   const colors = [
-    '#4F46E5', // indigo
-    '#EC4899', // pink
-    '#F59E0B', // amber
-    '#10B981', // emerald
-    '#3B82F6', // blue
-    '#8B5CF6', // violet
-    '#EF4444', // red
-    '#06B6D4', // cyan
+    '#06B6D4', // cyan (primary)
+    '#DB2777', // pink
+    '#D97706', // amber
+    '#059669', // emerald
+    '#2563EB', // blue
+    '#7C3AED', // violet
+    '#4338CA', // indigo
+    '#0891B2', // cyan
   ]
 
   if (!str) return colors[0]
@@ -40,8 +40,6 @@ const Avatar: React.FC<AvatarProps> = ({ name = '?', size = 'md', color }) => {
   const dimension = sizeMap[size]
   const firstLetter = (name ?? '?').charAt(0).toUpperCase()
   const backgroundColor = color || generateColorFromHash(name ?? '')
-
-  console.log('Avatar component - name:', name, 'firstLetter:', firstLetter)
 
   return (
     <View

@@ -2,9 +2,11 @@ import WelcomeScreen from "./screens/WelcomeScreen";
 import { useUser } from '@/app/_context/UserContext'
 import { useRouter } from 'expo-router'
 import { useEffect } from 'react'
-import { ActivityIndicator, View } from 'react-native'
+import { ActivityIndicator, View, Text, StyleSheet } from 'react-native'
 import { hasSeenOnboarding } from '@/app/_utils/onboardingStorage'
-
+import { Colors, Shadows } from "@/app/_constants/theme";
+import { PartyPopper } from "lucide-react-native"
+import AppLogo from "./screens/client/Component/AppLogo";
 
 export default function Index() {
   const { user, loading } = useUser()
@@ -37,21 +39,29 @@ export default function Index() {
     }
   }, [loading, router, user])
 
-  if (loading) {
+  if (loading || user) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FAFAFA' }}>
-        <ActivityIndicator size='large' color='#4F46E5' />
-      </View>
-    )
-  }
-
-  if (user) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FAFAFA' }}>
-        <ActivityIndicator size='large' color='#4F46E5' />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background }}>
+        <AppLogo size="medium" />
+        <ActivityIndicator 
+          size="small" 
+          color={Colors.primary} 
+          style={{ marginTop: 40 }} 
+        />
       </View>
     )
   }
 
   return <WelcomeScreen />
 };
+
+const style = StyleSheet.create({
+  logoBox: {
+    backgroundColor: Colors.vendor, // Midnight Navy
+    borderRadius: 24,
+    width: 100,
+    height: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  }
+})

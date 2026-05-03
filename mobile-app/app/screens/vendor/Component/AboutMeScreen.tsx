@@ -214,9 +214,14 @@ export default function AboutMeScreen() {
 
           {/* Working Hours */}
           <View className="mb-5">
-            <Text className="text-sm font-semibold mb-2" style={{ color: Colors.textPrimary }}>
-              Working Hours
-            </Text>
+            <View className="flex-row justify-between items-center mb-2">
+              <Text className="text-sm font-semibold" style={{ color: Colors.textPrimary }}>
+                Working Hours
+              </Text>
+              <TouchableOpacity onPress={() => router.push('/screens/vendor/Component/TimeSlotsScreen')}>
+                <Text className="text-xs font-bold" style={{ color: Colors.vendor }}>MANAGE SLOTS</Text>
+              </TouchableOpacity>
+            </View>
             <TextInput
               value={workingHours}
               onChangeText={setWorkingHours}

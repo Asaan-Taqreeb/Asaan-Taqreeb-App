@@ -14,6 +14,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, Save } from 'lucide-react-native';
 import { Colors } from '@/app/_constants/theme';
 import { useUser } from '@/app/_context/UserContext';
+import { updateUserProfile } from '@/app/_utils/authApi';
+import { ActivityIndicator } from 'react-native';
 
 export default function ClientAboutMeScreen() {
   const router = useRouter();
@@ -27,6 +29,7 @@ export default function ClientAboutMeScreen() {
   const [address, setAddress] = useState('');
   const [bio, setBio] = useState('');
   const [preferences, setPreferences] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -40,7 +43,7 @@ export default function ClientAboutMeScreen() {
     }
   }, [user])
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Validation
     if (!fullName.trim()) {
       Alert.alert('Error', 'Please enter your full name');
@@ -55,20 +58,27 @@ export default function ClientAboutMeScreen() {
       return;
     }
 
-    const profileData = {
-      fullName,
-      phoneNumber,
-      email,
-      address,
-      bio,
-      preferences,
-    };
+    try {
+      setIsSaving(true);
+      const profileData = {
+        name: fullName,
+        phoneNumber,
+        email,
+        address,
+        bio,
+        preferences,
+      };
 
-    console.log('Profile Data:', profileData);
-    Alert.alert('Success', 'Profile updated successfully!', [
-      { text: 'OK', onPress: () => router.back() }
-    ]);
-    // In real app, save to backend
+      await updateUserProfile(profileData);
+      
+      Alert.alert('Success', 'Profile updated successfully!', [
+        { text: 'OK', onPress: () => router.back() }
+      ]);
+    } catch (error: any) {
+      Alert.alert('Error', error?.message || 'Failed to update profile');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -237,14 +247,21 @@ export default function ClientAboutMeScreen() {
         <View className="px-5 pb-5 pt-3 bg-white border-t border-gray-100">
           <TouchableOpacity
             onPress={handleSave}
+            disabled={isSaving}
             className="rounded-2xl py-4 items-center justify-center flex-row"
-            style={{ backgroundColor: Colors.primary }}
+            style={{ backgroundColor: Colors.primary, opacity: isSaving ? 0.7 : 1 }}
             activeOpacity={0.8}
           >
-            <Save size={20} color="#FFFFFF" />
-            <Text className="text-white text-base font-bold ml-2">
-              Save Changes
-            </Text>
+            {isSaving ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <>
+                <Save size={20} color="#FFFFFF" />
+                <Text className="text-white text-base font-bold ml-2">
+                  Save Changes
+                </Text>
+              </>
+            )}
           </TouchableOpacity>
         </View>
       </View>

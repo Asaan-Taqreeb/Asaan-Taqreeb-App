@@ -11,6 +11,7 @@ export type Notification = {
   userId?: string;
   isRead: boolean;
   createdAt: string;
+  actionUrl?: string;
   data?: Record<string, any>;
 };
 

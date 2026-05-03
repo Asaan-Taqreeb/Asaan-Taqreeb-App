@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 import { registerUser } from '@/app/_utils/authApi'
+import AppLogo from '../screens/client/Component/AppLogo'
 
 interface SignupScreenProps {
     role?: 'client' | 'vendor'
@@ -93,7 +94,8 @@ const SignupScreen = ({
                 <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }} keyboardShouldPersistTaps='handled'>
                 {/* Header Section */}
                 <View style={styles.headerContainer}>
-                    <Text style={styles.appTitle}>Assan Taqreeb</Text>
+                    <AppLogo size="small" showText={false} />
+                    <Text style={styles.appTitle}>Asaan<Text style={{color: Colors.primary}}>Taqreeb</Text></Text>
                     <Text style={styles.subtitle}>{getSubtitle()}</Text>
                 </View>
 

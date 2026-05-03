@@ -1,7 +1,8 @@
 import { Tabs } from 'expo-router';
-import { Home, ShoppingBag, MessageCircle, User } from 'lucide-react-native';
+import { Home, ShoppingBasket, MessageCircle, User } from 'lucide-react-native';
 import { Colors } from '@/app/_constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View } from 'react-native';
 
 export default function VendorTabLayout() {
   const insets = useSafeAreaInsets();
@@ -10,18 +11,23 @@ export default function VendorTabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors.vendor,
-        tabBarInactiveTintColor: '#9CA3AF',
+        tabBarInactiveTintColor: Colors.textTertiary,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopWidth: 1,
-          borderTopColor: '#E5E7EB',
-          height: 60 + (insets.bottom > 0 ? insets.bottom : 8),
+          backgroundColor: Colors.white,
+          borderTopWidth: 0,
+          height: 64 + (insets.bottom > 0 ? insets.bottom : 8),
           paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
           paddingTop: 8,
+          shadowColor: Colors.shadow,
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
+          elevation: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: '600',
+          marginTop: 2,
         },
         headerShown: false,
       }}
@@ -30,8 +36,10 @@ export default function VendorTabLayout() {
         name="VendorDashboardHome"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <Home color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={{ transform: [{ scale: focused ? 1.1 : 1 }] }}>
+              <Home color={color} size={size} />
+            </View>
           ),
         }}
       />
@@ -39,8 +47,10 @@ export default function VendorTabLayout() {
         name="OrdersScreen"
         options={{
           title: 'Orders',
-          tabBarIcon: ({ color, size }) => (
-            <ShoppingBag color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={{ transform: [{ scale: focused ? 1.1 : 1 }] }}>
+              <ShoppingBasket color={color} size={size} />
+            </View>
           ),
         }}
       />
@@ -48,8 +58,10 @@ export default function VendorTabLayout() {
         name="VendorMessagesScreen"
         options={{
           title: 'Messages',
-          tabBarIcon: ({ color, size }) => (
-            <MessageCircle color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={{ transform: [{ scale: focused ? 1.1 : 1 }] }}>
+              <MessageCircle color={color} size={size} />
+            </View>
           ),
         }}
       />
@@ -57,8 +69,10 @@ export default function VendorTabLayout() {
         name="VendorProfileScreen"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <User color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={{ transform: [{ scale: focused ? 1.1 : 1 }] }}>
+              <User color={color} size={size} />
+            </View>
           ),
         }}
       />

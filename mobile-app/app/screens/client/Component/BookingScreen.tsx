@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors, getCategoryColor, Shadows } from '@/app/_constants/theme'
 import { createBooking } from '@/app/_utils/bookingsApi'
 import { getVendorAvailability, type VendorAvailabilityDay } from '@/app/_utils/availabilityApi'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 type BookingAddon = {
     id: number
@@ -17,6 +18,8 @@ type BookingAddon = {
 
 const toMinutes = (value: string) => {
     const raw = String(value || '').trim().toUpperCase()
+    
+    // Handle AM/PM format (e.g., "10:00 AM", "9 PM")
     const ampmMatch = raw.match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)$/)
     if (ampmMatch) {
         let hour = Number(ampmMatch[1])
@@ -27,9 +30,14 @@ const toMinutes = (value: string) => {
         return hour * 60 + minute
     }
 
-    const h24Match = raw.match(/^([01]\d|2[0-3]):([0-5]\d)$/)
+    // Handle 24-hour format (e.g., "14:30", "9:00")
+    const h24Match = raw.match(/^(\d{1,2}):(\d{2})$/)
     if (h24Match) {
-        return Number(h24Match[1]) * 60 + Number(h24Match[2])
+        const hour = Number(h24Match[1])
+        const minute = Number(h24Match[2])
+        if (hour >= 0 && hour < 24 && minute >= 0 && minute < 60) {
+            return hour * 60 + minute
+        }
     }
 
     return null
@@ -93,12 +101,31 @@ export default function BookingScreen() {
     const [availabilityDays, setAvailabilityDays] = useState<VendorAvailabilityDay[]>([])
     const [isLoadingAvailability, setIsLoadingAvailability] = useState(false)
 
-    // Predefined time slots for banquet
-    const banquetSlots = [
+    const [slots, setSlots] = useState<{id: string, label: string, time: string}[]>([
         { id: 'morning', label: 'Morning', time: '10 AM to 1 PM' },
         { id: 'afternoon', label: 'Afternoon', time: '3 PM to 7 PM' },
         { id: 'evening', label: 'Evening', time: '9 PM to 12 AM' }
-    ]
+    ])
+
+    useEffect(() => {
+        const loadVendorSlots = async () => {
+            if (!vendorAvailabilityId) return;
+            try {
+                const saved = await AsyncStorage.getItem('vendor_slots_' + vendorAvailabilityId);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    setSlots(parsed.map((s: any) => ({
+                        id: s.id,
+                        label: s.label,
+                        time: `${s.from} to ${s.to}`
+                    })));
+                }
+            } catch (error) {
+                console.log('Failed to load custom slots:', error);
+            }
+        };
+        loadVendorSlots();
+    }, [vendorAvailabilityId]);
 
     const addons: BookingAddon[] = useMemo(() => {
         const rawOptional: any[] = Array.isArray(bookingData.optionalServices)
@@ -186,21 +213,31 @@ export default function BookingScreen() {
         }
     }, [vendorAvailabilityId])
 
-    const blockedDateSlotMap = useMemo(() => {
-        return availabilityDays.reduce<Record<string, { from: number; to: number }[]>>((acc, day) => {
-            if (!day.isBlocked || !day.timeSlot) return acc
+    const unavailableRangesMap = useMemo(() => {
+        return availabilityDays.reduce<Record<string, { from: number; to: number; type: 'blocked' | 'booked' }[]>>((acc, day) => {
+            if (!day.isBlocked && !day.isBooked) return acc
 
-            const from = toMinutes(day.timeSlot.from)
-            const to = toMinutes(day.timeSlot.to)
-            if (from === null || to === null) return acc
+            let from = 0
+            let to = 24 * 60
+
+            if (day.timeSlot) {
+                const parsedFrom = toMinutes(day.timeSlot.from)
+                const parsedTo = toMinutes(day.timeSlot.to)
+                
+                // Only use the parsed values if BOTH are valid, otherwise fallback to full day
+                if (parsedFrom !== null && parsedTo !== null) {
+                    from = parsedFrom
+                    to = parsedTo
+                    if (to <= from) to += 24 * 60
+                }
+            }
 
             if (!acc[day.date]) acc[day.date] = []
-
-            if (to <= from) {
-                acc[day.date].push({ from, to: to + 24 * 60 })
-            } else {
-                acc[day.date].push({ from, to })
-            }
+            acc[day.date].push({ 
+                from, 
+                to, 
+                type: (day.isBooked ? 'booked' : 'blocked') as 'blocked' | 'booked' 
+            })
 
             return acc
         }, {})
@@ -208,7 +245,7 @@ export default function BookingScreen() {
 
     const selectedTimeRange = useMemo(() => {
         if (bookingData.category === 'banquet') {
-            const slot = banquetSlots.find((item) => item.id === selectedSlot)
+            const slot = slots.find((item) => item.id === selectedSlot)
             if (!slot) return null
             return parseRange(slot.time)
         }
@@ -217,18 +254,18 @@ export default function BookingScreen() {
         return parseRange(`${customStartHour}:${customStartMinute} ${customStartPeriod} - ${customEndHour}:${customEndMinute} ${customEndPeriod}`)
     }, [bookingData.category, selectedSlot, customStartHour, customStartMinute, customStartPeriod, customEndHour, customEndMinute, customEndPeriod])
 
-    const unavailableDateMap = useMemo(() => {
-        return availabilityDays.reduce<Record<string, { isBlocked: boolean; isBooked: boolean; isFullDayBlocked: boolean }>>((acc, day) => {
+    const dayStatusMap = useMemo(() => {
+        return availabilityDays.reduce<Record<string, { hasBookings: boolean; hasBlocks: boolean; isFullDayBlocked: boolean }>>((acc, day) => {
             if (!acc[day.date]) {
-                acc[day.date] = { isBlocked: false, isBooked: false, isFullDayBlocked: false }
+                acc[day.date] = { hasBookings: false, hasBlocks: false, isFullDayBlocked: false }
             }
 
             if (day.isBooked) {
-                acc[day.date].isBooked = true
+                acc[day.date].hasBookings = true
             }
 
             if (day.isBlocked) {
-                acc[day.date].isBlocked = true
+                acc[day.date].hasBlocks = true
                 if (!day.timeSlot?.from || !day.timeSlot?.to) {
                     acc[day.date].isFullDayBlocked = true
                 }
@@ -241,26 +278,35 @@ export default function BookingScreen() {
     const markedDates = useMemo(() => {
         const result: Record<string, any> = {}
 
-        for (const [date, state] of Object.entries(unavailableDateMap)) {
-            const blockedRanges = blockedDateSlotMap[date] || []
-            const isBlockedForSelectedTime = Boolean(
-                selectedTimeRange && blockedRanges.some((range) => rangesOverlap(selectedTimeRange, range))
+        for (const [date, status] of Object.entries(dayStatusMap)) {
+            const ranges = unavailableRangesMap[date] || []
+            
+            // A date is only disabled if:
+            // 1. It's blocked for the full day
+            // 2. A specific time is selected AND that time overlaps with ANY booked or blocked range
+            const isFullDayBlocked = status.isFullDayBlocked || (ranges.length > 0 && ranges.some(r => r.from === 0 && r.to === 1440 && r.type === 'blocked'))
+            
+            const isBlockedBySelection = Boolean(
+                selectedTimeRange && ranges.some((range) => rangesOverlap(selectedTimeRange, range))
             )
-            const shouldDisable = state.isBooked || state.isFullDayBlocked || isBlockedForSelectedTime
+            
+            const shouldDisable = isFullDayBlocked || isBlockedBySelection
 
             result[date] = {
                 disabled: shouldDisable,
                 disableTouchEvent: shouldDisable,
                 marked: true,
-                dotColor: state.isBooked ? Colors.vendor : Colors.error,
+                dotColor: shouldDisable ? Colors.error : (status.hasBookings ? Colors.primary : Colors.textTertiary),
                 customStyles: {
                     container: {
-                        backgroundColor: state.isBooked ? `${Colors.vendor}15` : '#fee2e2',
+                        backgroundColor: shouldDisable ? '#fee2e2' : (status.hasBookings || status.hasBlocks ? `${Colors.primary}10` : 'transparent'),
                         borderRadius: 12,
+                        borderWidth: (status.hasBookings || status.hasBlocks) && !shouldDisable ? 1 : 0,
+                        borderColor: `${Colors.primary}30`,
                     },
                     text: {
-                        color: state.isBooked ? Colors.vendor : Colors.error,
-                        fontWeight: '700',
+                        color: shouldDisable ? Colors.error : Colors.textPrimary,
+                        fontWeight: shouldDisable ? '700' : '600',
                     },
                 },
             }
@@ -279,18 +325,17 @@ export default function BookingScreen() {
         }
 
         return result
-    }, [blockedDateSlotMap, categoryColor, selectedDate, selectedTimeRange, unavailableDateMap])
+    }, [categoryColor, selectedDate, selectedTimeRange, unavailableRangesMap, dayStatusMap])
 
     useEffect(() => {
-        if (!selectedSlot) return
-        if (isBanquetSlotBlocked(selectedSlot)) {
+        if (selectedDate && selectedSlot && isBanquetSlotBlocked(selectedSlot)) {
             setSelectedSlot(null)
         }
-    }, [selectedDate, selectedSlot, blockedDateSlotMap])
+    }, [selectedDate, selectedSlot, unavailableRangesMap])
 
     const getSelectedTime = () => {
         if (bookingData.category === 'banquet') {
-            return selectedSlot ? (banquetSlots.find(s => s.id === selectedSlot)?.time ?? '') : ''
+            return selectedSlot ? (slots.find(s => s.id === selectedSlot)?.time ?? '') : ''
         }
 
         return customStartHour && customStartMinute && customEndHour && customEndMinute
@@ -304,12 +349,16 @@ export default function BookingScreen() {
         const selectedRange = parseRange(timeRange)
         if (!selectedRange) return false
 
-        const blockedRanges = blockedDateSlotMap[selectedDate] || []
+        // Check full day block first
+        const status = dayStatusMap[selectedDate]
+        if (status?.isFullDayBlocked) return true
+
+        const blockedRanges = unavailableRangesMap[selectedDate] || []
         return blockedRanges.some((range) => rangesOverlap(selectedRange, range))
     }
 
     const isBanquetSlotBlocked = (slotId: string) => {
-        const slot = banquetSlots.find((item) => item.id === slotId)
+        const slot = slots.find((item) => item.id === slotId)
         if (!slot) return false
         return isTimeBlockedOnSelectedDate(slot.time)
     }
@@ -417,7 +466,7 @@ export default function BookingScreen() {
                 {/* Banquet - Predefined Slots */}
                 {bookingData.category === 'banquet' && (
                     <View className='gap-3'>
-                        {banquetSlots.map((slot) => (
+                        {slots.map((slot) => (
                             (() => {
                                 const blocked = isBanquetSlotBlocked(slot.id)
                                 const selected = selectedSlot === slot.id
@@ -566,11 +615,7 @@ export default function BookingScreen() {
                 <View className='rounded-2xl overflow-hidden' style={[{backgroundColor: Colors.lightGray}, Shadows.medium]}>
                     <Calendar 
                         onDayPress={day => {
-                            const state = unavailableDateMap[day.dateString]
-                            if (state?.isBooked) {
-                                Alert.alert('Date Not Available', 'This date is already booked. Please choose another date.')
-                                return
-                            }
+                            const state = dayStatusMap[day.dateString]
 
                             if (state?.isFullDayBlocked) {
                                 Alert.alert('Date Not Available', 'Vendor has blocked this date.')

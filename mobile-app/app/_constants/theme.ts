@@ -1,55 +1,70 @@
 // Theme Constants for Asaan Taqreeb
-// Consistent color palette throughout the app
+// Professional color palette — Primary (Electric Cyan), Vendor (Midnight Slate), Accent (Electric Blue)
 
 export const Colors = {
-  // Primary Brand Color
-  primary: '#4F46E5', // Indigo
-  primaryLight: '#818CF8',
-  primaryDark: '#3730A3',
-  
-  // Category Colors
-  banquet: '#4F46E5', // Indigo
-  catering: '#FF8C00', // Orange
-  photo: '#008B8B', // Teal
-  parlor: '#E91E63', // Pink
-  
-  // Vendor Dashboard Color
-  vendor: '#4F46E5', // Indigo - matches primary
-  
+  // Brand Colors (Modern Luxe)
+  primary: '#06B6D4',      // Electric Cyan
+  primaryLight: '#22D3EE',
+  primaryDark: '#0891B2',
+  primaryMuted: '#ECFEFF',
+
+  // Secondary / Vendor (Midnight Slate)
+  vendor: '#0F172A',
+  vendorLight: '#1E293B',
+  vendorAccent: '#334155',
+
+  // Accent (Warm Gold)
+  accent: '#2563EB',
+  accentLight: '#60A5FA',
+  accentMuted: '#EFF6FF',
+
   // Background Colors
-  background: '#FAFAFA',
+  background: '#F8FAFC',   // Cloud White
   white: '#FFFFFF',
-  lightGray: '#F3F4F6',
-  
+  lightGray: '#F1F5F9',
+
   // Text Colors
-  textPrimary: '#0A0A0A',
-  textSecondary: '#64748B',
-  textTertiary: '#9CA3AF',
-  textLight: '#FAFAFA',
-  
+  textPrimary: '#0F172A',
+  textSecondary: '#475569',
+  textTertiary: '#94A3B8',
+  textLight: '#F8FAFC',
+
   // Status Colors
-  success: '#16A34A',
-  successLight: '#86EFAC',
-  warning: '#D97706',
-  warningLight: '#FCD34D',
-  error: '#DC2626',
-  errorLight: '#FCA5A5',
+  success: '#14B8A6',      // Teal Mint
+  successLight: '#CCFBF1',
+  warning: '#F59E0B',
+  warningLight: '#FEF3C7',
+  error: '#EF4444',
+  errorLight: '#FEE2E2',
   info: '#2563EB',
-  infoLight: '#93C5FD',
-  
+  infoLight: '#DBEAFE',
+
+  // Category Colors
+  banquet: '#0F172A',
+  catering: '#06B6D4',
+  photo: '#2563EB',
+  parlor: '#14B8A6',
+
   // Rating
-  rating: '#F97316', // Orange for stars
-  
+  rating: '#F59E0B',
+
   // Border Colors
-  border: '#E5E7EB',
-  borderDark: '#9CA3AF',
-  
+  border: '#E2E8F0',
+  borderDark: '#94A3B8',
+
   // Shadow Colors
-  shadow: '#0A0A0A',
-  
+  shadow: '#0F172A',
+
   // Overlay
-  overlay: 'rgba(10, 10, 10, 0.5)',
-  overlayLight: 'rgba(10, 10, 10, 0.3)',
+  overlay: 'rgba(15, 23, 42, 0.5)',
+  overlayLight: 'rgba(15, 23, 42, 0.25)',
+}
+
+// Urban Luxe Gradients
+export const Gradients = {
+  luxury: ['#0F172A', '#2563EB'],
+  cyan: ['#06B6D4', '#22D3EE'],
+  blue: ['#2563EB', '#60A5FA'],
 }
 
 // Category color helper
@@ -105,11 +120,11 @@ export const Typography = {
 
 // Border Radius
 export const BorderRadius = {
-  sm: 4,
-  md: 8,
-  lg: 12,
-  xl: 16,
-  xxl: 20,
+  sm: 6,
+  md: 10,
+  lg: 14,
+  xl: 18,
+  xxl: 22,
   full: 9999,
 }
 
@@ -117,23 +132,23 @@ export const BorderRadius = {
 export const Shadows = {
   small: {
     shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
     shadowRadius: 3,
     elevation: 2,
   },
   medium: {
     shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
   large: {
     shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 5,
   },
 }

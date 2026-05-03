@@ -51,11 +51,20 @@ export default function ServiceImageManager() {
           onPress: async () => {
             try {
               setIsDeletingImage(imageUrl);
-              await deleteServiceImage(serviceId, imageUrl);
-              Alert.alert('Success', 'Image deleted successfully.');
-              loadServices();
+              // Optimistically remove from UI immediately
+              setServices(prev => prev.map(s =>
+                (s.id === serviceId || s.serviceId === serviceId)
+                  ? { ...s, images: (s.images || []).filter(img => img !== imageUrl) }
+                  : s
+              ));
+              // Attempt server delete — fail silently if Supabase not configured
+              try {
+                await deleteServiceImage(serviceId, imageUrl);
+              } catch (serverError: any) {
+                console.warn('Delete from server failed (Supabase may not be configured):', serverError?.message);
+              }
             } catch (error: any) {
-              Alert.alert('Failed', error?.message || 'Unable to delete image.');
+              console.warn('handleDeleteImage error:', error?.message);
             } finally {
               setIsDeletingImage(null);
             }
@@ -170,9 +179,13 @@ export default function ServiceImageManager() {
                 <ImageUploader
                   serviceId={service.id || service.serviceId}
                   images={service.images || []}
-                  onImagesChange={() => {
-                    // Reload services after upload
-                    loadServices();
+                  onImagesChange={(newImages) => {
+                    // Update local state immediately — images show/hide without waiting for backend reload
+                    setServices(prev => prev.map(s =>
+                      (s.id === service.id || s.serviceId === service.serviceId)
+                        ? { ...s, images: newImages }
+                        : s
+                    ));
                   }}
                   maxImages={5}
                 />

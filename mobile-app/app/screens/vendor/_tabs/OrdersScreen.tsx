@@ -55,42 +55,41 @@ export default function OrdersScreen() {
         onPress={() => setSelectedFilter(value)}
         className="px-4 py-2 rounded-full mr-2"
         style={{
-          backgroundColor: isActive ? Colors.vendor : '#F3F4F6',
+          backgroundColor: isActive ? Colors.vendor : Colors.white,
+          borderWidth: 1,
+          borderColor: isActive ? Colors.vendor : Colors.border
         }}
       >
         <Text
-          className="text-sm font-semibold"
+          className="text-xs font-bold"
           style={{
-            color: isActive ? '#FFFFFF' : '#6B7280',
+            color: isActive ? Colors.white : Colors.textSecondary,
           }}
         >
-          {label} {count !== undefined && `(${count})`}
+          {label} {count !== undefined && count > 0 && <Text className="opacity-70">({count})</Text>}
         </Text>
       </TouchableOpacity>
     );
   };
 
   return (
-    <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: '#F9FAFB' }}>
+    <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: Colors.background }}>
       {/* Header */}
-      <View className="bg-white px-5 py-5 border-b border-gray-100">
+      <View className="bg-white px-6 py-6" style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
         <View className="flex-row justify-between items-center">
           <View>
-            <Text className="text-2xl font-bold" style={{ color: Colors.textPrimary }}>
-              Orders
+            <Text className="text-xl font-bold" style={{ color: Colors.textPrimary }}>
+              Manage Orders
             </Text>
-            <Text className="text-sm text-gray-500 mt-1">
-              Manage your bookings
+            <Text className="text-xs font-medium mt-0.5" style={{ color: Colors.textSecondary }}>
+              Track and update your event bookings
             </Text>
           </View>
           <TouchableOpacity
-            className="w-11 h-11 rounded-full items-center justify-center"
-            style={{ backgroundColor: Colors.vendor + '15' }}
-            onPress={() => {
-              // Additional filter options
-            }}
+            className="w-10 h-10 rounded-full items-center justify-center"
+            style={{ backgroundColor: Colors.lightGray }}
           >
-            <Filter size={22} color={Colors.vendor} />
+            <Filter size={18} color={Colors.textPrimary} />
           </TouchableOpacity>
         </View>
 
@@ -98,8 +97,8 @@ export default function OrdersScreen() {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          className="mt-4"
-          contentContainerStyle={{ paddingRight: 20 }}
+          className="mt-6"
+          contentContainerStyle={{ paddingRight: 24 }}
         >
           <FilterButton label="All" value="all" count={orders.length} />
           <FilterButton
@@ -122,9 +121,9 @@ export default function OrdersScreen() {
 
       {/* Orders List */}
       <ScrollView
-        className="flex-1 px-5"
+        className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: 16, paddingBottom: 20 }}
+        contentContainerStyle={{ paddingTop: 20, paddingBottom: 32 }}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -133,48 +132,57 @@ export default function OrdersScreen() {
           />
         }
       >
-        {error && !isLoading && (
-          <View className="mb-4 p-4 rounded-xl" style={{backgroundColor: '#fee2e2', borderWidth: 1, borderColor: '#fca5a5'}}>
-            <Text className="text-sm font-semibold mb-3" style={{color: Colors.error}}>
-              {error}
+        <View className="px-5">
+          {error && !isLoading && (
+            <View className="mb-6 p-4 rounded-2xl" style={{backgroundColor: Colors.errorLight + '40', borderWidth: 1, borderColor: Colors.error + '20'}}>
+              <Text className="text-sm font-medium mb-3" style={{color: Colors.error}}>
+                {error}
+              </Text>
+              <TouchableOpacity
+                className="py-2.5 px-4 rounded-xl self-start"
+                style={{backgroundColor: Colors.error}}
+                onPress={() => loadOrders()}
+              >
+                <Text className="text-white font-bold text-xs">Retry Loading</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          
+          {isLoading && (
+            <Text className="text-sm font-medium mb-4 text-center" style={{ color: Colors.textTertiary }}>
+              Updating orders...
             </Text>
-            <TouchableOpacity
-              className="py-2 px-4 rounded-lg"
-              style={{backgroundColor: Colors.error}}
-              onPress={() => loadOrders()}
-            >
-              <Text className="text-white font-semibold text-center text-sm">Retry</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-        {isLoading && (
-          <Text className="text-sm mb-4" style={{ color: Colors.textSecondary }}>
-            Loading orders...
-          </Text>
-        )}
-        {!isLoading && filteredOrders.length > 0 ? (
-          filteredOrders.map((order) => (
-            <OrderCard
-              key={order.id}
-              order={order}
-              onPress={() => {
-                router.push({
-                  pathname: '/screens/vendor/Component/OrderDetailScreen',
-                  params: { orderId: order.id, order: JSON.stringify(order) }
-                });
-              }}
-            />
-          ))
-        ) : !isLoading && (
-          <View className="items-center justify-center py-20">
-            <Text className="text-gray-400 text-base" style={{ color: Colors.textPrimary + '50' }}>
-              No orders found
-            </Text>
-            <Text className="text-gray-400 text-sm mt-2" style={{ color: Colors.textPrimary + '40' }}>
-              Try changing the filter
-            </Text>
-          </View>
-        )}
+          )}
+
+          {!isLoading && filteredOrders.length > 0 ? (
+            filteredOrders.map((order) => (
+              <OrderCard
+                key={order.id}
+                order={order}
+                onPress={() => {
+                  router.push({
+                    pathname: '/screens/vendor/Component/OrderDetailScreen',
+                    params: { orderId: order.id, order: JSON.stringify(order) }
+                  });
+                }}
+              />
+            ))
+          ) : !isLoading && (
+            <View className="items-center justify-center py-20 px-10">
+              <View className="w-20 h-20 rounded-2xl bg-gray-100 items-center justify-center mb-6">
+                <Filter size={32} color={Colors.textTertiary} />
+              </View>
+              <Text className="text-lg font-bold" style={{ color: Colors.textSecondary }}>
+                No Orders Found
+              </Text>
+              <Text className="text-sm font-medium mt-2 text-center" style={{ color: Colors.textTertiary }}>
+                {selectedFilter === 'all' 
+                  ? "You don't have any bookings yet" 
+                  : `No orders matching "${selectedFilter}" status`}
+              </Text>
+            </View>
+          )}
+        </View>
       </ScrollView>
     </View>
   );

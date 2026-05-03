@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Colors } from '@/app/_constants/theme'
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets()
@@ -10,31 +11,26 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#4F46E5',
-        tabBarInactiveTintColor: '#64748B',
+        tabBarActiveTintColor: Colors.primary,
+        tabBarInactiveTintColor: Colors.textTertiary,
         tabBarShowLabel: true,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',
-          marginTop: 4,
+          marginTop: 2,
         },
         tabBarItemStyle: {
-          paddingVertical: 8,
-          borderRadius: 16,
-          marginHorizontal: 8,
-          opacity: 40
+          paddingVertical: 6,
         },
         tabBarStyle: {
-          height: 70 + (insets.bottom > 0 ? insets.bottom : 8),
+          height: 64 + (insets.bottom > 0 ? insets.bottom : 8),
           paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
           paddingTop: 8,
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
           borderTopWidth: 0,
-          backgroundColor: '#F8FAFC',
-          shadowColor: '#000',
-          shadowOffset: { width: 2, height: -2 },
-          shadowOpacity: 0.1,
+          backgroundColor: Colors.white,
+          shadowColor: Colors.shadow,
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.06,
           shadowRadius: 8,
           elevation: 8,
         }
@@ -45,8 +41,8 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, size, focused }) => (
-            <View style={{ transform: [{ scale: focused ? 1.2 : 1 }] }}>
-              <Ionicons name="home" size={size} color={color} />
+            <View style={{ transform: [{ scale: focused ? 1.1 : 1 }] }}>
+              <Ionicons name={focused ? "home" : "home-outline"} size={size} color={color} />
             </View>
           ),
         }}
@@ -56,8 +52,8 @@ export default function TabLayout() {
         options={{
           title: 'Bookings',
           tabBarIcon: ({ color, size, focused }) => (
-            <View style={{ transform: [{ scale: focused ? 1.2 : 1 }] }}>
-              <Ionicons name="calendar" size={size} color={color} />
+            <View style={{ transform: [{ scale: focused ? 1.1 : 1 }] }}>
+              <Ionicons name={focused ? "calendar" : "calendar-outline"} size={size} color={color} />
             </View>
           ),
         }}
@@ -67,11 +63,11 @@ export default function TabLayout() {
         options={{
           title: 'Messages',
           tabBarIcon: ({ color, size, focused }) => (
-          <View style={{ transform: [{ scale: focused ? 1.2 : 1 }] }}>
-            <Ionicons name="chatbubbles" size={size} color={color} />
-          </View>
-            ),
-          }}
+            <View style={{ transform: [{ scale: focused ? 1.1 : 1 }] }}>
+              <Ionicons name={focused ? "chatbubbles" : "chatbubbles-outline"} size={size} color={color} />
+            </View>
+          ),
+        }}
       />
     </Tabs>
   )

@@ -62,3 +62,7 @@ export const buildClientCategoryCards = (services: ServiceListItem[]) => {
     count: counts[meta.key] || 0,
   }))
 }
+
+export default function CategoryConfigStub() {
+  return null;
+}

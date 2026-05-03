@@ -58,6 +58,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setIsConnected(true);
         // Join personal room for notifications
         if (user?.id) {
+          console.log('Socket - joining room:', user.id);
           newSocket?.emit('joinRoom', user.id);
         }
       });

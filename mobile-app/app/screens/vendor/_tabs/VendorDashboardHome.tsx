@@ -3,21 +3,40 @@ import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Bell, DollarSign, CheckCircle, XCircle, Clock, ChevronRight, Plus, Calendar, Image as ImageIcon } from 'lucide-react-native';
+import { Bell, DollarSign, CheckCircle, XCircle, Clock, ChevronRight, Plus, Calendar, Image as ImageIcon, ShoppingBasket, MessageCircle, Star } from 'lucide-react-native';
 import { Colors, Shadows } from '@/app/_constants/theme';
 import { getVendorBookings, type VendorOrderItem } from '@/app/_utils/bookingsApi';
 import OrderCard from '../Component/OrderCard';
 
+import NotificationBell from '@/app/_components/NotificationBell'
+import { useUser } from '@/app/_context/UserContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 export default function VendorDashboardHome() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user } = useUser();
   const [orders, setOrders] = React.useState<VendorOrderItem[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
+  const [recentReviews, setRecentReviews] = React.useState<any[]>([])
+  const [avgRating, setAvgRating] = React.useState(4.8)
 
   const loadDashboard = React.useCallback(async () => {
     try {
       const data = await getVendorBookings()
       setOrders(data)
+      
+      // Load ratings to simulate real-time feedback
+      const savedRatings = await AsyncStorage.getItem('client_rated_bookings');
+      if (savedRatings) {
+        const ratings = JSON.parse(savedRatings);
+        const ratingArray = Object.values(ratings);
+        if (ratingArray.length > 0) {
+          const sum = ratingArray.reduce((acc: number, curr: any) => acc + curr.rating, 0);
+          setAvgRating(Number((sum / ratingArray.length).toFixed(1)));
+          setRecentReviews(ratingArray.slice(-3).reverse());
+        }
+      }
     } catch {
       setOrders([])
     } finally {
@@ -54,148 +73,144 @@ export default function VendorDashboardHome() {
   const StatCard = ({ icon: Icon, title, value, color, bgColor }: {
     icon: any;
     title: string;
-    value: number;
+    value: number | string;
     color: string;
     bgColor: string;
   }) => (
     <View
-      className="bg-white rounded-2xl p-4 flex-1"
-      style={{
-        ...Shadows.small,
-        borderWidth: 1,
-        borderColor: '#F3F4F6',
-      }}
+      className="bg-white rounded-2xl p-5 flex-1"
+      style={Shadows.small}
     >
       <View
-        className="w-12 h-12 rounded-full items-center justify-center mb-3"
+        className="w-10 h-10 rounded-xl items-center justify-center mb-3"
         style={{ backgroundColor: bgColor }}
       >
-        <Icon size={24} color={color} />
+        <Icon size={20} color={color} />
       </View>
-      <Text className="text-2xl font-bold mb-1" style={{ color: Colors.textPrimary }}>
+      <Text className="text-2xl font-bold mb-0.5" style={{ color: Colors.textPrimary }}>
         {value}
       </Text>
-      <Text className="text-sm text-gray-600">{title}</Text>
+      <Text className="text-xs font-semibold" style={{ color: Colors.textSecondary }}>{title}</Text>
     </View>
   );
 
   return (
-    <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: '#F9FAFB' }}>
+    <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: Colors.background }}>
       {/* Header */}
-      <View className="bg-white px-5 py-5 border-b border-gray-100">
+      <View className="bg-white px-5 py-6" style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
         <View className="flex-row justify-between items-center">
           <View>
-            <Text className="text-2xl font-bold" style={{ color: Colors.textPrimary }}>
+            <Text className="text-xl font-black tracking-tight" style={{ color: Colors.textPrimary }}>
               Dashboard
             </Text>
-            <Text className="text-sm text-gray-500 mt-1">
-              Welcome back! Here&apos;s your overview
+            <Text className="text-[10px] font-bold uppercase tracking-widest mt-0.5" style={{ color: Colors.textSecondary }}>
+              Vendor Control Panel
             </Text>
           </View>
-          <TouchableOpacity
-            className="w-11 h-11 rounded-full items-center justify-center"
-            style={{ backgroundColor: Colors.vendor + '15' }}
-            onPress={() => {
-              // Navigate to notifications
-            }}
-          >
-            <Bell size={22} color={Colors.vendor} />
-          </TouchableOpacity>
+          <NotificationBell userId={user?.id} userRole='vendor' />
         </View>
       </View>
 
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 20 }}
+        contentContainerStyle={{ paddingBottom: 32 }}
       >
         {/* Revenue Card */}
-        <View className="px-5 mt-5">
+        <View className="px-5 mt-6">
           <View
-            className="rounded-3xl p-6"
-            style={{
-              backgroundColor: Colors.vendor,
-              ...Shadows.medium,
-            }}
+            className="rounded-[32px] p-7"
+            style={[
+              {
+                backgroundColor: Colors.vendor,
+              },
+              Shadows.large
+            ]}
           >
-            <View className="flex-row items-center mb-2">
-              <DollarSign size={24} color="#FFFFFF" />
-              <Text className="text-white text-base font-semibold ml-2">
+            <View className="flex-row items-center mb-1">
+              <View className="w-8 h-8 rounded-lg items-center justify-center bg-white/20 mr-2">
+                <DollarSign size={16} color="#FFFFFF" />
+              </View>
+              <Text className="text-white/60 text-[10px] font-black uppercase tracking-[2px] ml-1">
                 Total Revenue
               </Text>
             </View>
-            <Text className="text-white text-4xl font-bold mt-2">
+            <Text className="text-white text-4xl font-black mt-3">
               PKR {stats.totalRevenue.toLocaleString()}
             </Text>
-            <Text className="text-white/80 text-sm mt-2">
-              From {stats.acceptedOrders} accepted orders
-            </Text>
+            <View className="mt-5 pt-5 flex-row justify-between items-center" style={{borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', borderStyle: 'solid'}}>
+              <Text className="text-white/70 text-xs font-bold">
+                {stats.acceptedOrders} Confirmed Bookings
+              </Text>
+              <View className="bg-emerald-400 px-3 py-1 rounded-full">
+                <Text className="text-emerald-950 text-[9px] font-black tracking-widest">REALTIME</Text>
+              </View>
+            </View>
           </View>
         </View>
 
         {/* Stats Grid */}
-        <View className="px-5 mt-5">
-          <View className="flex-row gap-3 mb-3">
+        <View className="px-5 mt-6">
+          <View className="flex-row gap-4 mb-4">
             <StatCard
               icon={CheckCircle}
               title="Accepted"
               value={stats.acceptedOrders}
-              color="#10B981"
-              bgColor="#D1FAE5"
+              color={Colors.success}
+              bgColor={Colors.successLight}
             />
             <StatCard
               icon={XCircle}
               title="Rejected"
               value={stats.rejectedOrders}
-              color="#EF4444"
-              bgColor="#FEE2E2"
+              color={Colors.error}
+              bgColor={Colors.errorLight}
             />
           </View>
-          <View className="flex-row gap-3">
+          <View className="flex-row gap-4">
             <StatCard
               icon={Clock}
               title="Pending"
               value={stats.pendingOrders}
-              color="#F59E0B"
-              bgColor="#FEF3C7"
+              color={Colors.warning}
+              bgColor={Colors.warningLight}
             />
             <StatCard
-              icon={CheckCircle}
-              title="Total Orders"
-              value={stats.totalOrders}
-              color={Colors.vendor}
-              bgColor={Colors.vendor + '20'}
+              icon={Star}
+              title="Avg Rating"
+              value={`${avgRating}`}
+              color="#F59E0B"
+              bgColor="#FEF3C7"
             />
           </View>
         </View>
 
         {/* Recent Orders */}
-        <View className="px-5 mt-6">
+        <View className="px-5 mt-8">
           <View className="flex-row justify-between items-center mb-4">
-            <Text className="text-xl font-bold" style={{ color: Colors.textPrimary }}>
+            <Text className="text-lg font-bold" style={{ color: Colors.textPrimary }}>
               Recent Orders
             </Text>
             <TouchableOpacity
               className="flex-row items-center"
               onPress={() => {
-                // Navigate to Orders tab
                 router.push('/screens/vendor/_tabs/OrdersScreen');
               }}
             >
-              <Text className="text-sm font-semibold mr-1" style={{ color: Colors.vendor }}>
+              <Text className="text-xs font-bold mr-1" style={{ color: Colors.vendor }}>
                 See All
               </Text>
-              <ChevronRight size={16} color={Colors.vendor} />
+              <ChevronRight size={12} color={Colors.vendor} />
             </TouchableOpacity>
           </View>
 
           {isLoading ? (
-            <View className="bg-white rounded-2xl p-4" style={Shadows.small}>
-              <Text className="text-sm text-gray-500">Loading recent orders...</Text>
+            <View className="bg-white rounded-2xl p-6" style={Shadows.small}>
+              <Text className="text-sm font-medium text-center" style={{color: Colors.textTertiary}}>Loading recent orders...</Text>
             </View>
           ) : recentOrders.length === 0 ? (
-            <View className="bg-white rounded-2xl p-4" style={Shadows.small}>
-              <Text className="text-sm text-gray-500">No orders yet.</Text>
+            <View className="bg-white rounded-2xl p-10 items-center justify-center" style={[Shadows.small, {borderWidth: 1, borderColor: Colors.border, borderStyle: 'dashed'}]}>
+              <Text className="text-sm font-medium" style={{color: Colors.textTertiary}}>No orders yet</Text>
             </View>
           ) : (
             recentOrders.map((order) => (
@@ -213,108 +228,143 @@ export default function VendorDashboardHome() {
           )}
         </View>
 
+        {/* Recent Reviews */}
+        {recentReviews.length > 0 && (
+          <View className="px-5 mt-8">
+            <Text className="text-lg font-bold mb-4" style={{ color: Colors.textPrimary }}>
+              Recent Reviews
+            </Text>
+            {recentReviews.map((review, index) => (
+              <View 
+                key={index} 
+                className="bg-white rounded-2xl p-4 mb-3" 
+                style={Shadows.small}
+              >
+                <View className="flex-row justify-between items-center mb-2">
+                  <View className="flex-row">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star 
+                        key={s} 
+                        size={12} 
+                        color={s <= review.rating ? "#F59E0B" : Colors.border} 
+                        fill={s <= review.rating ? "#F59E0B" : "transparent"} 
+                      />
+                    ))}
+                  </View>
+                  <Text className="text-[10px] font-bold text-gray-400">
+                    JUST NOW
+                  </Text>
+                </View>
+                <Text className="text-sm font-medium italic" style={{ color: Colors.textSecondary }}>
+                  "{review.comment || 'No comment provided.'}"
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* Quick Actions */}
-        <View className="px-5 mt-6">
-          <Text className="text-xl font-bold mb-4" style={{ color: Colors.textPrimary }}>
+        <View className="px-5 mt-8">
+          <Text className="text-lg font-bold mb-4" style={{ color: Colors.textPrimary }}>
             Quick Actions
           </Text>
           <View className="flex-row gap-3 mb-3">
             <TouchableOpacity
-              className="flex-1 bg-white rounded-2xl p-4 border border-gray-100"
+              className="flex-1 bg-white rounded-2xl p-4"
               style={Shadows.small}
               onPress={() => router.push('/screens/vendor/_tabs/OrdersScreen')}
             >
-              <View className="w-10 h-10 rounded-full items-center justify-center mb-2"
-                style={{ backgroundColor: '#F59E0B20' }}
+              <View className="w-10 h-10 rounded-xl items-center justify-center mb-3"
+                style={{ backgroundColor: Colors.vendor + '15' }}
               >
-                <Clock size={20} color="#F59E0B" />
+                <ShoppingBasket size={20} color={Colors.vendor} />
               </View>
-              <Text className="text-sm font-semibold" style={{ color: Colors.textPrimary }}>
-                View Pending
+              <Text className="text-sm font-bold" style={{ color: Colors.textPrimary }}>
+                Orders
               </Text>
-              <Text className="text-xs text-gray-500 mt-1">
-                {stats.pendingOrders} orders
+              <Text className="text-[10px] font-bold mt-1" style={{color: Colors.textTertiary}}>
+                {stats.pendingOrders} PENDING
               </Text>
             </TouchableOpacity>
-
+ 
             <TouchableOpacity
-              className="flex-1 bg-white rounded-2xl p-4 border border-gray-100"
-              style={Shadows.small}
-              onPress={() => router.push('/screens/vendor/_tabs/VendorMessagesScreen')}
-            >
-              <View className="w-10 h-10 rounded-full items-center justify-center mb-2"
-                style={{ backgroundColor: Colors.vendor + '20' }}
-              >
-                <Bell size={20} color={Colors.vendor} />
-              </View>
-              <Text className="text-sm font-semibold" style={{ color: Colors.textPrimary }}>
-                Messages
-              </Text>
-              <Text className="text-xs text-gray-500 mt-1">
-                Chat with clients
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View className="flex-row gap-3 mb-3">
-            <TouchableOpacity
-              className="flex-1 bg-white rounded-2xl p-4 border border-gray-100"
+              className="flex-1 bg-white rounded-2xl p-4"
               style={Shadows.small}
               onPress={() => router.push('/screens/vendor/Component/VendorCalendarScreen')}
             >
-              <View className="w-10 h-10 rounded-full items-center justify-center mb-2"
-                style={{ backgroundColor: '#8B5CF620' }}
+              <View className="w-10 h-10 rounded-xl items-center justify-center mb-3"
+                style={{ backgroundColor: Colors.warningLight }}
               >
-                <Calendar size={20} color="#8B5CF6" />
+                <Calendar size={20} color={Colors.warning} />
               </View>
-              <Text className="text-sm font-semibold" style={{ color: Colors.textPrimary }}>
+              <Text className="text-sm font-bold" style={{ color: Colors.textPrimary }}>
                 Calendar
               </Text>
-              <Text className="text-xs text-gray-500 mt-1">
-                Manage bookings
+              <Text className="text-[10px] font-bold mt-1" style={{color: Colors.textTertiary}}>
+                AVAILABILITY
+              </Text>
+            </TouchableOpacity>
+          </View>
+ 
+          <View className="flex-row gap-3 mb-3">
+            <TouchableOpacity
+              className="flex-1 bg-white rounded-2xl p-4"
+              style={Shadows.small}
+              onPress={() => router.push('/screens/vendor/_tabs/VendorMessagesScreen')}
+            >
+              <View className="w-10 h-10 rounded-xl items-center justify-center mb-3"
+                style={{ backgroundColor: Colors.infoLight }}
+              >
+                <MessageCircle size={20} color={Colors.info} />
+              </View>
+              <Text className="text-sm font-bold" style={{ color: Colors.textPrimary }}>
+                Messages
+              </Text>
+              <Text className="text-[10px] font-bold mt-1" style={{color: Colors.textTertiary}}>
+                CLIENT CHATS
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              className="flex-1 bg-white rounded-2xl p-4 border border-gray-100"
+              className="flex-1 bg-white rounded-2xl p-4"
               style={Shadows.small}
               onPress={() => router.push('/screens/vendor/Component/PackageManagementScreen')}
             >
-              <View className="w-10 h-10 rounded-full items-center justify-center mb-2"
-                style={{ backgroundColor: Colors.vendor + '20' }}
+              <View className="w-10 h-10 rounded-xl items-center justify-center mb-3"
+                style={{ backgroundColor: Colors.primaryMuted }}
               >
-                <Plus size={20} color={Colors.vendor} />
+                <Plus size={20} color={Colors.primary} />
               </View>
-              <Text className="text-sm font-semibold" style={{ color: Colors.textPrimary }}>
+              <Text className="text-sm font-bold" style={{ color: Colors.textPrimary }}>
                 Packages
               </Text>
-              <Text className="text-xs text-gray-500 mt-1">
-                Add or edit
+              <Text className="text-[10px] font-bold mt-1" style={{color: Colors.textTertiary}}>
+                MANAGE OFFERS
               </Text>
             </TouchableOpacity>
           </View>
-
-          <View className="flex-row gap-3">
-            <TouchableOpacity
-              className="flex-1 bg-white rounded-2xl p-4 border border-gray-100"
-              style={Shadows.small}
-              onPress={() => router.push('/screens/vendor/Component/ServiceImageManager')}
-            >
-              <View className="w-10 h-10 rounded-full items-center justify-center mb-2"
-                style={{ backgroundColor: '#06B6D420' }}
+ 
+          <TouchableOpacity
+            className="bg-white rounded-2xl p-4"
+            style={Shadows.small}
+            onPress={() => router.push('/screens/vendor/Component/ServiceImageManager')}
+          >
+            <View className="flex-row items-center">
+              <View className="w-10 h-10 rounded-xl items-center justify-center mr-4"
+                style={{ backgroundColor: Colors.infoLight }}
               >
-                <ImageIcon size={20} color="#06B6D4" />
+                <ImageIcon size={20} color={Colors.info} />
               </View>
-              <Text className="text-sm font-semibold" style={{ color: Colors.textPrimary }}>
-                Images
-              </Text>
-              <Text className="text-xs text-gray-500 mt-1">
-                Manage photos
-              </Text>
-            </TouchableOpacity>
-
-            <View className="flex-1" />
-          </View>
+              <View>
+                <Text className="text-sm font-bold" style={{ color: Colors.textPrimary }}>
+                  Service Gallery
+                </Text>
+                <Text className="text-[10px] font-bold mt-1" style={{color: Colors.textTertiary}}>
+                  MANAGE SERVICE PHOTOS
+                </Text>
+              </View>
+            </View>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>

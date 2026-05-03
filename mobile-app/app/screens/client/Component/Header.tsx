@@ -8,13 +8,13 @@ import { Colors } from '@/app/_constants/theme'
 import { useUser } from '@/app/_context/UserContext'
 import Avatar from '@/app/_components/Avatar'
 
+import NotificationBell from '@/app/_components/NotificationBell'
+import AppLogo from './AppLogo'
+
 const Header = () => {
   const {result, error} = useLocation()
   const [query, setQuery] = useState("")
   const { user } = useUser()
-  
-  console.log('Header - user data:', user)
-  console.log('Header - user.name:', user?.name)
   
   const location = Array.isArray(result) ? result[0] : result
 
@@ -28,28 +28,29 @@ const Header = () => {
 
   return (
     <View style={styles.container}>
-      <View className='flex flex-row justify-between items-center px-3 py-3'>
-        <View className='flex-1'>
-          <Text className='text-sm font-semibold mx-2 mb-1' style={{color: Colors.textSecondary}}>Current Location</Text>
-          {location ? (
-            <View className='flex flex-row items-center gap-2 mx-2'>
-              <Icon name={"location-dot"} size={18} color={Colors.primary} />          
-              <Text className='text-lg font-bold' style={{color: Colors.primary}} numberOfLines={1}>{location.district}, {location.city}</Text>
-            </View>
-          ) : error ? (
-            <View className='flex flex-row items-center gap-2 mx-2'>
-              <Icon name={"location-dot"} size={18} color={Colors.textSecondary} />          
-              <Text className='text-sm' style={{color: Colors.textSecondary}}>Location unavailable</Text>
-            </View>
-          ) : (
-            <Text className='text-sm mx-2' style={{color: Colors.textSecondary}}>Loading...</Text>
-          )}      
+      <View className='flex flex-row justify-between items-center px-4 py-4'>
+        <View className='flex-row items-center gap-3 flex-1'>
+          <AppLogo size="small" showText={false} />
+          <View>
+            <Text className='text-[10px] font-bold mx-2 uppercase tracking-[1px]' style={{color: Colors.textSecondary}}>Current Location</Text>
+            {location ? (
+              <View className='flex flex-row items-center gap-1 mx-2'>
+                <Icon name={"location-dot"} size={12} color={Colors.primary} />          
+                <Text className='text-sm font-bold' style={{color: Colors.textPrimary}} numberOfLines={1}>{location.district}, {location.city}</Text>
+              </View>
+            ) : error ? (
+              <View className='flex flex-row items-center gap-2 mx-2'>
+                <Icon name={"location-dot"} size={12} color={Colors.textSecondary} />          
+                <Text className='text-xs font-medium' style={{color: Colors.textSecondary}}>Location unavailable</Text>
+              </View>
+            ) : (
+              <Text className='text-xs mx-2 font-medium' style={{color: Colors.textTertiary}}>Detecting location...</Text>
+            )}      
+          </View>
         </View>
-        <View className='flex-row justify-center items-center gap-4 mr-1'>
-          <Pressable className='p-2 active:opacity-70'>
-            <Icon name={"bell"} size={20} color={Colors.textPrimary} />
-          </Pressable>
-          <Pressable className='active:opacity-70' onPress={() => router.push("/screens/client/Component/ProfileView")}>
+        <View className='flex-row justify-center items-center gap-2 mr-1'>
+          <NotificationBell userId={user?.id} userRole='client' />
+          <Pressable className='active:opacity-70 ml-2' onPress={() => router.push("/screens/client/Component/ProfileView")}>
             <Avatar name={user?.name || 'U'} size='md' />
           </Pressable>
         </View>
@@ -65,7 +66,8 @@ const styles = StyleSheet.create({
   container: {
     width: "100%",
     backgroundColor: Colors.white,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    paddingBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
   }
 })

@@ -1,5 +1,5 @@
-import { useEffect, useState, useRef } from 'react';
-import { getNotifications, getUnreadNotificationCount } from '../_utils/notificationService';
+import React, { useState, useEffect, useRef } from 'react';
+import { getNotifications, getUnreadNotificationCount, markNotificationAsRead, clearAllNotifications } from '../_utils/notificationService';
 import type { Notification } from '../_utils/notificationService';
 
 export const useNotifications = (enabled: boolean = true) => {
@@ -22,6 +22,24 @@ export const useNotifications = (enabled: boolean = true) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const markAsRead = async (id: string) => {
+    const success = await markNotificationAsRead(id);
+    if (success) {
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    }
+    return success;
+  };
+
+  const markAllAsRead = async () => {
+    const success = await clearAllNotifications();
+    if (success) {
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+    }
+    return success;
   };
 
   // Start polling when component mounts
@@ -50,6 +68,8 @@ export const useNotifications = (enabled: boolean = true) => {
     unreadCount,
     isLoading,
     refresh,
+    markAsRead,
+    markAllAsRead,
   };
 };
 
@@ -87,3 +107,8 @@ export const useUnreadNotificationCount = (enabled: boolean = true) => {
 
   return unreadCount;
 };
+
+export default function NotificationContextStub() {
+  return null;
+}
+

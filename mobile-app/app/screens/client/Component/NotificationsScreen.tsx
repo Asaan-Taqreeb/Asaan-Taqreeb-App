@@ -34,9 +34,17 @@ export default function NotificationsScreen() {
                     <Text className='text-xl font-extrabold' style={{color: Colors.textPrimary}}>Notifications</Text>
                 </View>
                 {notifications.length > 0 && (
-                    <Pressable onPress={handleClearAll}>
-                        <Text className='text-sm font-bold' style={{color: Colors.primary}}>Clear All</Text>
-                    </Pressable>
+                    <View className="flex-row gap-4">
+                        <Pressable onPress={() => {
+                            notifications.forEach(n => markNotificationAsRead(n.id))
+                            refresh()
+                        }}>
+                            <Text className='text-sm font-bold' style={{color: Colors.primary}}>Mark All Read</Text>
+                        </Pressable>
+                        <Pressable onPress={handleClearAll}>
+                            <Text className='text-sm font-bold' style={{color: Colors.error}}>Clear All</Text>
+                        </Pressable>
+                    </View>
                 )}
             </View>
 
@@ -50,7 +58,7 @@ export default function NotificationsScreen() {
                     <View className='flex-1 justify-center items-center py-20'>
                         <Bell size={48} color={Colors.textTertiary} opacity={0.5} />
                         <Text className='text-lg font-bold mt-4' style={{color: Colors.textSecondary}}>No Notifications</Text>
-                        <Text className='text-sm text-center mt-2' style={{color: Colors.textTertiary}}>You're all caught up!</Text>
+                        <Text className='text-sm text-center mt-2' style={{color: Colors.textTertiary}}>You&apos;re all caught up!</Text>
                     </View>
                 ) : (
                     <View className='py-4'>

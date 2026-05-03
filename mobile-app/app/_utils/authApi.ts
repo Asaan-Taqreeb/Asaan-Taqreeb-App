@@ -18,6 +18,16 @@ type ForgotPasswordParams = {
   email: string
 }
 
+type VerifyOtpParams = {
+  email: string
+  otp: string
+}
+
+type ResetPasswordParams = {
+  email: string
+  newPassword: string
+}
+
 export type AppRole = 'client' | 'vendor'
 
 type AuthResponse = {
@@ -119,6 +129,40 @@ export const forgotPassword = async (params: ForgotPasswordParams) => {
   return response
 }
 
+export const verifyOtp = async (params: VerifyOtpParams) => {
+  const response = await apiFetchJson<any>(
+    AUTH_ENDPOINTS.verifyOtp,
+    {
+      method: 'POST',
+      auth: false,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    },
+    'OTP verification failed.'
+  )
+
+  return response
+}
+
+export const resetPassword = async (params: ResetPasswordParams) => {
+  const response = await apiFetchJson<any>(
+    AUTH_ENDPOINTS.resetPassword,
+    {
+      method: 'POST',
+      auth: false,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    },
+    'Password reset failed.'
+  )
+
+  return response
+}
+
 export const getCurrentUser = async () => {
   const response = await apiFetchJson<any>(
     AUTH_ENDPOINTS.me,
@@ -145,6 +189,22 @@ export const logoutUser = async () => {
   } finally {
     await clearAuthTokens()
   }
+}
+
+export const updateUserProfile = async (params: any) => {
+  const response = await apiFetchJson<any>(
+    AUTH_ENDPOINTS.me,
+    {
+      method: 'PATCH',
+      auth: true,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    },
+    'Failed to update profile.'
+  )
+  return response
 }
 
 export const deleteUserAccount = async () => {

@@ -252,6 +252,9 @@ export const getVendorBookings = async (): Promise<VendorOrderItem[]> => {
       eventTime: displayTime,
       guestCount: toNumber(firstDefined(item?.guestCount, 0), 0),
       status: normalizedStatus === 'APPROVED' ? 'accepted' : normalizedStatus === 'REJECTED' ? 'rejected' : 'pending',
+      specialRequests: firstDefined(item?.specialRequests, item?.notes, item?.message),
+      orderDate: firstDefined(item?.createdAt, item?.bookingDate, new Date().toISOString()),
+      optionalItems: item?.selectedAddons || [],
     }
   })
 }
@@ -278,3 +281,8 @@ export const updateBookingStatus = async (bookingId: string | number, status: 'a
     `Failed to update booking status.`
   )
 }
+
+export default function BookingsApiStub() {
+  return null;
+}
+

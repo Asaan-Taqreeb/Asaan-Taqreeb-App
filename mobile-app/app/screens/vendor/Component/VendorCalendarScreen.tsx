@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Pressable, StyleSheet, Modal, Alert, TextInput } from 'react-native'
+import { View, Text, ScrollView, Pressable, StyleSheet, Modal, Alert, TextInput, KeyboardAvoidingView, Platform } from 'react-native'
 import { useEffect, useMemo, useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ChevronLeft, ChevronRight, Calendar, Lock, CheckCircle, X, Clock, Users, MapPin } from 'lucide-react-native'
@@ -7,6 +7,8 @@ import { blockDateForVendor, getVendorAvailability, unblockDateForVendor, type V
 import { getVendorBookings } from '@/app/_utils/bookingsApi'
 import { useUser } from '@/app/_context/UserContext'
 
+import AsyncStorage from '@react-native-async-storage/async-storage'
+ 
 interface BookingDetail {
   id: number
   clientName: string
@@ -16,6 +18,13 @@ interface BookingDetail {
   location?: string
   status: 'confirmed' | 'pending'
   amount: number
+}
+
+interface TimeSlot {
+  id: string
+  label: string
+  from: string
+  to: string
 }
 
 interface DayData {
@@ -46,6 +55,22 @@ export default function VendorCalendarScreen() {
   const [availabilityDays, setAvailabilityDays] = useState<VendorAvailabilityDay[]>([])
   const [bookingsByDate, setBookingsByDate] = useState<Record<string, BookingDetail[]>>({})
   const [isLoading, setIsLoading] = useState(false)
+  const [slots, setSlots] = useState<TimeSlot[]>([])
+
+  useEffect(() => {
+    const loadSlots = async () => {
+      if (!user?.id) return
+      try {
+        const saved = await AsyncStorage.getItem('vendor_slots_' + user.id)
+        if (saved) {
+          setSlots(JSON.parse(saved))
+        }
+      } catch (error) {
+        console.log('Failed to load slots in calendar:', error)
+      }
+    }
+    loadSlots()
+  }, [user?.id])
 
   const monthNames = ["January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
@@ -98,6 +123,9 @@ export default function VendorCalendarScreen() {
         setAvailabilityDays(availability)
 
         const normalizedBookings = vendorBookings.reduce<Record<string, BookingDetail[]>>((acc, booking, index) => {
+          // Ignore rejected bookings in the calendar view
+          if (booking.status === 'rejected') return acc
+
           const date = String(booking.eventDate || '').slice(0, 10)
           if (!date) return acc
 
@@ -241,6 +269,24 @@ export default function VendorCalendarScreen() {
     setBlockToPeriod('PM')
     setBlockReason('Blocked by vendor')
     setShowBlockModal(true)
+  }
+
+  const applyPredefinedSlot = (slot: TimeSlot) => {
+    // Expected format "10:00 AM"
+    const fromParts = slot.from.match(/(\d+):(\d+)\s*(AM|PM)/i)
+    const toParts = slot.to.match(/(\d+):(\d+)\s*(AM|PM)/i)
+    
+    if (fromParts) {
+      setBlockFromHour(fromParts[1])
+      setBlockFromMinute(fromParts[2])
+      setBlockFromPeriod(fromParts[3].toUpperCase() as 'AM' | 'PM')
+    }
+    
+    if (toParts) {
+      setBlockToHour(toParts[1])
+      setBlockToMinute(toParts[2])
+      setBlockToPeriod(toParts[3].toUpperCase() as 'AM' | 'PM')
+    }
   }
 
   const handleBlockWithTime = async () => {
@@ -515,147 +561,175 @@ export default function VendorCalendarScreen() {
         animationType='slide'
         onRequestClose={() => setShowBlockModal(false)}
       >
-        <View className='flex-1 justify-end' style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
-          <View className='rounded-t-3xl p-5' style={{backgroundColor: Colors.white}}>
-            <View className='flex-row items-center justify-between mb-4'>
-              <View>
-                <Text className='text-xl font-extrabold' style={{color: Colors.textPrimary}}>Manage Availability</Text>
-                <Text className='text-sm font-medium mt-1' style={{color: Colors.textSecondary}}>{manageDateString}</Text>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <View className='flex-1 justify-end' style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
+            <View className='rounded-t-3xl p-6 pb-10' style={{backgroundColor: Colors.white}}>
+              <View className='flex-row items-center justify-between mb-4'>
+                <View>
+                  <Text className='text-xl font-extrabold' style={{color: Colors.textPrimary}}>Manage Availability</Text>
+                  <Text className='text-sm font-medium mt-1' style={{color: Colors.textSecondary}}>{manageDateString}</Text>
+                </View>
+                <Pressable
+                  className='p-2 rounded-full active:opacity-70'
+                  style={{backgroundColor: Colors.lightGray}}
+                  onPress={() => setShowBlockModal(false)}
+                >
+                  <X size={22} color={Colors.textPrimary} />
+                </Pressable>
               </View>
-              <Pressable
-                className='p-2 rounded-full active:opacity-70'
-                style={{backgroundColor: Colors.lightGray}}
-                onPress={() => setShowBlockModal(false)}
-              >
-                <X size={22} color={Colors.textPrimary} />
-              </Pressable>
-            </View>
 
-            <View className='mb-3'>
-              <Text className='text-xs font-bold mb-2' style={{color: Colors.textSecondary}}>FROM</Text>
-              <View className='flex-row gap-2'>
-                <TextInput
-                  value={blockFromHour}
-                  onChangeText={setBlockFromHour}
-                  placeholder='10'
-                  className='flex-1 rounded-xl px-3 py-3'
-                  style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
-                  placeholderTextColor={Colors.textTertiary}
-                  keyboardType='numeric'
-                  maxLength={2}
-                />
-                <Text className='self-center text-lg font-extrabold' style={{color: Colors.textSecondary}}>:</Text>
-                <TextInput
-                  value={blockFromMinute}
-                  onChangeText={setBlockFromMinute}
-                  placeholder='00'
-                  className='w-20 rounded-xl px-3 py-3'
-                  style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
-                  placeholderTextColor={Colors.textTertiary}
-                  keyboardType='number-pad'
-                  maxLength={2}
-                />
-                <View className='w-24 flex-row gap-1'>
-                  {(['AM', 'PM'] as const).map((period) => (
+              {/* Predefined Slots */}
+              {slots.length > 0 && (
+                <View className="mb-6">
+                  <Text className="text-[10px] font-bold text-gray-400 mb-3 uppercase tracking-widest">QUICK BLOCK SLOTS</Text>
+                  <View className="flex-row flex-wrap gap-2">
+                    {slots.map(slot => (
+                      <Pressable
+                        key={slot.id}
+                        onPress={() => applyPredefinedSlot(slot)}
+                        className="px-4 py-3 rounded-2xl border-2 items-center justify-center"
+                        style={{
+                          borderColor: Colors.vendor + '20',
+                          backgroundColor: Colors.vendor + '05',
+                          minWidth: '30%'
+                        }}
+                      >
+                        <Text className="text-sm font-extrabold" style={{ color: Colors.vendor }}>
+                          {slot.label}
+                        </Text>
+                        <Text className="text-[10px] font-bold text-gray-500 mt-0.5">{slot.from} - {slot.to}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              <View className='mb-3'>
+                <Text className='text-[10px] font-bold mb-2' style={{color: Colors.textSecondary}}>FROM</Text>
+                <View className='flex-row gap-2'>
+                  <TextInput
+                    value={blockFromHour}
+                    onChangeText={setBlockFromHour}
+                    placeholder='10'
+                    className='flex-1 rounded-xl px-3 py-3'
+                    style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
+                    placeholderTextColor={Colors.textTertiary}
+                    keyboardType='numeric'
+                    maxLength={2}
+                  />
+                  <Text className='self-center text-lg font-extrabold' style={{color: Colors.textSecondary}}>:</Text>
+                  <TextInput
+                    value={blockFromMinute}
+                    onChangeText={setBlockFromMinute}
+                    placeholder='00'
+                    className='flex-1 rounded-xl px-3 py-3'
+                    style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
+                    placeholderTextColor={Colors.textTertiary}
+                    keyboardType='numeric'
+                    maxLength={2}
+                  />
+                  <View className='flex-row rounded-xl overflow-hidden' style={{borderWidth: 1, borderColor: Colors.border}}>
                     <Pressable
-                      key={`from-${period}`}
-                      onPress={() => setBlockFromPeriod(period)}
-                      className='flex-1 py-3 rounded-xl active:opacity-80 items-center justify-center'
-                      style={{backgroundColor: blockFromPeriod === period ? Colors.vendor : Colors.lightGray}}
+                      className='px-3 py-3'
+                      style={{backgroundColor: blockFromPeriod === 'AM' ? Colors.vendor : 'transparent'}}
+                      onPress={() => setBlockFromPeriod('AM')}
                     >
-                      <Text className='text-xs font-extrabold' style={{color: blockFromPeriod === period ? Colors.white : Colors.textPrimary}}>{period}</Text>
+                      <Text className='font-bold' style={{color: blockFromPeriod === 'AM' ? Colors.white : Colors.textSecondary}}>AM</Text>
                     </Pressable>
-                  ))}
+                    <Pressable
+                      className='px-3 py-3'
+                      style={{backgroundColor: blockFromPeriod === 'PM' ? Colors.vendor : 'transparent'}}
+                      onPress={() => setBlockFromPeriod('PM')}
+                    >
+                      <Text className='font-bold' style={{color: blockFromPeriod === 'PM' ? Colors.white : Colors.textSecondary}}>PM</Text>
+                    </Pressable>
+                  </View>
                 </View>
               </View>
-            </View>
 
-            <View className='mb-3'>
-              <Text className='text-xs font-bold mb-2' style={{color: Colors.textSecondary}}>TO</Text>
-              <View className='flex-row gap-2'>
-                <TextInput
-                  value={blockToHour}
-                  onChangeText={setBlockToHour}
-                  placeholder='05'
-                  className='flex-1 rounded-xl px-3 py-3'
-                  style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
-                  placeholderTextColor={Colors.textTertiary}
-                  keyboardType='numeric'
-                  maxLength={2}
-                />
-                <Text className='self-center text-lg font-extrabold' style={{color: Colors.textSecondary}}>:</Text>
-                <TextInput
-                  value={blockToMinute}
-                  onChangeText={setBlockToMinute}
-                  placeholder='00'
-                  className='w-20 rounded-xl px-3 py-3'
-                  style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
-                  placeholderTextColor={Colors.textTertiary}
-                  keyboardType='number-pad'
-                  maxLength={2}
-                />
-                <View className='w-24 flex-row gap-1'>
-                  {(['AM', 'PM'] as const).map((period) => (
+              <View className='mb-4'>
+                <Text className='text-[10px] font-bold mb-2' style={{color: Colors.textSecondary}}>TO</Text>
+                <View className='flex-row gap-2'>
+                  <TextInput
+                    value={blockToHour}
+                    onChangeText={setBlockToHour}
+                    placeholder='05'
+                    className='flex-1 rounded-xl px-3 py-3'
+                    style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
+                    placeholderTextColor={Colors.textTertiary}
+                    keyboardType='numeric'
+                    maxLength={2}
+                  />
+                  <Text className='self-center text-lg font-extrabold' style={{color: Colors.textSecondary}}>:</Text>
+                  <TextInput
+                    value={blockToMinute}
+                    onChangeText={setBlockToMinute}
+                    placeholder='00'
+                    className='flex-1 rounded-xl px-3 py-3'
+                    style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
+                    placeholderTextColor={Colors.textTertiary}
+                    keyboardType='numeric'
+                    maxLength={2}
+                  />
+                  <View className='flex-row rounded-xl overflow-hidden' style={{borderWidth: 1, borderColor: Colors.border}}>
                     <Pressable
-                      key={`to-${period}`}
-                      onPress={() => setBlockToPeriod(period)}
-                      className='flex-1 py-3 rounded-xl active:opacity-80 items-center justify-center'
-                      style={{backgroundColor: blockToPeriod === period ? Colors.vendor : Colors.lightGray}}
+                      className='px-3 py-3'
+                      style={{backgroundColor: blockToPeriod === 'AM' ? Colors.vendor : 'transparent'}}
+                      onPress={() => setBlockToPeriod('AM')}
                     >
-                      <Text className='text-xs font-extrabold' style={{color: blockToPeriod === period ? Colors.white : Colors.textPrimary}}>{period}</Text>
+                      <Text className='font-bold' style={{color: blockToPeriod === 'AM' ? Colors.white : Colors.textSecondary}}>AM</Text>
                     </Pressable>
-                  ))}
+                    <Pressable
+                      className='px-3 py-3'
+                      style={{backgroundColor: blockToPeriod === 'PM' ? Colors.vendor : 'transparent'}}
+                      onPress={() => setBlockToPeriod('PM')}
+                    >
+                      <Text className='font-bold' style={{color: blockToPeriod === 'PM' ? Colors.white : Colors.textSecondary}}>PM</Text>
+                    </Pressable>
+                  </View>
                 </View>
               </View>
-            </View>
 
-            <View className='mb-4'>
-              <Text className='text-xs font-bold mb-2' style={{color: Colors.textSecondary}}>REASON</Text>
-              <TextInput
-                value={blockReason}
-                onChangeText={setBlockReason}
-                placeholder='Maintenance'
-                className='rounded-xl px-4 py-3'
-                style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
-                placeholderTextColor={Colors.textTertiary}
-              />
-            </View>
+              <View className='mb-6'>
+                <Text className='text-[10px] font-bold mb-2' style={{color: Colors.textSecondary}}>REASON (OPTIONAL)</Text>
+                <TextInput
+                  value={blockReason}
+                  onChangeText={setBlockReason}
+                  placeholder='Why is this date blocked?'
+                  className='rounded-xl px-4 py-3'
+                  style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
+                  placeholderTextColor={Colors.textTertiary}
+                />
+              </View>
 
-            {!!blockedSlotsByDate[manageDateString]?.length && (
-              <View className='mb-4 rounded-xl p-3' style={{backgroundColor: Colors.lightGray}}>
-                <Text className='text-xs font-bold mb-2' style={{color: Colors.textSecondary}}>EXISTING BLOCKED SLOTS</Text>
-                {blockedSlotsByDate[manageDateString].map((entry, index) => (
-                  <Text key={`${entry.id || 'slot'}-${index}`} className='text-sm mb-1' style={{color: Colors.textPrimary}}>
-                    • {entry.timeSlot?.from || '00:00'} - {entry.timeSlot?.to || '23:59'} {entry.reason ? `(${entry.reason})` : ''}
+              <View className='flex-row gap-3'>
+                <Pressable
+                  className='flex-1 py-4 rounded-2xl active:opacity-85 border-2'
+                  style={{borderColor: Colors.error}}
+                  onPress={handleUnblockDate}
+                  disabled={isSubmittingBlock}
+                >
+                  <Text className='text-center font-extrabold' style={{color: Colors.error}}>
+                    {isSubmittingBlock ? '...' : 'Clear All'}
                   </Text>
-                ))}
+                </Pressable>
+                <Pressable
+                  className='flex-2 py-4 rounded-2xl active:opacity-85'
+                  style={{backgroundColor: Colors.vendor, flex: 2}}
+                  onPress={handleBlockWithTime}
+                  disabled={isSubmittingBlock}
+                >
+                  <Text className='text-center text-white font-extrabold text-lg'>
+                    {isSubmittingBlock ? 'Updating...' : 'Block Selected Time'}
+                  </Text>
+                </Pressable>
               </View>
-            )}
-
-            <View className='flex-row gap-3'>
-              <Pressable
-                className='flex-1 py-4 rounded-xl active:opacity-80 items-center'
-                style={{backgroundColor: Colors.error}}
-                onPress={handleUnblockDate}
-                disabled={isSubmittingBlock}
-              >
-                <Text className='text-sm font-extrabold' style={{color: Colors.white}}>
-                  {isSubmittingBlock ? 'Please wait...' : 'Unblock Date'}
-                </Text>
-              </Pressable>
-              <Pressable
-                className='flex-1 py-4 rounded-xl active:opacity-80 items-center'
-                style={{backgroundColor: Colors.vendor}}
-                onPress={handleBlockWithTime}
-                disabled={isSubmittingBlock}
-              >
-                <Text className='text-sm font-extrabold' style={{color: Colors.white}}>
-                  {isSubmittingBlock ? 'Please wait...' : 'Block Time'}
-                </Text>
-              </Pressable>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Booking Details Modal */}

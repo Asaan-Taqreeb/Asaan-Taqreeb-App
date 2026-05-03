@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, FlatList, Pressable, RefreshControl, Image } from 'react-native';
+import { View, Text, FlatList, Pressable, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MessageCircle, Search, Trash2 } from 'lucide-react-native';
+import { MessageCircle, Trash2 } from 'lucide-react-native';
 import { Colors } from '@/app/_constants/theme';
 import { getUserChats, deleteChatHistory, ChatOverview } from '@/app/_utils/messagesApi';
 import { useSocket } from '@/app/_context/SocketContext';
 import { router, useFocusEffect } from 'expo-router';
 import { Alert } from 'react-native';
+import Avatar from '@/app/_components/Avatar';
 
 export default function VendorMessagesScreen() {
   const insets = useSafeAreaInsets();
@@ -22,22 +23,20 @@ export default function VendorMessagesScreen() {
       // Auto-purge corrupted chats
       const corruptedChats = data.filter(chat => chat.otherUser._id === 'deleted');
       if (corruptedChats.length > 0) {
-        console.log(`Auto-purging ${corruptedChats.length} corrupted chats...`);
         for (const badChat of corruptedChats) {
           try {
             await deleteChatHistory(badChat.chatId);
           } catch (e) {
-            console.warn('Failed to purge chat', badChat.chatId);
+            // Quietly ignore purging errors
           }
         }
-        // Refetch after purging
         const freshData = await getUserChats();
         setChats(freshData);
       } else {
         setChats(data);
       }
     } catch (error) {
-      console.error('Failed to fetch vendor chats:', error);
+      // Quietly ignore fetch errors
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -56,15 +55,8 @@ export default function VendorMessagesScreen() {
 
   useEffect(() => {
     if (!socket) return;
-
-    socket.on('receiveMessage', (message) => {
-      fetchChats(); // Refresh list on new message
-    });
-
-    socket.on('newMessageNotification', (message) => {
-      fetchChats();
-    });
-
+    socket.on('receiveMessage', () => fetchChats());
+    socket.on('newMessageNotification', () => fetchChats());
     return () => {
       socket.off('receiveMessage');
       socket.off('newMessageNotification');
@@ -78,8 +70,8 @@ export default function VendorMessagesScreen() {
 
   const handleDeleteChat = (chatId: string, clientName: string) => {
     Alert.alert(
-      'Delete Chat',
-      `Delete conversation with ${clientName}?`,
+      'Delete Conversation',
+      `Delete all messages with ${clientName}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -112,28 +104,25 @@ export default function VendorMessagesScreen() {
             clientName: item.otherUser.name 
           }
         })}
-        className="flex-row items-center px-5 py-4 bg-white border-b border-gray-100 active:bg-gray-50"
+        className="flex-row items-center px-6 py-5 bg-white active:bg-gray-50"
+        style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}
       >
-        <View className="w-14 h-14 rounded-full bg-primary/10 items-center justify-center">
-          <Text className="text-primary font-bold text-lg">
-            {item.otherUser.name.charAt(0).toUpperCase()}
-          </Text>
-        </View>
+        <Avatar name={item.otherUser.name} size="md" />
         
         <View className="flex-1 ml-4">
           <View className="flex-row justify-between items-center mb-1">
-            <Text className="text-base font-bold text-gray-900" numberOfLines={1}>
+            <Text className="text-base font-bold" style={{color: Colors.textPrimary}} numberOfLines={1}>
               {item.otherUser.name}
             </Text>
-            <Text className="text-xs text-gray-500">{time}</Text>
+            <Text className="text-xs font-medium" style={{color: Colors.textTertiary}}>{time}</Text>
           </View>
           
           <View className="flex-row justify-between items-center">
-            <Text className="text-sm text-gray-500 flex-1 mr-2" numberOfLines={1}>
+            <Text className="text-sm font-medium flex-1 mr-2" style={{color: Colors.textSecondary}} numberOfLines={1}>
               {lastMessage.text}
             </Text>
             {item.unreadCount > 0 && (
-              <View className="bg-primary rounded-full px-2 py-0.5 min-w-[20px] items-center mr-2">
+              <View className="bg-primary rounded-full px-2 py-0.5 min-w-[20px] items-center mr-2" style={{backgroundColor: Colors.vendor}}>
                 <Text className="text-[10px] text-white font-bold">{item.unreadCount}</Text>
               </View>
             )}
@@ -146,7 +135,7 @@ export default function VendorMessagesScreen() {
                 handleDeleteChat(item.chatId, item.otherUser.name);
               }}
             >
-              <Trash2 size={18} color={Colors.error} />
+              <Trash2 size={16} color={Colors.error} />
             </Pressable>
           </View>
         </View>
@@ -155,13 +144,13 @@ export default function VendorMessagesScreen() {
   };
 
   return (
-    <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: '#F9FAFB' }}>
-      <View className="bg-white px-5 py-5 border-b border-gray-100">
-        <Text className="text-2xl font-bold" style={{ color: Colors.textPrimary }}>
-          Messages
+    <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: Colors.background }}>
+      <View className="bg-white px-6 py-6" style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
+        <Text className="text-xl font-bold" style={{ color: Colors.textPrimary }}>
+          Customer Chats
         </Text>
-        <Text className="text-sm text-gray-500 mt-1">
-          Chat with your clients
+        <Text className="text-xs font-medium mt-0.5" style={{ color: Colors.textSecondary }}>
+          {chats.length} active conversation{chats.length !== 1 ? 's' : ''}
         </Text>
       </View>
 
@@ -170,19 +159,19 @@ export default function VendorMessagesScreen() {
         renderItem={renderChatItem}
         keyExtractor={(item) => item.chatId}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.vendor} />
         }
         contentContainerStyle={chats.length === 0 ? { flex: 1 } : {}}
         ListEmptyComponent={
           !isLoading ? (
-            <View className="flex-1 items-center justify-center px-5">
-              <View className="w-20 h-20 rounded-full bg-gray-100 items-center justify-center mb-4">
-                <MessageCircle size={32} color="#9CA3AF" />
+            <View className="flex-1 items-center justify-center px-10 py-20">
+              <View className="w-20 h-20 rounded-2xl bg-gray-100 items-center justify-center mb-6">
+                <MessageCircle size={32} color={Colors.textTertiary} />
               </View>
-              <Text className="text-xl font-semibold text-gray-900 mb-2">
-                No Messages Yet
+              <Text className="text-lg font-bold text-gray-900 mb-2">
+                No Active Chats
               </Text>
-              <Text className="text-sm text-gray-500 text-center">
+              <Text className="text-sm font-medium text-gray-400 text-center">
                 When customers message you about orders,{'\n'}they will appear here
               </Text>
             </View>
@@ -192,3 +181,4 @@ export default function VendorMessagesScreen() {
     </View>
   );
 }
+

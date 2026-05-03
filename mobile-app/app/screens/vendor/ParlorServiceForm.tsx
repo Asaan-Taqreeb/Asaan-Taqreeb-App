@@ -1,10 +1,10 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert, KeyboardAvoidingView, Platform, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, Sparkles, Plus, Trash2, X } from "lucide-react-native";
 import { Colors, Shadows } from "@/app/_constants/theme";
-import { useState } from "react";
-import { createVendorService, uploadServiceImages } from '@/app/_utils/servicesApi'
+import { useState, useEffect } from "react";
+import { createVendorService, updateVendorService, getServiceById } from '@/app/_utils/servicesApi'
 import ImageUploader from "@/app/screens/vendor/Component/ImageUploader";
 
 interface Package {
@@ -16,6 +16,8 @@ interface Package {
 
 export default function ParlorServiceForm() {
   const insets = useSafeAreaInsets();
+  const { serviceId, edit } = useLocalSearchParams<{ serviceId: string; edit: string }>();
+  const isEditMode = edit === 'true' && !!serviceId;
   
   // Common fields
   const [placeName, setPlaceName] = useState("");
@@ -23,6 +25,8 @@ export default function ParlorServiceForm() {
   const [nearbyLandmark, setNearbyLandmark] = useState("");
   const [about, setAbout] = useState("");
   const [images, setImages] = useState<string[]>([]);
+  const [isInitialLoading, setIsInitialLoading] = useState(isEditMode);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Packages
   const [packages, setPackages] = useState<Package[]>([
@@ -33,6 +37,46 @@ export default function ParlorServiceForm() {
   const [optionalServices, setOptionalServices] = useState<{id: string; name: string; price: string}[]>([
     { id: "1", name: "", price: "" }
   ]);
+
+  useEffect(() => {
+    if (isEditMode) {
+      loadServiceData();
+    }
+  }, [serviceId]);
+
+  const loadServiceData = async () => {
+    try {
+      const data = await getServiceById(serviceId!);
+      if (data) {
+        setPlaceName(data.name || "");
+        setLocation(data.location || "");
+        setAbout(data.about || "");
+        setImages(data.images || []);
+        
+        if (data.packages && data.packages.length > 0) {
+          setPackages(data.packages.map((pkg, idx) => ({
+            id: pkg.id?.toString() || (idx + 1).toString(),
+            packageName: pkg.packageName,
+            price: pkg.price.toString(),
+            items: pkg.items && pkg.items.length > 0 ? pkg.items : [""]
+          })));
+        }
+
+        if (data.optionalServices && data.optionalServices.length > 0) {
+          setOptionalServices(data.optionalServices.map((s, idx) => ({
+            id: (idx + 1).toString(),
+            name: s.name,
+            price: s.price.toString()
+          })));
+        }
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to load service details");
+      router.back();
+    } finally {
+      setIsInitialLoading(false);
+    }
+  };
 
   const addPackage = () => {
     const newId = (packages.length + 1).toString();
@@ -115,20 +159,18 @@ export default function ParlorServiceForm() {
       return;
     }
     
+    setIsSubmitting(true);
+    
     // Validate packages
     for (const pkg of packages) {
       if (!pkg.packageName.trim() || !pkg.price.trim()) {
         Alert.alert("Error", "Please complete all package details");
-        return;
-      }
-      if (pkg.items.every(item => !item.trim())) {
-        Alert.alert("Error", "Each package must have at least one service item");
+        setIsSubmitting(false);
         return;
       }
     }
 
-    // Save data
-    const formData = {
+    const payload = {
       placeName,
       location,
       nearbyLandmark,
@@ -148,29 +190,49 @@ export default function ParlorServiceForm() {
     };
 
     try {
-      const result = await createVendorService({
-        category: 'parlor',
-        serviceType: 'parlor',
-        ...formData,
-      })
+      if (isEditMode) {
+        await updateVendorService(serviceId!, payload);
+        Alert.alert("Success", "Service updated successfully.", [
+          { text: "OK", onPress: () => router.replace('/screens/vendor/Component/ManageServicesScreen') }
+        ]);
+      } else {
+        const result = await createVendorService({
+          category: 'parlor',
+          serviceType: 'parlor',
+          ...payload,
+        });
 
-      // Upload images if any were selected
-      const newServiceId = result?._id || result?.id || result?.data?._id || result?.data?.id
-      if (newServiceId && images.length > 0) {
-        try {
-          await uploadServiceImages(newServiceId, images)
-        } catch (imgError) {
-          console.warn('Images could not be uploaded, but service was created:', imgError)
+        // Upload images to Cloudinary for new service
+        const newServiceId = result?._id || result?.id || result?.data?._id || result?.data?.id;
+        if (newServiceId && images.length > 0) {
+          const { uploadMultipleToCloudinary, isCloudinaryConfigured } = await import('@/app/_utils/cloudinaryUpload');
+          if (isCloudinaryConfigured()) {
+            const cloudinaryUrls = await uploadMultipleToCloudinary(images);
+            if (cloudinaryUrls.length > 0) {
+              await updateVendorService(newServiceId, { images: cloudinaryUrls });
+            }
+          }
         }
-      }
 
-      Alert.alert("Success", "Parlor/Salon service created successfully.", [
-        { text: "OK", onPress: () => router.replace('/screens/vendor/_tabs/VendorDashboardHome') }
-      ])
+        Alert.alert("Success", "Parlor service created successfully.", [
+          { text: "OK", onPress: () => router.replace('/screens/vendor/Component/ManageServicesScreen') }
+        ]);
+      }
     } catch (error: any) {
-      Alert.alert('Failed', error?.message || 'Unable to create service. Please try again.')
+      Alert.alert('Failed', error?.message || 'Unable to save service. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  if (isInitialLoading) {
+    return (
+      <View className="flex-1 justify-center items-center" style={{ backgroundColor: Colors.background }}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text className="mt-4 font-bold" style={{ color: Colors.textSecondary }}>Loading Service Details...</Text>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView 
@@ -383,11 +445,18 @@ export default function ParlorServiceForm() {
 
         {/* Submit Button */}
         <Pressable 
-          className='rounded-xl py-4 items-center active:opacity-80'
-          style={{backgroundColor: Colors.parlor, marginBottom: 40}}
+          className='rounded-xl py-4 items-center active:opacity-80 flex-row justify-center gap-2'
+          style={{backgroundColor: Colors.parlor, marginBottom: 40, opacity: isSubmitting ? 0.7 : 1}}
           onPress={handleSubmit}
+          disabled={isSubmitting}
         >
-          <Text className='text-base font-extrabold' style={{color: Colors.white}}>Save & Continue to Dashboard</Text>
+          {isSubmitting ? (
+            <ActivityIndicator size="small" color={Colors.white} />
+          ) : (
+            <Text className='text-base font-extrabold' style={{color: Colors.white}}>
+              {isEditMode ? "Save Changes" : "Save & Continue to Dashboard"}
+            </Text>
+          )}
         </Pressable>
       </ScrollView>
     </View>

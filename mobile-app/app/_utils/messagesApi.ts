@@ -75,3 +75,8 @@ export const deleteChatHistory = async (chatId: string): Promise<any> => {
     throw error;
   }
 };
+
+export default function MessagesApiStub() {
+  return null;
+}
+

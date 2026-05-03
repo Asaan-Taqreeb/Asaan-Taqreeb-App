@@ -233,6 +233,43 @@ export const mapServiceToUi = (service: any): ServiceListItem => {
   }
 }
 
+export const getVendorServices = async (): Promise<ServiceListItem[]> => {
+  try {
+    const response = await apiFetchJson<any>(
+      VENDOR_ENDPOINTS.myServices,
+      { method: 'GET', auth: true },
+      'Failed to load your services.'
+    )
+
+    const rawServices = extractServicesArray(response)
+    return rawServices.map(mapServiceToUi)
+  } catch (error) {
+    console.error('Error fetching vendor services:', error)
+    return []
+  }
+}
+
+export const getServiceByCategory = async (category: string): Promise<ServiceListItem[]> => {
+  const noCacheUrl = `${VENDOR_ENDPOINTS.allServices}${VENDOR_ENDPOINTS.allServices.includes('?') ? '&' : '?'}_t=${Date.now()}`
+
+  const response = await apiFetchJson<any[]>(
+    noCacheUrl,
+    {
+      method: 'GET',
+      auth: false,
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0',
+      },
+    },
+    'Failed to load services.'
+  )
+
+  const rawServices = extractServicesArray(response)
+  return rawServices.filter(s => toCategoryKey(firstDefined(s?.category, s?.serviceType, s?.type)) === category).map(mapServiceToUi)
+}
+
 export const getAllServices = async (): Promise<ServiceListItem[]> => {
   const noCacheUrl = `${VENDOR_ENDPOINTS.allServices}${VENDOR_ENDPOINTS.allServices.includes('?') ? '&' : '?'}_t=${Date.now()}`
 
@@ -440,6 +477,8 @@ export const getMyVendorServices = async (): Promise<ServiceListItem[]> => {
   }
 }
 
+import { Platform } from 'react-native'
+
 export const uploadServiceImages = async (serviceId: string | number, imageUris: string[]) => {
   const formData = new FormData()
 
@@ -448,13 +487,17 @@ export const uploadServiceImages = async (serviceId: string | number, imageUris:
     const match = /\.(\w+)$/.exec(filename)
     const type = match ? `image/${match[1]}` : 'image/jpeg'
 
-    // For React Native, we need to use the uri directly
-    // FormData will handle the conversion appropriately
-    formData.append('images', {
-      uri,
-      type,
-      name: filename,
-    } as any)
+    if (Platform.OS === 'web') {
+      const response = await fetch(uri)
+      const blob = await response.blob()
+      formData.append('images', blob, filename)
+    } else {
+      formData.append('images', {
+        uri,
+        type,
+        name: filename,
+      } as any)
+    }
   }
 
   const response = await apiFetch(VENDOR_ENDPOINTS.uploadServiceImages(serviceId), {

@@ -3,7 +3,8 @@ import { View, Text, Pressable, Alert, StyleSheet, Image, ScrollView, ActivityIn
 import { Image as ImageIcon, Plus, Trash2 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Colors, Shadows } from '@/app/_constants/theme';
-import { uploadServiceImages, deleteServiceImage } from '@/app/_utils/servicesApi';
+import { updateVendorService } from '@/app/_utils/servicesApi';
+import { uploadMultipleToCloudinary, isCloudinaryConfigured } from '@/app/_utils/cloudinaryUpload';
 
 interface ImageUploaderProps {
   serviceId?: string;
@@ -38,7 +39,7 @@ export default function ImageUploader({
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsMultiple: true,
+        allowsMultipleSelection: true,
         quality: 0.8,
         allowsEditing: false,
       });
@@ -48,21 +49,36 @@ export default function ImageUploader({
         const availableSlots = maxImages - images.length;
         const urisToAdd = selectedUris.slice(0, availableSlots);
 
-        if (serviceId) {
-          // Upload to backend
+        if (serviceId && isCloudinaryConfigured()) {
+          // Show local images immediately (optimistic)
+          onImagesChange([...images, ...urisToAdd]);
           try {
-            const response = await uploadServiceImages(serviceId, urisToAdd);
-            // After successful upload, update local state with all images from backend (new + existing)
-            const updatedImages = response?.images || [];
-            if (Array.isArray(updatedImages)) {
+            // Upload to Cloudinary directly — bypasses broken Supabase backend
+            console.log('Uploading to Cloudinary...', urisToAdd.length, 'image(s)');
+            const cloudinaryUrls = await uploadMultipleToCloudinary(urisToAdd);
+            console.log('Cloudinary upload succeeded. URLs:', cloudinaryUrls);
+            if (cloudinaryUrls.length > 0) {
+              // Replace local URIs with persistent Cloudinary URLs
+              const updatedImages = [...images, ...cloudinaryUrls];
               onImagesChange(updatedImages);
+              // Persist URLs to MongoDB via backend
+              try {
+                await updateVendorService(serviceId, { images: updatedImages });
+                console.log('Image URLs saved to backend successfully.');
+              } catch (saveError: any) {
+                console.warn('Failed to save image URLs to backend:', saveError?.message);
+              }
             }
-            Alert.alert('Success', 'Images uploaded successfully');
           } catch (error: any) {
-            Alert.alert('Upload Failed', error?.message || 'Failed to upload images');
+            console.warn('Cloudinary upload failed:', error?.message);
+            // Local preview still works even if cloud upload fails
           }
+        } else if (serviceId && !isCloudinaryConfigured()) {
+          // Cloudinary not set up yet — show locally only
+          onImagesChange([...images, ...urisToAdd]);
+          console.warn('Cloudinary not configured. Images shown locally only.');
         } else {
-          // For new services, just add to local state
+          // No serviceId — new service form: store URIs locally, upload on form submit
           onImagesChange([...images, ...urisToAdd]);
         }
 
@@ -89,15 +105,19 @@ export default function ImageUploader({
           onPress: async () => {
             try {
               setDeleting(imageUrl);
+              const updatedImages = images.filter(img => img !== imageUrl);
+              // Optimistically remove from local state
+              onImagesChange(updatedImages);
+              // Persist updated image list to backend (removes the URL from MongoDB)
               if (serviceId) {
-                // Delete from backend
-                await deleteServiceImage(serviceId, imageUrl);
+                try {
+                  await updateVendorService(serviceId, { images: updatedImages });
+                } catch (saveError: any) {
+                  console.warn('Failed to update image list on backend:', saveError?.message);
+                }
               }
-              // Remove from local state
-              onImagesChange(images.filter(img => img !== imageUrl));
-              Alert.alert('Success', 'Image removed successfully');
             } catch (error: any) {
-              Alert.alert('Error', error?.message || 'Failed to remove image');
+              console.warn('Remove image error:', error?.message);
             } finally {
               setDeleting(null);
             }

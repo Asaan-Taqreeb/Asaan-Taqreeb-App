@@ -8,6 +8,7 @@ import { extractRoleFromAuthPayload, getCurrentUser, loginUser } from '@/app/_ut
 import { clearAuthTokens } from '@/app/_utils/authStorage'
 import { useUser } from '@/app/_context/UserContext'
 import { hasSeenOnboarding } from '@/app/_utils/onboardingStorage'
+import AppLogo from '../screens/client/Component/AppLogo'
 
 interface LoginScreenProps {
     role?: 'client' | 'vendor'
@@ -130,7 +131,8 @@ const LoginScreen = ({
                 <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }} keyboardShouldPersistTaps='handled'>
                 {/* Header Section */}
                 <View style={styles.headerContainer}>
-                    <Text style={styles.appTitle}>Assan Taqreeb</Text>
+                    <AppLogo size="medium" showText={false} />
+                    <Text style={styles.appTitle}>Asaan<Text style={{color: Colors.primary}}>Taqreeb</Text></Text>
                     <Text style={styles.subtitle}>{getSubtitle()}</Text>
                 </View>
 
@@ -156,7 +158,7 @@ const LoginScreen = ({
                         style={styles.input}
                         mode='outlined'
                         outlineColor='#ddd'
-                        activeOutlineColor='#4F46E5'
+                        activeOutlineColor={Colors.primary}
                         secureTextEntry={!showPassword}
                         left={<TextInput.Icon icon="lock" />}
                         right={<TextInput.Icon icon={showPassword ? "eye-off" : "eye"} onPress={() => setShowPassword(!showPassword)} />}
@@ -188,7 +190,7 @@ const LoginScreen = ({
                 </View>
 
                 <View className='self-center pt-5'>
-                    <Text className='text-base'>Don&apos;t Have An Account? <Pressable onPress={() => router.push(redirectSignupRoute as any)}><Text className='text-indigo-600 font-medium underline'>Register Now</Text></Pressable></Text>
+                    <Text className='text-base'>Don&apos;t Have An Account? <Pressable onPress={() => router.push(redirectSignupRoute as any)}><Text style={{color: Colors.primary}} className='font-medium underline'>Register Now</Text></Pressable></Text>
                 </View>
                 </ScrollView>
             </View>
