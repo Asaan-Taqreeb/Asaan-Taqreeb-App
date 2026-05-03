@@ -5,7 +5,7 @@
     "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/Logo.png",
-    "scheme": "AsaanTaqreeb",
+    "scheme": "asaantaqreeb",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
     "ios": {
@@ -25,8 +25,6 @@
         "backgroundColor": "#ECFEFF",
         "foregroundImage": "./assets/images/Logo.png"
       },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
       "package": "com.mirzazain1.asaantaqreeb"
     },
     "web": {
