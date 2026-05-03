@@ -136,10 +136,17 @@ export default function VendorListView() {
 
     const availableLocations = useMemo(() => {
       const locs = new Set<string>()
+      const plusCodeRegex = /^[A-Z0-9]{4,8}\+[A-Z0-9]{2,4}/;
+      const genericCodeRegex = /^[A-Z0-9]{4}_[A-Z0-9]{3}/;
+
       vendors.forEach(v => {
         if (v.location) {
           const concise = getConciseAddress(v.location)
           const area = concise.split(',')[0].trim()
+          
+          // Skip if it's still a code or too short
+          if (plusCodeRegex.test(area) || genericCodeRegex.test(area) || area.length < 3) return;
+
           // Normalization logic
           let normalized = area
           if (normalized.toLowerCase().includes('malir')) normalized = 'Malir'
@@ -147,6 +154,7 @@ export default function VendorListView() {
           if (normalized.toLowerCase().includes('nazimabad')) normalized = 'Nazimabad'
           if (normalized.toLowerCase().includes('clifton')) normalized = 'Clifton'
           if (normalized.toLowerCase().includes('dha')) normalized = 'DHA'
+          if (normalized.toLowerCase().includes('bahria')) normalized = 'Bahria Town'
           
           if (normalized && normalized !== 'Location not set') {
             locs.add(normalized)

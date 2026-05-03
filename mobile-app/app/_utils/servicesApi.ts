@@ -4,17 +4,31 @@ import { getAccessToken } from '@/app/_utils/authStorage'
 
 export const getConciseAddress = (address: string) => {
   if (!address || address === 'Location not set') return address;
-  const parts = address.split(',').map(p => p.trim());
-  if (parts.length <= 2) return address;
-  // For standard addresses, the last parts are usually Country, Region, City, District
-  // We want to show "District, City"
-  const countryIndex = parts.findIndex(p => p.toLowerCase() === 'pakistan');
-  const baseIndex = countryIndex !== -1 ? countryIndex : parts.length;
   
-  if (baseIndex >= 3) {
-    return `${parts[baseIndex - 3]}, ${parts[baseIndex - 2]}`;
+  // Filter out Plus Codes (e.g., "W42F+9J6" or similar patterns)
+  const plusCodeRegex = /^[A-Z0-9]{4,8}\+[A-Z0-9]{2,4}/;
+  const genericCodeRegex = /^[A-Z0-9]{4}_[A-Z0-9]{3}/; // Handle the user's specific example W42f_9J6
+  
+  const parts = address.split(',').map(p => p.trim());
+  
+  // If the first part is a code, remove it
+  const cleanParts = parts.filter(p => !plusCodeRegex.test(p) && !genericCodeRegex.test(p));
+  
+  if (cleanParts.length === 0) return address; // Fallback if everything was a code
+  if (cleanParts.length <= 2) return cleanParts.join(', ');
+  
+  // We want to show "Area/District, City"
+  // Usually the structure is [House, Street, Area, City, Province, Country]
+  // In Pakistan, "Pakistan" is usually at the end.
+  const countryIndex = cleanParts.findIndex(p => p.toLowerCase() === 'pakistan');
+  const baseIndex = countryIndex !== -1 ? countryIndex : cleanParts.length;
+  
+  if (baseIndex >= 2) {
+    // Return "Area, City"
+    return `${cleanParts[baseIndex - 2]}, ${cleanParts[baseIndex - 1]}`;
   }
-  return parts.slice(-2).join(', ');
+  
+  return cleanParts.slice(-2).join(', ');
 };
 
 export type ServicePackage = {
