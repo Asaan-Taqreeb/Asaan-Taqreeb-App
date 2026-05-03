@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { CircleAlert, Dot, MapPin, Star, Circle, ChevronLeft, ChevronRight, X, ArrowLeft, Plus, MessageCircle } from 'lucide-react-native'
 import { useState, useEffect } from 'react'
 import { Dimensions, ScrollView, Modal, TextInput , Image, Pressable, StyleSheet, Text, View, KeyboardAvoidingView, Platform, Linking } from 'react-native'
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps'
+import LeafletMap from '@/app/_components/LeafletMap'
 import * as ExpoLocation from 'expo-location'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors, getCategoryColor, Shadows, Spacing } from '@/app/_constants/theme'
@@ -341,31 +341,17 @@ export default function DetailScreenPage() {
                     
                     <View className='rounded-3xl overflow-hidden border-2' style={{borderColor: Colors.border, height: 200}}>
                         {hasAnyCoords ? (
-                            <MapView
-                                provider={PROVIDER_GOOGLE}
+                            <LeafletMap
                                 style={{flex: 1}}
-                                initialRegion={{
+                                latitude={finalLat}
+                                longitude={finalLng}
+                                markerPosition={{
                                     latitude: finalLat,
-                                    longitude: finalLng,
-                                    latitudeDelta: 0.01,
-                                    longitudeDelta: 0.01,
+                                    longitude: finalLng
                                 }}
                                 scrollEnabled={false}
                                 zoomEnabled={false}
-                                pitchEnabled={false}
-                                rotateEnabled={false}
-                            >
-                                <Marker 
-                                    coordinate={{
-                                        latitude: finalLat,
-                                        longitude: finalLng
-                                    }}
-                                >
-                                    <View style={{backgroundColor: Colors.white, padding: 5, borderRadius: 20, borderWidth: 2, borderColor: categoryColor, shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.2, shadowRadius: 3, elevation: 4}}>
-                                        <MapPin size={24} color={categoryColor} fill={`${categoryColor}40`} />
-                                    </View>
-                                </Marker>
-                            </MapView>
+                            />
                         ) : (
                             <View className='flex-1 items-center justify-center bg-gray-50'>
                                 <MapPin size={40} color={Colors.borderDark} />

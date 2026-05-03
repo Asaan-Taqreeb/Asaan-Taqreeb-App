@@ -1,4 +1,0 @@
-git add -A && git commit -m "fix: update dependencies (ajv, ajv-keywords, schema-utils) to resolve EAS build errors"
-npx eas build -p android --profile preview
-echo "Status:"
-

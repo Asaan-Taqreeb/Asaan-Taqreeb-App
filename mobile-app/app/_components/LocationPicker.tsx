@@ -11,9 +11,9 @@ import {
     SafeAreaView,
     Platform
 } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import * as Location from 'expo-location';
 import { Search, MapPin, Navigation, X, Check, Map as MapIcon } from 'lucide-react-native';
+import * as Location from 'expo-location';
+import LeafletMap, { LeafletMapMethods } from './LeafletMap';
 import { Colors } from '@/app/_constants/theme';
 
 interface LocationPickerProps {
@@ -89,7 +89,7 @@ interface FullMapModalProps {
 }
 
 function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapModalProps) {
-    const mapRef = useRef<MapView>(null);
+    const mapRef = useRef<LeafletMapMethods>(null);
     const [searchQuery, setSearchQuery] = useState(initialLocation.address || '');
     const [markerPosition, setMarkerPosition] = useState<{ latitude: number; longitude: number } | null>(
         initialLocation.latitude && initialLocation.longitude 
@@ -245,32 +245,15 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
                             <ActivityIndicator size="large" color={Colors.primary} />
                         </View>
                     )}
-                    <MapView
+                    <LeafletMap
                         ref={mapRef}
                         style={styles.modalMap}
-                        provider={PROVIDER_GOOGLE}
-                        initialRegion={{
-                            latitude: initialLocation.latitude || DEFAULT_REGION.latitude,
-                            longitude: initialLocation.longitude || DEFAULT_REGION.longitude,
-                            latitudeDelta: DEFAULT_REGION.latitudeDelta,
-                            longitudeDelta: DEFAULT_REGION.longitudeDelta,
-                        }}
+                        latitude={initialLocation.latitude || DEFAULT_REGION.latitude}
+                        longitude={initialLocation.longitude || DEFAULT_REGION.longitude}
+                        markerPosition={markerPosition}
                         onMapReady={() => setIsMapReady(true)}
-                        onPress={handleMapPress}
-                        showsUserLocation
-                        showsMyLocationButton={false}
-                    >
-                        {markerPosition && (
-                            <Marker coordinate={markerPosition}>
-                                <View style={styles.customMarker}>
-                                    <View style={styles.markerPin}>
-                                        <MapPin size={24} color="#FFF" fill={Colors.error} />
-                                    </View>
-                                    <View style={styles.markerShadow} />
-                                </View>
-                            </Marker>
-                        )}
-                    </MapView>
+                        onMapPress={(lat, lng) => handleMapPress({ nativeEvent: { coordinate: { latitude: lat, longitude: lng } } })}
+                    />
 
                     {/* Controls */}
                     <TouchableOpacity 
