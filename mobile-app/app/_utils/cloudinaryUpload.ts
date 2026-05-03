@@ -20,6 +20,9 @@ const CLOUDINARY_CLOUD_NAME = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME || '
 const CLOUDINARY_UPLOAD_PRESET = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET || ''
 const CLOUDINARY_FOLDER = 'asaan-taqreeb/services'
 
+const BACKEND_URL = 'https://asaan-taqreeb-backend.onrender.com'
+const DELETE_ENDPOINT = `${BACKEND_URL}/api/v1/media/delete`
+
 export const isCloudinaryConfigured = () =>
   Boolean(CLOUDINARY_CLOUD_NAME?.trim()) && Boolean(CLOUDINARY_UPLOAD_PRESET?.trim())
 
@@ -78,6 +81,39 @@ export const uploadMultipleToCloudinary = async (uris: string[]): Promise<string
     }
   }
   return urls
+}
+
+/**
+ * Securely delete an image from Cloudinary via our backend.
+ * This ensures the API Secret is never exposed in the mobile app.
+ */
+export const deleteFromCloudinary = async (imageUrl: string): Promise<boolean> => {
+  try {
+    if (!imageUrl) return false;
+
+    console.log('Requesting backend to delete image:', imageUrl);
+
+    const response = await fetch(DELETE_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ imageUrl }),
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      console.error('Backend deletion failed:', data.message);
+      return false;
+    }
+
+    console.log('Image deleted successfully from Cloudinary');
+    return true;
+  } catch (error) {
+    console.error('Error calling backend delete:', error);
+    return false;
+  }
 }
 
 // Default export to satisfy Expo Router's requirement for files in the app/ directory

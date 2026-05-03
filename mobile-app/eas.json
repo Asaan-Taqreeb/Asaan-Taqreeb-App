@@ -12,22 +12,12 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
-      },
-      "env": {
-        "EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME": "dddsn39gd",
-        "EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET": "AsaanTaqreeb",
-        "EXPO_PUBLIC_GROQ_API_KEY": "YOUR_GROQ_API_KEY_HERE"
       }
     },
     "production": {
       "autoIncrement": true,
       "android": {
         "buildType": "apk"
-      },
-      "env": {
-        "EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME": "dddsn39gd",
-        "EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET": "AsaanTaqreeb",
-        "EXPO_PUBLIC_GROQ_API_KEY": "YOUR_GROQ_API_KEY_HERE"
       }
     }
   },
