@@ -6,7 +6,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import SearchBar from './SearchBar'
 import FilterComponent from './FilterComponent'
 import { Colors, Shadows, Spacing, getCategoryColor } from '@/app/_constants/theme'
-import { getAllServices, ServiceListItem } from '@/app/_utils/servicesApi'
+import { getAllServices, ServiceListItem, getConciseAddress } from '@/app/_utils/servicesApi'
 import { buildClientCategoryCards } from './categoryConfig'
 
 export default function VendorListView() {
@@ -134,6 +134,28 @@ export default function VendorListView() {
       })
     }, [vendors, query, selectedCategory, filters, sortBy])
 
+    const availableLocations = useMemo(() => {
+      const locs = new Set<string>()
+      vendors.forEach(v => {
+        if (v.location) {
+          const concise = getConciseAddress(v.location)
+          const area = concise.split(',')[0].trim()
+          // Normalization logic
+          let normalized = area
+          if (normalized.toLowerCase().includes('malir')) normalized = 'Malir'
+          if (normalized.toLowerCase().includes('gulshan')) normalized = 'Gulshan'
+          if (normalized.toLowerCase().includes('nazimabad')) normalized = 'Nazimabad'
+          if (normalized.toLowerCase().includes('clifton')) normalized = 'Clifton'
+          if (normalized.toLowerCase().includes('dha')) normalized = 'DHA'
+          
+          if (normalized && normalized !== 'Location not set') {
+            locs.add(normalized)
+          }
+        }
+      })
+      return Array.from(locs).sort()
+    }, [vendors])
+
   return (
     <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}>
         <View className='flex-row justify-between items-center gap-4 px-5 py-4' style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
@@ -173,6 +195,7 @@ export default function VendorListView() {
                 values={filters}
                 onApply={setFilters}
                 onReset={() => setFilters({ location: "", minPrice: "", maxPrice: "", minRating: 0, minGuests: "", maxGuests: "" })}
+                locations={availableLocations}
               />
               {activeFiltersCount > 0 && (
                 <View className='absolute -top-1 -right-1 rounded-full px-1.5 py-0.5' style={{backgroundColor: Colors.error, minWidth: 18}}>
@@ -259,7 +282,7 @@ export default function VendorListView() {
                         
                         <View className="flex-row items-center mb-1.5">
                           <MapPin size={12} color={Colors.textTertiary} />
-                          <Text className="text-xs font-bold ml-1 flex-1" style={{color: Colors.textSecondary}} numberOfLines={1}>{item.location}</Text>
+                          <Text className="text-xs font-bold ml-1 flex-1" style={{color: Colors.textSecondary}} numberOfLines={1}>{getConciseAddress(item.location)}</Text>
                         </View>
 
                         {item.category === "banquet" && (

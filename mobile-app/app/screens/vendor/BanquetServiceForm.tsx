@@ -6,6 +6,7 @@ import { Colors, Shadows } from "@/app/_constants/theme";
 import { useState, useEffect } from "react";
 import { createVendorService, updateVendorService, getServiceById } from '@/app/_utils/servicesApi'
 import ImageUploader from "@/app/screens/vendor/Component/ImageUploader";
+import LocationPicker from "@/app/_components/LocationPicker";
 
 interface Package {
   id: string;
@@ -22,6 +23,8 @@ export default function BanquetServiceForm() {
   // Common fields
   const [placeName, setPlaceName] = useState("");
   const [location, setLocation] = useState("");
+  const [latitude, setLatitude] = useState<number | undefined>(undefined);
+  const [longitude, setLongitude] = useState<number | undefined>(undefined);
   const [nearbyLandmark, setNearbyLandmark] = useState("");
   const [about, setAbout] = useState("");
   const [images, setImages] = useState<string[]>([]);
@@ -58,6 +61,8 @@ export default function BanquetServiceForm() {
         setImages(data.images || []);
         setMinGuests(data.minGuests?.toString() || "");
         setMaxGuests(data.maxGuests?.toString() || "");
+        if (data.latitude) setLatitude(data.latitude);
+        if (data.longitude) setLongitude(data.longitude);
         
         if (data.packages && data.packages.length > 0) {
           setPackages(data.packages.map((pkg, idx) => ({
@@ -183,6 +188,8 @@ export default function BanquetServiceForm() {
       location,
       nearbyLandmark,
       about,
+      latitude,
+      longitude,
       images,
       minGuests: parseInt(minGuests),
       maxGuests: parseInt(maxGuests),
@@ -284,12 +291,17 @@ export default function BanquetServiceForm() {
             />
 
             <Text className='text-sm font-semibold mb-2 mt-3' style={{color: Colors.textSecondary}}>Location *</Text>
-            <TextInput
-              style={[styles.input, {borderColor: Colors.border, color: Colors.textPrimary}]}
-              placeholder="e.g., Shahrah e Faisal, Karachi"
-              placeholderTextColor={Colors.textTertiary}
-              value={location}
-              onChangeText={setLocation}
+            <LocationPicker 
+              initialLocation={{
+                address: location,
+                latitude: latitude,
+                longitude: longitude
+              }}
+              onLocationSelect={(loc) => {
+                setLocation(loc.address);
+                setLatitude(loc.latitude);
+                setLongitude(loc.longitude);
+              }}
             />
 
             <Text className='text-sm font-semibold mb-2 mt-3' style={{color: Colors.textSecondary}}>Nearby Landmark (Optional)</Text>

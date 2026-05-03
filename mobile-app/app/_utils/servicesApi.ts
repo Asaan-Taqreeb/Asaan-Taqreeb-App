@@ -2,6 +2,21 @@ import { AUTH_ENDPOINTS, VENDOR_ENDPOINTS } from '@/app/_constants/apiEndpoints'
 import { apiFetchJson, apiFetch, parseJsonSafe, getMessageFromPayload } from '@/app/_utils/apiClient'
 import { getAccessToken } from '@/app/_utils/authStorage'
 
+export const getConciseAddress = (address: string) => {
+  if (!address || address === 'Location not set') return address;
+  const parts = address.split(',').map(p => p.trim());
+  if (parts.length <= 2) return address;
+  // For standard addresses, the last parts are usually Country, Region, City, District
+  // We want to show "District, City"
+  const countryIndex = parts.findIndex(p => p.toLowerCase() === 'pakistan');
+  const baseIndex = countryIndex !== -1 ? countryIndex : parts.length;
+  
+  if (baseIndex >= 3) {
+    return `${parts[baseIndex - 3]}, ${parts[baseIndex - 2]}`;
+  }
+  return parts.slice(-2).join(', ');
+};
+
 export type ServicePackage = {
   id?: string | number
   packageName: string
@@ -28,8 +43,9 @@ export type ServiceListItem = {
   price: number
   images: string[]
   minGuests?: number
-  maxGuests?: number
   rating: number
+  latitude?: number
+  longitude?: number
   packages: ServicePackage[]
   optionalServices?: { name: string; price: number }[]
   createdAt?: string
@@ -226,6 +242,18 @@ export const mapServiceToUi = (service: any): ServiceListItem => {
     minGuests: firstDefined(toNumber(service?.capacity?.minGuests, NaN), toNumber(service?.minGuests, NaN), toNumber(service?.capacityMin, NaN)) || undefined,
     maxGuests: firstDefined(toNumber(service?.capacity?.maxGuests, NaN), toNumber(service?.maxGuests, NaN), toNumber(service?.capacityMax, NaN)) || undefined,
     rating: toNumber(firstDefined(service?.rating, service?.averageRating), 4.0),
+    latitude: firstDefined(
+      toFiniteNumberOrUndefined(bi?.latitude), 
+      toFiniteNumberOrUndefined(service?.latitude),
+      toFiniteNumberOrUndefined(service?.lat),
+      toFiniteNumberOrUndefined(bi?.lat)
+    ),
+    longitude: firstDefined(
+      toFiniteNumberOrUndefined(bi?.longitude), 
+      toFiniteNumberOrUndefined(service?.longitude),
+      toFiniteNumberOrUndefined(service?.lng),
+      toFiniteNumberOrUndefined(bi?.lng)
+    ),
     packages,
     optionalServices,
     createdAt: firstDefined(service?.createdAt, service?.created_at),
@@ -349,6 +377,8 @@ export const createVendorService = async (payload: Record<string, any>) => {
   const location = String(firstDefined(payload?.location, payload?.address, '')).trim()
   const landmark = String(firstDefined(payload?.nearbyLandmark, payload?.landmark, '') ?? '')
   const about = String(firstDefined(payload?.about, payload?.description, '') ?? '')
+  const latitude = toFiniteNumberOrUndefined(payload?.latitude)
+  const longitude = toFiniteNumberOrUndefined(payload?.longitude)
 
   // Normalize packages: backend uses `name` not `packageName`
   const rawPackages = Array.isArray(payload?.packages) ? payload.packages : []
@@ -391,7 +421,7 @@ export const createVendorService = async (payload: Record<string, any>) => {
 
   const requestBody: Record<string, any> = {
     category,
-    basicInfo: { name, location, landmark, about },
+    basicInfo: { name, location, landmark, about, latitude, longitude },
     packages: normalizedPackages,
   }
 
@@ -533,12 +563,19 @@ export const deleteServiceImage = async (serviceId: string | number, imageUrl: s
 export const updateVendorService = async (serviceId: string | number, payload: Record<string, any>) => {
   const body: Record<string, any> = {}
 
-  if (payload.name || payload.location || payload.landmark || payload.about) {
+  const name = payload.name || payload.placeName;
+  const location = payload.location || payload.address;
+  const about = payload.about || payload.description;
+  const landmark = payload.landmark || payload.nearbyLandmark || payload.landmark;
+
+  if (name || location || landmark || about || payload.latitude !== undefined) {
     body.basicInfo = {
-      ...(payload.name ? { name: payload.name } : {}),
-      ...(payload.location ? { location: payload.location } : {}),
-      ...(payload.landmark ? { landmark: payload.landmark } : {}),
-      ...(payload.about ? { about: payload.about } : {}),
+      ...(name ? { name } : {}),
+      ...(location ? { location } : {}),
+      ...(landmark ? { landmark } : {}),
+      ...(about ? { about } : {}),
+      ...(payload.latitude !== undefined ? { latitude: toFiniteNumberOrUndefined(payload.latitude) } : {}),
+      ...(payload.longitude !== undefined ? { longitude: toFiniteNumberOrUndefined(payload.longitude) } : {}),
     }
   }
 

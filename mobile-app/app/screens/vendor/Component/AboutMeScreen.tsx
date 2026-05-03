@@ -8,27 +8,33 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, Save } from 'lucide-react-native';
 import { Colors } from '@/app/_constants/theme';
 import { useUser } from '@/app/_context/UserContext';
+import { updateUserProfile } from '@/app/_utils/authApi';
+import LocationPicker from '@/app/_components/LocationPicker';
 
 export default function AboutMeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user } = useUser();
+  const { user, setUser } = useUser();
 
   // Initialize with user data from context, fallback to empty values
   const [businessName, setBusinessName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
+  const [latitude, setLatitude] = useState<number | undefined>(undefined);
+  const [longitude, setLongitude] = useState<number | undefined>(undefined);
   const [about, setAbout] = useState('');
   const [workingHours, setWorkingHours] = useState('');
   const [website, setWebsite] = useState('');
   const [experience, setExperience] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -41,10 +47,12 @@ export default function AboutMeScreen() {
       if (user.workingHours) setWorkingHours(user.workingHours)
       if (user.website) setWebsite(user.website)
       if (user.experience) setExperience(user.experience)
+      if (user.latitude) setLatitude(user.latitude)
+      if (user.longitude) setLongitude(user.longitude)
     }
   }, [user])
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Validation
     if (!businessName.trim()) {
       Alert.alert('Error', 'Please enter your business name');
@@ -64,21 +72,35 @@ export default function AboutMeScreen() {
     }
 
     const profileData = {
-      businessName,
-      phoneNumber,
+      name: businessName, // Sync with name in backend
+      phone: phoneNumber,
       email,
       address,
       about,
       workingHours,
       website,
       experience,
+      latitude,
+      longitude,
     };
 
-    console.log('Profile Data:', profileData);
-    Alert.alert('Success', 'Profile updated successfully!', [
-      { text: 'OK', onPress: () => router.back() }
-    ]);
-    // In real app, save to backend
+    setIsSaving(true);
+    try {
+      const updatedUser = await updateUserProfile(profileData);
+      
+      // Update local context
+      if (setUser) {
+        setUser(updatedUser?.data || updatedUser);
+      }
+
+      Alert.alert('Success', 'Profile updated successfully!', [
+        { text: 'OK', onPress: () => router.back() }
+      ]);
+    } catch (error: any) {
+      Alert.alert('Update Failed', error?.message || 'Could not save profile changes.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -173,18 +195,18 @@ export default function AboutMeScreen() {
           {/* Address */}
           <View className="mb-5">
             <Text className="text-sm font-semibold mb-2" style={{ color: Colors.textPrimary }}>
-              Address
+              Business Location (Map)
             </Text>
-            <TextInput
-              value={address}
-              onChangeText={setAddress}
-              placeholder="Your business address"
-              placeholderTextColor="#9CA3AF"
-              className="bg-white rounded-xl px-4 py-4 text-base"
-              style={{
-                borderWidth: 1,
-                borderColor: '#E5E7EB',
-                color: Colors.textPrimary,
+            <LocationPicker 
+              initialLocation={{
+                address: address,
+                latitude: latitude,
+                longitude: longitude
+              }}
+              onLocationSelect={(loc) => {
+                setAddress(loc.address);
+                setLatitude(loc.latitude);
+                setLongitude(loc.longitude);
               }}
             />
           </View>
@@ -288,14 +310,21 @@ export default function AboutMeScreen() {
         <View className="px-5 pb-5 pt-3 bg-white border-t border-gray-100">
           <TouchableOpacity
             onPress={handleSave}
+            disabled={isSaving}
             className="rounded-2xl py-4 items-center justify-center flex-row"
-            style={{ backgroundColor: Colors.vendor }}
+            style={{ backgroundColor: isSaving ? '#9CA3AF' : Colors.vendor }}
             activeOpacity={0.8}
           >
-            <Save size={20} color="#FFFFFF" />
-            <Text className="text-white text-base font-bold ml-2">
-              Save Changes
-            </Text>
+            {isSaving ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <>
+                <Save size={20} color="#FFFFFF" />
+                <Text className="text-white text-base font-bold ml-2">
+                  Save Changes
+                </Text>
+              </>
+            )}
           </TouchableOpacity>
         </View>
       </View>

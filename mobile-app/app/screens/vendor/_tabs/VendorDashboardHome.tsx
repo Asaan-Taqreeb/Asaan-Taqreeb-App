@@ -68,7 +68,7 @@ export default function VendorDashboardHome() {
     return { totalOrders, acceptedOrders, rejectedOrders, pendingOrders, totalRevenue }
   }, [orders])
 
-  const recentOrders = React.useMemo(() => sortedOrders.slice(0, 3), [sortedOrders])
+  const recentOrders = React.useMemo(() => sortedOrders.filter(order => order.status === 'pending').slice(0, 3), [sortedOrders])
 
   const StatCard = ({ icon: Icon, title, value, color, bgColor }: {
     icon: any;
@@ -189,7 +189,7 @@ export default function VendorDashboardHome() {
         <View className="px-5 mt-8">
           <View className="flex-row justify-between items-center mb-4">
             <Text className="text-lg font-bold" style={{ color: Colors.textPrimary }}>
-              Recent Orders
+              Pending Bookings
             </Text>
             <TouchableOpacity
               className="flex-row items-center"
@@ -210,7 +210,7 @@ export default function VendorDashboardHome() {
             </View>
           ) : recentOrders.length === 0 ? (
             <View className="bg-white rounded-2xl p-10 items-center justify-center" style={[Shadows.small, {borderWidth: 1, borderColor: Colors.border, borderStyle: 'dashed'}]}>
-              <Text className="text-sm font-medium" style={{color: Colors.textTertiary}}>No orders yet</Text>
+              <Text className="text-sm font-medium" style={{color: Colors.textTertiary}}>No pending bookings</Text>
             </View>
           ) : (
             recentOrders.map((order) => (

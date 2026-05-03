@@ -352,15 +352,15 @@ export default function BookingScreen() {
                   <View className='rounded-2xl p-4 mb-6' style={{backgroundColor: Colors.lightGray, borderWidth: 1, borderColor: Colors.border}}>
                     <Text className='text-[10px] font-bold mb-2 tracking-widest' style={{color: Colors.textSecondary}}>SUMMARY</Text>
                     <Text className='text-base font-bold mb-1' style={{color: Colors.textPrimary}}>
-                      {selectedBooking.vendorName}
+                      {selectedBooking?.vendorName || 'Vendor'}
                     </Text>
                     <Text className='text-xs font-semibold' style={{color: Colors.textSecondary}}>
-                      {selectedBooking.packageName}
+                      {selectedBooking?.packageName}
                     </Text>
                     <View className='flex-row justify-between items-center mt-4 pt-3' style={{borderTopWidth: 1, borderTopColor: Colors.border, borderStyle: 'dashed'}}>
                       <Text className='text-sm font-bold' style={{color: Colors.textPrimary}}>Advance Due</Text>
                       <Text className='text-xl font-bold' style={{color: Colors.success}}>
-                        PKR {selectedBooking.advancePayment.toLocaleString()}
+                        PKR {selectedBooking?.advancePayment?.toLocaleString()}
                       </Text>
                     </View>
                   </View>

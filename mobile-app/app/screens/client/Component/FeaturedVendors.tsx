@@ -3,7 +3,7 @@ import { Star, MapPin, Users } from "lucide-react-native";
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Colors, Shadows, Spacing } from "@/app/_constants/theme";
-import { getAllServices, ServiceListItem } from '@/app/_utils/servicesApi'
+import { getAllServices, ServiceListItem, getConciseAddress } from '@/app/_utils/servicesApi'
 import { getCategoryColor } from '@/app/_constants/theme'
 
 export default function FeaturedVendors() {
@@ -99,7 +99,7 @@ export default function FeaturedVendors() {
                       
                       <View className="flex-row items-center mb-1.5">
                         <MapPin size={12} color={Colors.textTertiary} />
-                        <Text className="text-xs font-bold ml-1 flex-1" style={{color: Colors.textSecondary}} numberOfLines={1}>{item.location}</Text>
+                        <Text className="text-xs font-bold ml-1 flex-1" style={{color: Colors.textSecondary}} numberOfLines={1}>{getConciseAddress(item.location)}</Text>
                       </View>
 
                       {item.category === "banquet" && (

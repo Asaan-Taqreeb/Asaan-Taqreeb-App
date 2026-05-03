@@ -187,26 +187,14 @@ export default function VendorProfileScreen() {
           />
           <ProfileOption
             icon={User}
-            title="Edit Profile"
-            subtitle="Update your vendor info"
-            onPress={() => router.push('/screens/vendor/Component/AboutMeScreen')}
-          />
-          <ProfileOption
-            icon={User}
-            title="About My Business"
-            subtitle="Describe your services"
+            title="Business Profile"
+            subtitle="Update your business and contact info"
             onPress={() => router.push('/screens/vendor/Component/AboutMeScreen')}
           />
           <ProfileOption
             icon={Settings}
-            title="Dashboard Settings"
-            subtitle="App and privacy settings"
-            onPress={() => router.push('/screens/vendor/Component/VendorSettingsScreen')}
-          />
-          <ProfileOption
-            icon={Bell}
-            title="Notifications"
-            subtitle="Alerts and updates"
+            title="Settings & Privacy"
+            subtitle="App alerts, privacy, and theme"
             onPress={() => router.push('/screens/vendor/Component/VendorSettingsScreen')}
           />
         </View>

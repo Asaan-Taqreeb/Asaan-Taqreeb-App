@@ -1,14 +1,22 @@
 import { router, useLocalSearchParams } from 'expo-router'
 import { CircleAlert, Dot, MapPin, Star, Circle, ChevronLeft, ChevronRight, X, ArrowLeft, Plus, MessageCircle } from 'lucide-react-native'
-import { useState } from 'react'
-import { Dimensions, ScrollView, Modal, TextInput , Image, Pressable, StyleSheet, Text, View, KeyboardAvoidingView, Platform } from 'react-native'
+import { useState, useEffect } from 'react'
+import { Dimensions, ScrollView, Modal, TextInput , Image, Pressable, StyleSheet, Text, View, KeyboardAvoidingView, Platform, Linking } from 'react-native'
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps'
+import * as ExpoLocation from 'expo-location'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors, getCategoryColor, Shadows, Spacing } from '@/app/_constants/theme'
+import { getConciseAddress } from '@/app/_utils/servicesApi'
 
 export default function DetailScreenPage() {
     const insets = useSafeAreaInsets()
     const params = useLocalSearchParams()
+    
+    // ... rest of state ...
     const [expandedPackages, setExpandedPackages] = useState<{[key: number]: boolean}>({})
+    // ...
+    
+
     const [selectedGuestCount, setSelectedGuestCount] = useState<number | null>(null)
     const [guestCountInput, setGuestCountInput] = useState('')
     const [guestCountError, setGuestCountError] = useState('')
@@ -26,7 +34,7 @@ export default function DetailScreenPage() {
         }))
     }
 
-    let vendor = null
+    let vendor: any = null
     if (params.vendor) {
         try {
             vendor = JSON.parse(params.vendor as string)
@@ -34,6 +42,37 @@ export default function DetailScreenPage() {
             vendor = null
         }
     }
+
+    const [fallbackCoords, setFallbackCoords] = useState<{latitude: number, longitude: number} | null>(null)
+
+    const categoryColor = getCategoryColor(params.category as string || vendor?.category)
+
+    useEffect(() => {
+        const tryGeocode = async () => {
+            if (!vendor) return;
+            const hasCoords = (typeof vendor.latitude === 'number' || typeof vendor.latitude === 'string') && 
+                             (typeof vendor.longitude === 'number' || typeof vendor.longitude === 'string');
+            
+            if (!hasCoords && vendor.location && vendor.location !== 'Location not set') {
+                try {
+                    const results = await ExpoLocation.geocodeAsync(vendor.location);
+                    if (results && results.length > 0) {
+                        setFallbackCoords({
+                            latitude: results[0].latitude,
+                            longitude: results[0].longitude
+                        });
+                    }
+                } catch (error) {
+                    console.log("Geocoding fallback failed:", error);
+                }
+            }
+        };
+        tryGeocode();
+    }, [vendor?.location, vendor?.latitude, vendor?.longitude]);
+
+    const finalLat = Number(vendor?.latitude || vendor?.basicInfo?.latitude || fallbackCoords?.latitude);
+    const finalLng = Number(vendor?.longitude || vendor?.basicInfo?.longitude || fallbackCoords?.longitude);
+    const hasAnyCoords = !isNaN(finalLat) && !isNaN(finalLng) && finalLat !== 0;
 
     const toPositiveNumber = (value: any) => {
         const parsed = Number(value)
@@ -141,7 +180,6 @@ export default function DetailScreenPage() {
 
     const imageUrls = vendor?.images?.length ? vendor.images : []
     const safeImageIndex = imageUrls.length ? Math.min(currentImageIndex, imageUrls.length - 1) : 0
-    const categoryColor = vendor ? getCategoryColor(vendor.category) : Colors.primary
 
     const handlePrevImage = () => {
         if (imageUrls.length) {
@@ -241,7 +279,7 @@ export default function DetailScreenPage() {
                         <Text className='text-2xl font-extrabold mb-2 leading-tight' style={{color: Colors.textPrimary}}>{vendor.name}</Text>
                         <View className='flex-row items-start gap-2 mt-1'>
                             <MapPin size={16} color={Colors.textSecondary} className='mt-1 flex-shrink-0' />
-                            <Text className='text-sm font-medium flex-1' style={{color: Colors.textSecondary}} numberOfLines={2}>{vendor.location}</Text>
+                            <Text className='text-sm font-medium flex-1' style={{color: Colors.textSecondary}} numberOfLines={2}>{getConciseAddress(vendor.location)}</Text>
                         </View>
                     </View>
                     <View className='items-end'>
@@ -268,6 +306,76 @@ export default function DetailScreenPage() {
                 <View className='px-5 mb-5'>
                     <Text className='text-xl font-extrabold mb-3' style={{color: Colors.textPrimary}}>About</Text>
                     <Text className='text-sm leading-relaxed' style={{color: Colors.textSecondary}}>{vendor.about}</Text>
+                </View>
+
+                {/* Location Map Section */}
+                <View className='px-5 mb-8'>
+                    <View className='flex-row justify-between items-center mb-4'>
+                        <Text className='text-xl font-extrabold' style={{color: Colors.textPrimary}}>Location</Text>
+                        {hasAnyCoords && (
+                            <Pressable 
+                                className='flex-row items-center gap-1 active:opacity-70'
+                                onPress={() => {
+                                    const label = encodeURIComponent(vendor?.name || 'Vendor');
+                                    const url = Platform.select({
+                                        ios: `maps:0,0?q=${label}@${finalLat},${finalLng}`,
+                                        android: `geo:0,0?q=${finalLat},${finalLng}(${label})`,
+                                        default: `https://www.google.com/maps/search/?api=1&query=${finalLat},${finalLng}`
+                                    });
+                                    
+                                    Linking.canOpenURL(url).then(supported => {
+                                        if (supported) {
+                                            Linking.openURL(url);
+                                        } else {
+                                            // Fallback to web browser if map app isn't available
+                                            Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${finalLat},${finalLng}`);
+                                        }
+                                    });
+                                }}
+                            >
+                                <Text className='text-sm font-bold' style={{color: categoryColor}}>Open in Maps</Text>
+                                <ChevronRight size={16} color={categoryColor} />
+                            </Pressable>
+                        )}
+                    </View>
+                    
+                    <View className='rounded-3xl overflow-hidden border-2' style={{borderColor: Colors.border, height: 200}}>
+                        {hasAnyCoords ? (
+                            <MapView
+                                provider={PROVIDER_GOOGLE}
+                                style={{flex: 1}}
+                                initialRegion={{
+                                    latitude: finalLat,
+                                    longitude: finalLng,
+                                    latitudeDelta: 0.01,
+                                    longitudeDelta: 0.01,
+                                }}
+                                scrollEnabled={false}
+                                zoomEnabled={false}
+                                pitchEnabled={false}
+                                rotateEnabled={false}
+                            >
+                                <Marker 
+                                    coordinate={{
+                                        latitude: finalLat,
+                                        longitude: finalLng
+                                    }}
+                                >
+                                    <View style={{backgroundColor: Colors.white, padding: 5, borderRadius: 20, borderWidth: 2, borderColor: categoryColor, shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.2, shadowRadius: 3, elevation: 4}}>
+                                        <MapPin size={24} color={categoryColor} fill={`${categoryColor}40`} />
+                                    </View>
+                                </Marker>
+                            </MapView>
+                        ) : (
+                            <View className='flex-1 items-center justify-center bg-gray-50'>
+                                <MapPin size={40} color={Colors.borderDark} />
+                                <Text className='text-sm font-bold mt-2' style={{color: Colors.textTertiary}}>Location not available on map</Text>
+                            </View>
+                        )}
+                    </View>
+                    <Text className='text-sm mt-3 leading-relaxed' style={{color: Colors.textSecondary}}>
+                        {vendor.location}
+                    </Text>
                 </View>
 
                 {/* Banquet Specific Info */}

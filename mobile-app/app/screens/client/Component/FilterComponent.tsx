@@ -16,9 +16,10 @@ type FilterComponentProps = {
     values: FilterValues
     onApply: (values: FilterValues) => void
     onReset: () => void
+    locations?: string[]
 }
 
-export default function FilterComponent({ values, onApply, onReset }: FilterComponentProps) {
+export default function FilterComponent({ values, onApply, onReset, locations = [] }: FilterComponentProps) {
   const [isFilterVisible, setFilterVisible] = useState(false)
     const [minPrice, setMinPrice] = useState(values.minPrice)
     const [maxPrice, setMaxPrice] = useState(values.maxPrice)
@@ -26,7 +27,6 @@ export default function FilterComponent({ values, onApply, onReset }: FilterComp
     const [minRating, setMinRating] = useState(values.minRating)
     const [minGuests, setMinGuests] = useState(values.minGuests)
     const [maxGuests, setMaxGuests] = useState(values.maxGuests)
-  const placesArr = ["Garden", "Nazimabad", "Shahrah e Faisal", "Gulshan", "Clifton", "DHA"]
   const ratingArr = [3, 3.5, 4, 4.5, 5]
 
   const toggleModal = () => {
@@ -96,7 +96,7 @@ export default function FilterComponent({ values, onApply, onReset }: FilterComp
                         <View className='mt-6'>
                             <Text className='text-lg font-bold mb-3' style={{color: Colors.textPrimary}}>Location</Text>
                             <View className='flex-row flex-wrap gap-3'>
-                                {placesArr.map((item, index) => {
+                                {locations.map((item, index) => {
                                     const isSelected = selectedLocation === item
                                     return (
                                         <Pressable
