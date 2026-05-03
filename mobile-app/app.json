@@ -1,13 +1,13 @@
 {
   "expo": {
     "name": "Asaan Taqreeb",
-    "slug": "AsaanTaqreeb",
+    "slug": "mobileapp",
     "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/Logo.png",
     "scheme": "AsaanTaqreeb",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
@@ -53,12 +53,11 @@
           "locationAlwaysAndWhenInUsePermission": "Allow location mobileapp to use your location"
         }
       ],
-      "expo-secure-store",
-      "expo-web-browser"
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
-      "reactCompiler": true
+      "reactCompiler": false
     },
     "extra": {
       "router": {},

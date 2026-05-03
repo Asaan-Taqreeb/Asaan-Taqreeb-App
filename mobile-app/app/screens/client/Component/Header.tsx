@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useState } from 'react'
 import useLocation from './hooks/useLocation'
-import Icon from "react-native-vector-icons/FontAwesome6"
+import Icon from "@expo/vector-icons/FontAwesome6"
 import SearchBar from './SearchBar'
 import { router } from 'expo-router'
 import { Colors } from '@/app/_constants/theme'

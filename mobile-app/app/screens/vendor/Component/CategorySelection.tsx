@@ -100,7 +100,7 @@ export default function CategorySelection() {
 
         <View className="mt-8 p-6 bg-gray-50 rounded-3xl mb-10 border border-gray-100">
           <Text className="text-xs font-bold leading-5 text-center text-gray-400 italic">
-            "Your service will be listed under the selected category to help clients find you easily."
+            &quot;Your service will be listed under the selected category to help clients find you easily.&quot;
           </Text>
         </View>
       </ScrollView>

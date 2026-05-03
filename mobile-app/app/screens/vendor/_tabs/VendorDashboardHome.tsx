@@ -256,7 +256,7 @@ export default function VendorDashboardHome() {
                   </Text>
                 </View>
                 <Text className="text-sm font-medium italic" style={{ color: Colors.textSecondary }}>
-                  "{review.comment || 'No comment provided.'}"
+                  &quot;{review.comment || 'No comment provided.'}&quot;
                 </Text>
               </View>
             ))}
