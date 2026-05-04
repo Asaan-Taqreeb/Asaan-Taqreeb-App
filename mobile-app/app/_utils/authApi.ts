@@ -191,7 +191,7 @@ export const logoutUser = async () => {
   }
 }
 
-export const updateUserProfile = async (params: any) => {
+export const updateMe = async (params: any) => {
   const response = await apiFetchJson<any>(
     AUTH_ENDPOINTS.me,
     {
@@ -206,6 +206,8 @@ export const updateUserProfile = async (params: any) => {
   )
   return response
 }
+
+export const updateUserProfile = updateMe
 
 export const deleteUserAccount = async () => {
   try {
