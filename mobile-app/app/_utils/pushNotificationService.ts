@@ -30,12 +30,22 @@ export async function registerForPushNotificationsAsync() {
   if (Device.isDevice) {
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
+    
+    console.log('Current notification permission status:', existingStatus);
+    
     if (existingStatus !== 'granted') {
+      console.log('Requesting notification permissions...');
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
+      console.log('New notification permission status:', finalStatus);
     }
+    
     if (finalStatus !== 'granted') {
-      console.log('Failed to get push token for push notification!');
+      console.warn('Failed to get push token: Permission not granted');
+      // If we are on Android 13+, we might want to alert the user
+      if (Platform.OS === 'android' && Platform.Version >= 33) {
+          console.log('Android 13+ detected, permission is mandatory for notifications');
+      }
       return;
     }
     

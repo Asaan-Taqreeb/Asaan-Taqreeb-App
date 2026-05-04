@@ -135,7 +135,11 @@ export default function VendorDashboardHome() {
                 Total Revenue
               </Text>
             </View>
-            <Text className="text-white text-4xl font-black mt-3">
+            <Text 
+              className="text-white text-4xl font-black mt-3"
+              adjustsFontSizeToFit
+              numberOfLines={1}
+            >
               PKR {stats.totalRevenue.toLocaleString()}
             </Text>
             <View className="mt-5 pt-5 flex-row justify-between items-center" style={{borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', borderStyle: 'solid'}}>

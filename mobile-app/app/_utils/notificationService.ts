@@ -87,11 +87,45 @@ export const clearAllNotifications = async (): Promise<boolean> => {
     await apiFetchJson<any>(
       NOTIFICATION_ENDPOINTS.markAllAsRead,
       { method: 'PUT', auth: true },
-      'Failed to clear notifications'
+      'Failed to mark all as read'
     );
     return true;
   } catch (error) {
-    console.warn('Clear notifications failed');
+    console.warn('Mark all as read failed');
+    return false;
+  }
+};
+
+/**
+ * Delete all notifications
+ */
+export const deleteAllNotifications = async (): Promise<boolean> => {
+  try {
+    await apiFetchJson<any>(
+      NOTIFICATION_ENDPOINTS.deleteAll,
+      { method: 'DELETE', auth: true },
+      'Failed to delete all notifications'
+    );
+    return true;
+  } catch (error) {
+    console.warn('Delete all notifications failed');
+    return false;
+  }
+};
+
+/**
+ * Delete a specific notification
+ */
+export const deleteNotification = async (notificationId: string): Promise<boolean> => {
+  try {
+    await apiFetchJson<any>(
+      NOTIFICATION_ENDPOINTS.delete(notificationId),
+      { method: 'DELETE', auth: true },
+      'Failed to delete notification'
+    );
+    return true;
+  } catch (error) {
+    console.warn('Delete notification failed');
     return false;
   }
 };

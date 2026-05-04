@@ -459,6 +459,65 @@ export default function BookingScreen() {
                 </View>
             </View>
 
+            {/* Date Selection */}
+            <View className='px-5 mb-6'>
+                <Text className='text-xl font-extrabold mb-4' style={{color: Colors.textPrimary}}>Select Date</Text>
+                {isLoadingAvailability && (
+                    <Text className='text-xs font-semibold mb-2' style={{color: Colors.textSecondary}}>Loading vendor availability...</Text>
+                )}
+                <View className='rounded-2xl overflow-hidden' style={[{backgroundColor: Colors.lightGray}, Shadows.medium]}>
+                    <Calendar 
+                        onDayPress={day => {
+                            const state = dayStatusMap[day.dateString]
+
+                            if (state?.isFullDayBlocked) {
+                                Alert.alert('Date Not Available', 'Vendor has blocked this date.')
+                                return
+                            }
+
+                            setSelectedDate(day.dateString)
+                        }}
+                        markingType={'custom'}
+                        markedDates={markedDates}
+                        minDate={minDate}
+                        theme={{
+                            todayTextColor: categoryColor,
+                            arrowColor: Colors.textPrimary,
+                            selectedDayBackgroundColor: categoryColor,
+                            selectedDayTextColor: Colors.white,
+                            textMonthFontSize: 18,
+                            textMonthFontWeight: '800',
+                            monthTextColor: Colors.textPrimary,
+                            textDayFontWeight: '500',
+                            textDayStyle: {color: Colors.textPrimary}
+                        }}
+                        style={{
+                            margin: 12,
+                            borderRadius: 16,
+                            ...Shadows.medium
+                        }}
+                    />
+                    <View className='flex-row justify-center items-center gap-4 pb-4'>
+                        <View className='flex-row items-center gap-1'>
+                            <Square color={Colors.borderDark} fill={Colors.borderDark} size={12} />
+                            <Text className='text-xs font-medium' style={{color: Colors.textSecondary}}>Past Dates</Text>
+                        </View>
+                        <View className='flex-row items-center gap-1'>
+                            <Square color={Colors.error} fill={Colors.error} size={12} />
+                            <Text className='text-xs font-medium' style={{color: Colors.textSecondary}}>Locked</Text>
+                        </View>
+                        <View className='flex-row items-center gap-1'>
+                            <Square color={Colors.vendor} fill={Colors.vendor} size={12} />
+                            <Text className='text-xs font-medium' style={{color: Colors.textSecondary}}>Booked</Text>
+                        </View>
+                        <View className='flex-row items-center gap-1'>
+                            <Square color={categoryColor} fill={categoryColor} size={12} />
+                            <Text className='text-xs font-medium' style={{color: Colors.textSecondary}}>Selected</Text>
+                        </View>
+                    </View>
+                </View>
+            </View>
+
             {/* Time Slot Selection */}
             <View className='px-5 mb-6'>
                 <Text className='text-xl font-extrabold mb-4' style={{color: Colors.textPrimary}}>Time Slot</Text>
@@ -601,69 +660,6 @@ export default function BookingScreen() {
                         </View>
                     </View>
                 )}
-            </View>
-
-            {/* Date Selection */}
-            <View className='px-5 mb-6'>
-                <Text className='text-xl font-extrabold mb-4' style={{color: Colors.textPrimary}}>Select Date</Text>
-                <Text className='text-xs font-semibold mb-2' style={{color: Colors.textSecondary}}>
-                    Choose time first to see which dates are available for that time.
-                </Text>
-                {isLoadingAvailability && (
-                    <Text className='text-xs font-semibold mb-2' style={{color: Colors.textSecondary}}>Loading vendor availability...</Text>
-                )}
-                <View className='rounded-2xl overflow-hidden' style={[{backgroundColor: Colors.lightGray}, Shadows.medium]}>
-                    <Calendar 
-                        onDayPress={day => {
-                            const state = dayStatusMap[day.dateString]
-
-                            if (state?.isFullDayBlocked) {
-                                Alert.alert('Date Not Available', 'Vendor has blocked this date.')
-                                return
-                            }
-
-                            setSelectedDate(day.dateString)
-                            setSelectedSlot(null)
-                        }}
-                        markingType={'custom'}
-                        markedDates={markedDates}
-                        minDate={minDate}
-                        theme={{
-                            todayTextColor: categoryColor,
-                            arrowColor: Colors.textPrimary,
-                            selectedDayBackgroundColor: categoryColor,
-                            selectedDayTextColor: Colors.white,
-                            textMonthFontSize: 18,
-                            textMonthFontWeight: '800',
-                            monthTextColor: Colors.textPrimary,
-                            textDayFontWeight: '500',
-                            textDayStyle: {color: Colors.textPrimary}
-                        }}
-                        style={{
-                            margin: 12,
-                            borderRadius: 16,
-                            ...Shadows.medium
-                        }}
-                    />
-                    <View className='flex-row justify-center items-center gap-4 pb-4'>
-                        <View className='flex-row items-center gap-1'>
-                            <Square color={Colors.borderDark} fill={Colors.borderDark} size={12} />
-                            <Text className='text-xs font-medium' style={{color: Colors.textSecondary}}>Past Dates</Text>
-                        </View>
-                        <View className='flex-row items-center gap-1'>
-                            <Square color={Colors.error} fill={Colors.error} size={12} />
-                            <Text className='text-xs font-medium' style={{color: Colors.textSecondary}}>Locked</Text>
-                        </View>
-                        <View className='flex-row items-center gap-1'>
-                            <Square color={Colors.vendor} fill={Colors.vendor} size={12} />
-                            <Text className='text-xs font-medium' style={{color: Colors.textSecondary}}>Booked</Text>
-                        </View>
-                        <View className='flex-row items-center gap-1'>
-                            <Square color={categoryColor} fill={categoryColor} size={12} />
-                            <Text className='text-xs font-medium' style={{color: Colors.textSecondary}}>Selected</Text>
-                        </View>
-                    </View>
-                </View>
             </View>
 
             {/* Location Input - Only for Catering & Photographer */}

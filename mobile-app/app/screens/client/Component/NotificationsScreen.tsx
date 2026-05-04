@@ -1,10 +1,10 @@
 import { router } from 'expo-router'
-import { ArrowLeft, Bell, CheckCircle } from 'lucide-react-native'
+import { ArrowLeft, Bell, CheckCircle, Trash2 } from 'lucide-react-native'
 import { View, Text, StyleSheet, Pressable, ScrollView, RefreshControl } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors } from '@/app/_constants/theme'
 import { useNotifications } from '@/app/_context/NotificationContext'
-import { markNotificationAsRead, clearAllNotifications } from '@/app/_utils/notificationService'
+import { markNotificationAsRead, clearAllNotifications, deleteNotification, deleteAllNotifications } from '@/app/_utils/notificationService'
 
 export default function NotificationsScreen() {
     const insets = useSafeAreaInsets()
@@ -15,8 +15,18 @@ export default function NotificationsScreen() {
         refresh()
     }
 
-    const handleClearAll = async () => {
+    const handleMarkAllRead = async () => {
         await clearAllNotifications()
+        refresh()
+    }
+
+    const handleClearAll = async () => {
+        await deleteAllNotifications()
+        refresh()
+    }
+
+    const handleDelete = async (id: string) => {
+        await deleteNotification(id)
         refresh()
     }
 
@@ -35,8 +45,11 @@ export default function NotificationsScreen() {
                 </View>
                 {notifications.length > 0 && (
                     <View className="flex-row gap-4">
+                        <Pressable onPress={handleMarkAllRead}>
+                            <Text className='text-xs font-bold' style={{color: Colors.primary}}>Mark Read</Text>
+                        </Pressable>
                         <Pressable onPress={handleClearAll}>
-                            <Text className='text-sm font-bold' style={{color: Colors.primary}}>Mark All Read</Text>
+                            <Text className='text-xs font-bold' style={{color: Colors.error}}>Clear All</Text>
                         </Pressable>
                     </View>
                 )}
@@ -109,6 +122,15 @@ export default function NotificationsScreen() {
                                 {!notification.isRead && (
                                     <View className='w-2 h-2 rounded-full mt-2' style={{backgroundColor: Colors.primary}} />
                                 )}
+                                <Pressable 
+                                    onPress={(e) => {
+                                        e.stopPropagation();
+                                        handleDelete(notification.id);
+                                    }}
+                                    className="p-2 -mr-2"
+                                >
+                                    <Trash2 size={16} color={Colors.error} opacity={0.6} />
+                                </Pressable>
                             </Pressable>
                         ))}
                     </View>
