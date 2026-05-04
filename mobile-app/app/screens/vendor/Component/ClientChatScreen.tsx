@@ -19,10 +19,10 @@ export default function ClientChatScreen() {
     // Params will include the client's info
     const clientId = params.clientId as string
     const clientName = params.clientName as string || "Client"
-    const chatId = params.chatId as string
-
     const { socket } = useSocket()
     const { user } = useUser()
+
+    const chatId = (params.chatId as string) || (user?.id && clientId ? `chat_${clientId}_${user.id}` : '')
 
     const loadChatHistory = useCallback(async () => {
         if (!chatId) return

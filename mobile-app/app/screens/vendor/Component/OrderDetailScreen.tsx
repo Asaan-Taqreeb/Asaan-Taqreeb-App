@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  TextInput,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,10 +24,14 @@ import {
 } from 'lucide-react-native';
 import { Colors, Shadows } from '@/app/_constants/theme';
 import { updateBookingStatus } from '@/app/_utils/bookingsApi';
+import { useUser } from '@/app/_context/UserContext';
+import { useNotifications } from '@/app/_context/NotificationContext';
 
 export default function OrderDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user } = useUser();
+  const { refresh: refreshNotifications } = useNotifications();
   const { order: orderParam } = useLocalSearchParams();
   const parsedOrder = typeof orderParam === 'string' ? (() => {
     try {
@@ -38,6 +43,8 @@ export default function OrderDetailScreen() {
   const order = parsedOrder;
   const [orderStatus, setOrderStatus] = useState(order?.status || 'pending');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [showRejectInput, setShowRejectInput] = useState(false);
 
   if (!order) {
     return (
@@ -74,9 +81,14 @@ export default function OrderDetailScreen() {
   };
 
   const handleReject = () => {
+    if (!showRejectInput) {
+      setShowRejectInput(true);
+      return;
+    }
+
     Alert.alert(
       'Reject Order',
-      'Are you sure you want to reject this order?',
+      'Are you sure you want to reject this order with the provided reason?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -85,9 +97,11 @@ export default function OrderDetailScreen() {
           onPress: async () => {
             try {
               setIsUpdating(true)
-              await updateBookingStatus(order.id, 'rejected')
+              await updateBookingStatus(order.id, 'rejected', rejectionReason)
               setOrderStatus('rejected')
+              setShowRejectInput(false)
               Alert.alert('Order Rejected', 'The customer will be notified.')
+              refreshNotifications()
             } catch (error: any) {
               Alert.alert('Error', error?.message || 'Failed to reject order')
             } finally {
@@ -100,9 +114,21 @@ export default function OrderDetailScreen() {
   };
 
   const handleChat = () => {
+    const clientId = order.clientId;
+    if (!clientId) {
+      Alert.alert('Error', 'Cannot open chat: Client ID is missing.');
+      return;
+    }
+
+    const chatId = `chat_${clientId}_${user?.id}`;
+
     router.push({
-      pathname: '/screens/vendor/_tabs/VendorMessagesScreen',
-      params: { customerId: order.customerName }
+      pathname: '/screens/vendor/Component/ClientChatScreen',
+      params: { 
+        clientId, 
+        clientName: order.customerName,
+        chatId
+      }
     });
   };
 
@@ -341,6 +367,29 @@ export default function OrderDetailScreen() {
           className="absolute bottom-0 left-0 right-0 bg-white px-5 border-t border-gray-200"
           style={[Shadows.medium, { paddingTop: 16, paddingBottom: Math.max(insets.bottom, 16) }]}
         >
+          {showRejectInput && (
+            <View className="mb-4">
+              <Text className="text-sm font-semibold mb-2" style={{ color: Colors.textPrimary }}>
+                Reason for Rejection
+              </Text>
+              <View className="bg-gray-50 rounded-xl p-3 border border-gray-200">
+                <TextInput
+                  placeholder="Enter reason here..."
+                  value={rejectionReason}
+                  onChangeText={setRejectionReason}
+                  multiline
+                  numberOfLines={3}
+                  style={{ textAlignVertical: 'top', height: 60 }}
+                />
+              </View>
+              <TouchableOpacity 
+                onPress={() => setShowRejectInput(false)}
+                className="mt-2 self-end"
+              >
+                <Text className="text-xs font-bold" style={{ color: Colors.textTertiary }}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          )}
           <View className="flex-row gap-3 mb-3">
             <TouchableOpacity
               onPress={handleReject}

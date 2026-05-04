@@ -3,9 +3,11 @@ import { Ionicons } from '@expo/vector-icons'
 import { View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors } from '@/app/_constants/theme'
+import { useNotifications } from '@/app/_context/NotificationContext'
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets()
+  const { unreadCount } = useNotifications()
 
   return (
     <Tabs
@@ -62,6 +64,7 @@ export default function TabLayout() {
         name="MessagesScreen"
         options={{
           title: 'Messages',
+          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
           tabBarIcon: ({ color, size, focused }) => (
             <View style={{ transform: [{ scale: focused ? 1.1 : 1 }] }}>
               <Ionicons name={focused ? "chatbubbles" : "chatbubbles-outline"} size={size} color={color} />

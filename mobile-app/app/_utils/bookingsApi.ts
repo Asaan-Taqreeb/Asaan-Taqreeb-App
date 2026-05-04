@@ -41,6 +41,7 @@ export type ClientBookingItem = {
 
 export type VendorOrderItem = {
   id: string
+  clientId: string
   customerName: string
   customerPhoto: string
   serviceType: string
@@ -242,6 +243,7 @@ export const getVendorBookings = async (): Promise<VendorOrderItem[]> => {
 
     return {
       id: String(firstDefined(item?.id, item?._id, index + 1)),
+      clientId: String(firstDefined(item?.client?._id, item?.client?.id, item?.user?._id, item?.user?.id, '')),
       customerName: String(firstDefined(item?.clientName, item?.client?.name, item?.user?.name, 'Client')),
       customerPhoto: String(firstDefined(item?.clientPhoto, item?.client?.avatar, 'https://i.pravatar.cc/150?img=12')),
       serviceType: String(firstDefined(item?.serviceType, item?.category, item?.service?.category, 'Service')),

@@ -3,9 +3,11 @@ import { Home, ShoppingBasket, MessageCircle, User } from 'lucide-react-native';
 import { Colors } from '@/app/_constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { View } from 'react-native';
+import { useNotifications } from '@/app/_context/NotificationContext';
 
 export default function VendorTabLayout() {
   const insets = useSafeAreaInsets();
+  const { unreadCount } = useNotifications();
 
   return (
     <Tabs
@@ -58,6 +60,7 @@ export default function VendorTabLayout() {
         name="VendorMessagesScreen"
         options={{
           title: 'Messages',
+          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
           tabBarIcon: ({ color, size, focused }) => (
             <View style={{ transform: [{ scale: focused ? 1.1 : 1 }] }}>
               <MessageCircle color={color} size={size} />
