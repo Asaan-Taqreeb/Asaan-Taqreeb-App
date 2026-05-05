@@ -87,7 +87,12 @@ export default function VendorDashboardHome() {
       >
         <Icon size={20} color={color} />
       </View>
-      <Text className="text-2xl font-bold mb-0.5" style={{ color: Colors.textPrimary }}>
+      <Text 
+        className="text-2xl font-bold mb-0.5" 
+        style={{ color: Colors.textPrimary }}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
         {value}
       </Text>
       <Text className="text-xs font-semibold" style={{ color: Colors.textSecondary }}>{title}</Text>
@@ -119,7 +124,7 @@ export default function VendorDashboardHome() {
         {/* Revenue Card */}
         <View className="px-5 mt-6">
           <View
-            className="rounded-[32px] p-7"
+            className="rounded-[32px] p-6"
             style={[
               {
                 backgroundColor: Colors.vendor,
@@ -135,13 +140,16 @@ export default function VendorDashboardHome() {
                 Total Revenue
               </Text>
             </View>
-            <Text 
-              className="text-white text-4xl font-black mt-3"
-              adjustsFontSizeToFit
-              numberOfLines={1}
-            >
-              PKR {stats.totalRevenue.toLocaleString()}
-            </Text>
+            <View className="flex-row items-baseline mt-3">
+              <Text className="text-white text-xl font-bold mr-1">PKR</Text>
+              <Text 
+                className="text-white text-3xl font-black flex-1"
+                adjustsFontSizeToFit
+                numberOfLines={1}
+              >
+                {stats.totalRevenue.toLocaleString()}
+              </Text>
+            </View>
             <View className="mt-5 pt-5 flex-row justify-between items-center" style={{borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', borderStyle: 'solid'}}>
               <Text className="text-white/70 text-xs font-bold">
                 {stats.acceptedOrders} Confirmed Bookings

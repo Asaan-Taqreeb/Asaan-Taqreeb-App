@@ -102,8 +102,13 @@ export default function OrderCard({ order, onPress }: OrderCardProps) {
             {order.guestCount} GUESTS
           </Text>
         </View>
-        <View className="flex-row items-center">
-          <Text className="text-sm font-bold" style={{ color: Colors.vendor }}>
+        <View className="flex-row items-center flex-1 justify-end">
+          <Text 
+            className="text-sm font-bold" 
+            style={{ color: Colors.vendor }}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+          >
             PKR {order.totalAmount.toLocaleString()}
           </Text>
         </View>

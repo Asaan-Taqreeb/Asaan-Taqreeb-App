@@ -18,10 +18,31 @@ export default function Index() {
     const routeAuthenticatedUser = async () => {
       if (!user?.role) return
 
+      // Handle email verification
+      if (!user.isEmailVerified) {
+        const verificationRoute = user.role === 'vendor' 
+          ? '/screens/vendor/VerificationScreen' 
+          : '/screens/client/Component/VerificationScreen'
+          
+        router.replace({
+          pathname: verificationRoute,
+          params: { email: user.email, role: user.role }
+        } as any)
+        return
+      }
+
+      // Handle identity verification (KYC)
+      if (user.verificationStatus === 'unverified' || user.verificationStatus === 'rejected') {
+        router.replace('/screens/auth/KycScreen')
+        return
+      }
+
       if (user.role === 'vendor') {
         router.replace('/screens/vendor/VendorHomeScreen')
         return
       }
+
+
 
       const identifier = String(user?.id || user?.email || '')
       const seenOnboarding = await hasSeenOnboarding(identifier)

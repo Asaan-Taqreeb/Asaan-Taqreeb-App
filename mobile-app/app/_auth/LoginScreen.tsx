@@ -93,6 +93,30 @@ const LoginScreen = ({
                 ...userInfo,
             }
             console.log('Setting user context with data:', userData)
+            
+            if (!userData.isEmailVerified) {
+                await clearAuthTokens()
+                const verificationRoute = authenticatedRole === 'vendor' 
+                    ? '/screens/vendor/VerificationScreen' 
+                    : '/screens/client/Component/VerificationScreen'
+
+                Alert.alert('Verification Required', 'Your email is not verified. Please verify your account.', [
+                    { 
+                        text: 'Verify Now', 
+                        onPress: () => router.push({
+                            pathname: verificationRoute,
+                            params: { 
+                                email: userData.email,
+                                role: authenticatedRole,
+                                loginRoute: authenticatedRole === 'vendor' ? '/screens/vendor/VendorLoginScreen' : '/screens/client/Component/LoginScreen'
+                            }
+                        } as any)
+                    },
+                    { text: 'Cancel', style: 'cancel' }
+                ])
+                return
+            }
+
             setUser(userData)
 
             if (onLoginSuccess) {

@@ -31,15 +31,18 @@ const SignupScreen = ({
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [confirmPassword, setConfirmPassword] = useState('')
+    const [phone, setPhone] = useState('')
     const [loading, setLoading] = useState(false)
+
     const [showPassword, setShowPassword] = useState(false)
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
     const handleSignup = async () => {
-        if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
+        if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim() || !phone.trim()) {
             Alert.alert('Error', 'Please fill in all fields')
             return
         }
+
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
         if (!emailRegex.test(email.trim())) {
@@ -65,13 +68,29 @@ const SignupScreen = ({
                 name: name.trim(),
                 email: email.trim().toLowerCase(),
                 password,
-                role: userRole
+                role: userRole,
+                phone: phone.trim()
             })
             
             console.log('Registration successful:', result)
-            Alert.alert('Success', 'Account created successfully! Please login.')
-            router.push(redirectLoginRoute as any)
+            Alert.alert('Success', 'Account created! Please verify your email.')
+            
+            const verificationRoute = userRole === 'vendor' 
+                ? '/screens/vendor/VerificationScreen' 
+                : '/screens/client/Component/VerificationScreen'
+
+            // Navigate to verification screen
+            router.push({
+                pathname: verificationRoute,
+                params: { 
+                    email: email.trim().toLowerCase(),
+                    role: userRole,
+                    loginRoute: redirectLoginRoute
+                }
+            } as any)
+
         } catch (error) {
+
             console.error('Signup error details:', error)
             const errorMessage = error instanceof Error ? error.message : 'Network error. Please check your connection.'
             Alert.alert('Registration Failed', errorMessage)
@@ -126,6 +145,19 @@ const SignupScreen = ({
                         keyboardType='email-address'
                         autoCapitalize='none'
                         autoCorrect={false}
+                        editable={!loading}
+                    />
+
+                    <TextInput
+                        placeholder='Phone Number (e.g. 03XXXXXXXXX)'
+                        style={styles.input}
+                        mode='outlined'
+                        outlineColor='#ddd'
+                        activeOutlineColor='#4F46E5'
+                        left={<TextInput.Icon icon="phone" />}
+                        value={phone}
+                        onChangeText={setPhone}
+                        keyboardType='phone-pad'
                         editable={!loading}
                     />
 

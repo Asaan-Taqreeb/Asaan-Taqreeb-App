@@ -12,7 +12,9 @@ type SignupParams = {
   email: string
   password: string
   role: 'client' | 'vendor'
+  phone?: string
 }
+
 
 type ForgotPasswordParams = {
   email: string
@@ -163,6 +165,41 @@ export const resetPassword = async (params: ResetPasswordParams) => {
   return response
 }
 
+export const verifyEmail = async (params: VerifyOtpParams) => {
+  const response = await apiFetchJson<any>(
+    AUTH_ENDPOINTS.verifyEmail,
+    {
+      method: 'POST',
+      auth: false,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    },
+    'Email verification failed.'
+  )
+
+  return response
+}
+
+export const resendVerificationOtp = async (params: ForgotPasswordParams) => {
+  const response = await apiFetchJson<any>(
+    AUTH_ENDPOINTS.resendVerificationOtp,
+    {
+      method: 'POST',
+      auth: false,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    },
+    'Failed to resend verification code.'
+  )
+
+  return response
+}
+
+
 export const getCurrentUser = async () => {
   const response = await apiFetchJson<any>(
     AUTH_ENDPOINTS.me,
@@ -208,6 +245,41 @@ export const updateMe = async (params: any) => {
 }
 
 export const updateUserProfile = updateMe
+
+export const submitKyc = async (params: {
+  cnic: string;
+  idFrontImage: string;
+  idBackImage: string;
+  selfieImage: string;
+  livenessConfidence: number;
+}) => {
+  const response = await apiFetchJson<any>(
+    AUTH_ENDPOINTS.identitySubmit || '/auth/identity/submit', // Fallback if not in constants yet
+    {
+      method: 'POST',
+      auth: true,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    },
+    'KYC submission failed.'
+  )
+  return response
+}
+
+export const getKycStatus = async () => {
+  const response = await apiFetchJson<any>(
+    AUTH_ENDPOINTS.identityStatus || '/auth/identity/status',
+    {
+      method: 'GET',
+      auth: true,
+    },
+    'Failed to fetch KYC status.'
+  )
+  return response
+}
+
 
 export const deleteUserAccount = async () => {
   try {

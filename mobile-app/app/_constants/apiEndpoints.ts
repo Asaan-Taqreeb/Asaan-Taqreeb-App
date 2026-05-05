@@ -14,6 +14,10 @@ export const AUTH_ENDPOINTS = {
   forgotPassword: withApiPrefix('/auth/forgot-password'),
   verifyOtp: withApiPrefix('/auth/verify-otp'),
   resetPassword: withApiPrefix('/auth/reset-password'),
+  verifyEmail: withApiPrefix('/auth/verify-email'),
+  resendVerificationOtp: withApiPrefix('/auth/resend-verification-otp'),
+  identitySubmit: withApiPrefix('/auth/identity/submit'),
+  identityStatus: withApiPrefix('/auth/identity/status'),
 }
 
 export const VENDOR_ENDPOINTS = {
