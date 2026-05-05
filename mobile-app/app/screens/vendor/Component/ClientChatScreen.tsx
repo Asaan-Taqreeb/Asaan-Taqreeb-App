@@ -1,7 +1,7 @@
-import { router, useLocalSearchParams } from 'expo-router'
+import { useRouter, useLocalSearchParams } from 'expo-router'
 import { ArrowLeft, Send } from 'lucide-react-native'
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform } from 'react-native'
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, Alert, ViewStyle } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors } from '@/app/_constants/theme'
 import { getChatHistory, sendMessage, markChatAsRead, Message } from '@/app/_utils/messagesApi'
@@ -10,6 +10,7 @@ import { useUser } from '@/app/_context/UserContext'
 
 export default function ClientChatScreen() {
     const insets = useSafeAreaInsets()
+    const router = useRouter()
     const params = useLocalSearchParams()
     const scrollViewRef = useRef<ScrollView>(null)
     const [message, setMessage] = useState('')
@@ -107,7 +108,7 @@ export default function ClientChatScreen() {
 
     if (isLoading) {
         return (
-            <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}>
+            <View style={StyleSheet.flatten([styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]) as ViewStyle}>
                 <View className='flex-1 justify-center items-center'>
                     <Text style={{color: Colors.textSecondary}}>Loading chat...</Text>
                 </View>
@@ -117,7 +118,7 @@ export default function ClientChatScreen() {
 
     return (
         <KeyboardAvoidingView
-            style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}
+            style={StyleSheet.flatten([styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]) as ViewStyle}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             keyboardVerticalOffset={0}
         >

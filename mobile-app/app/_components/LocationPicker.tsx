@@ -9,7 +9,9 @@ import {
     Alert, 
     Modal, 
     SafeAreaView,
-    Platform
+    Platform,
+    ViewStyle,
+    TextStyle
 } from 'react-native';
 import { Search, MapPin, Navigation, X, Check, Map as MapIcon } from 'lucide-react-native';
 import * as Location from 'expo-location';
@@ -51,23 +53,23 @@ export default function LocationPicker({ onLocationSelect, initialLocation }: Lo
     };
 
     return (
-        <View style={styles.container}>
+        <View style={styles.container as ViewStyle}>
             <TouchableOpacity 
-                style={[styles.trigger, { borderColor: address ? Colors.primary : '#E5E7EB' }]} 
+                style={StyleSheet.flatten([styles.trigger, { borderColor: address ? Colors.primary : '#E5E7EB' }]) as ViewStyle} 
                 onPress={() => setModalVisible(true)}
                 activeOpacity={0.7}
             >
-                <View style={styles.triggerIcon}>
+                <View style={styles.triggerIcon as ViewStyle}>
                     <MapPin size={20} color={address ? Colors.primary : '#9CA3AF'} />
                 </View>
                 <Text 
-                    style={[styles.triggerText, { color: address ? '#111827' : '#9CA3AF' }]} 
+                    style={StyleSheet.flatten([styles.triggerText, { color: address ? '#111827' : '#9CA3AF' }]) as TextStyle} 
                     numberOfLines={1}
                 >
                     {address || "Tap to select location on map..."}
                 </Text>
-                <View style={styles.triggerAction}>
-                    <Text style={styles.triggerActionText}>{address ? "Change" : "Select"}</Text>
+                <View style={styles.triggerAction as ViewStyle}>
+                    <Text style={styles.triggerActionText as TextStyle}>{address ? "Change" : "Select"}</Text>
                 </View>
             </TouchableOpacity>
 
@@ -135,7 +137,7 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
             } else {
                 Alert.alert("Not Found", "Try a more specific address or city.");
             }
-        } catch (e) {
+        } catch (error) {
             Alert.alert("Error", "Search failed. Check your internet.");
         } finally {
             setIsSearching(false);
@@ -143,7 +145,11 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
     };
 
     const handleMapPress = async (e: any) => {
-        const { latitude, longitude } = e.nativeEvent.coordinate;
+        const latitude = e?.nativeEvent?.coordinate?.latitude;
+        const longitude = e?.nativeEvent?.coordinate?.longitude;
+        
+        if (latitude === undefined || longitude === undefined) return;
+
         setMarkerPosition({ latitude, longitude });
         setSearchQuery("Loading address...");
         try {
@@ -154,7 +160,9 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
                 setTempAddress(formatted);
                 setSearchQuery(formatted);
             }
-        } catch (e) {}
+        } catch (error) {
+            console.error("Reverse geocode error:", error);
+        }
     };
 
     const getCurrentLocation = async () => {
@@ -193,8 +201,8 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
                 setTempAddress(formatted);
                 setSearchQuery(formatted);
             }
-        } catch (e) {
-            console.error("Location error:", e);
+        } catch (error) {
+            console.error("Location error:", error);
             Alert.alert("Location Error", "Could not determine your location. Please check your GPS and try again.");
         } finally {
             setIsLocating(false);
@@ -208,13 +216,13 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
             transparent={false}
             onRequestClose={onClose}
         >
-            <SafeAreaView style={styles.modalContainer}>
+            <SafeAreaView style={styles.modalContainer as ViewStyle}>
                 {/* Header */}
-                <View style={styles.modalHeader}>
-                    <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                <View style={styles.modalHeader as ViewStyle}>
+                    <TouchableOpacity onPress={onClose} style={styles.closeButton as ViewStyle}>
                         <X size={24} color="#374151" />
                     </TouchableOpacity>
-                    <Text style={styles.modalTitle}>Select Location</Text>
+                    <Text style={styles.modalTitle as TextStyle}>Select Location</Text>
                     <TouchableOpacity 
                         onPress={() => {
                             if (markerPosition && tempAddress) {
@@ -223,19 +231,19 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
                                 Alert.alert("Selection Required", "Please pin a location on the map first.");
                             }
                         }}
-                        style={[styles.confirmBtn, !markerPosition && { opacity: 0.5 }]}
+                        style={StyleSheet.flatten([styles.confirmBtn, !markerPosition && { opacity: 0.5 }]) as ViewStyle}
                         disabled={!markerPosition}
                     >
-                        <Text style={styles.confirmBtnText}>Confirm</Text>
+                        <Text style={styles.confirmBtnText as TextStyle}>Confirm</Text>
                     </TouchableOpacity>
                 </View>
 
                 {/* Search Bar */}
-                <View style={styles.modalSearchContainer}>
-                    <View style={styles.searchInner}>
+                <View style={styles.modalSearchContainer as ViewStyle}>
+                    <View style={styles.searchInner as ViewStyle}>
                         <Search size={20} color="#9CA3AF" />
                         <TextInput 
-                            style={styles.modalSearchInput}
+                            style={styles.modalSearchInput as TextStyle}
                             placeholder="Search area, landmark or city..."
                             value={searchQuery}
                             onChangeText={setSearchQuery}
@@ -255,9 +263,9 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
                 </View>
 
                 {/* Map Area */}
-                <View style={styles.modalMapWrapper}>
+                <View style={styles.modalMapWrapper as ViewStyle}>
                     {!isMapReady && (
-                        <View style={styles.modalLoading}>
+                        <View style={styles.modalLoading as ViewStyle}>
                             <ActivityIndicator size="large" color={Colors.primary} />
                         </View>
                     )}
@@ -273,7 +281,7 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
 
                     {/* Controls */}
                     <TouchableOpacity 
-                        style={styles.modalLocBtn} 
+                        style={styles.modalLocBtn as ViewStyle} 
                         onPress={getCurrentLocation}
                         disabled={isLocating}
                     >
@@ -287,13 +295,13 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
 
                 {/* Selected Address Info */}
                 {markerPosition && (
-                    <View style={styles.addressFooter}>
-                        <View style={styles.addressFooterHeader}>
+                    <View style={styles.addressFooter as ViewStyle}>
+                        <View style={styles.addressFooterHeader as ViewStyle}>
                             <MapIcon size={18} color={Colors.primary} />
-                            <Text style={styles.addressFooterTitle}>Selected Address</Text>
+                            <Text style={styles.addressFooterTitle as TextStyle}>Selected Address</Text>
                         </View>
-                        <Text style={styles.addressFooterText}>{tempAddress}</Text>
-                        <Text style={styles.coordsText}>
+                        <Text style={styles.addressFooterText as TextStyle}>{tempAddress}</Text>
+                        <Text style={styles.coordsText as TextStyle}>
                             {markerPosition.latitude.toFixed(6)}, {markerPosition.longitude.toFixed(6)}
                         </Text>
                     </View>
@@ -343,7 +351,7 @@ const styles = StyleSheet.create({
     modalHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'between',
+        justifyContent: 'space-between',
         paddingHorizontal: 15,
         paddingVertical: 12,
         borderBottomWidth: 1,
