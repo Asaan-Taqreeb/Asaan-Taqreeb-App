@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { Search, MapPin, Navigation, X, Check, Map as MapIcon } from 'lucide-react-native';
 import * as Location from 'expo-location';
-import LeafletMap, { LeafletMapMethods } from './LeafletMap';
+import GoogleMapView, { GoogleMapMethods } from './GoogleMapView';
 import { Colors } from '@/app/_constants/theme';
 
 interface LocationPickerProps {
@@ -89,7 +89,7 @@ interface FullMapModalProps {
 }
 
 function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapModalProps) {
-    const mapRef = useRef<LeafletMapMethods>(null);
+    const mapRef = useRef<GoogleMapMethods>(null);
     const [searchQuery, setSearchQuery] = useState(initialLocation.address || '');
     const [markerPosition, setMarkerPosition] = useState<{ latitude: number; longitude: number } | null>(
         initialLocation.latitude && initialLocation.longitude 
@@ -110,12 +110,8 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
     }, [visible]);
 
     const animateToRegion = (lat: number, lng: number) => {
-        mapRef.current?.animateToRegion({
-            latitude: lat,
-            longitude: lng,
-            latitudeDelta: 0.005,
-            longitudeDelta: 0.005,
-        }, 1000);
+        // Updated to match GoogleMapView's (lat, lng, zoom) interface
+        mapRef.current?.animateToRegion(lat, lng, 15);
     };
 
     const handleSearch = async () => {
@@ -149,6 +145,7 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
     const handleMapPress = async (e: any) => {
         const { latitude, longitude } = e.nativeEvent.coordinate;
         setMarkerPosition({ latitude, longitude });
+        setSearchQuery("Loading address...");
         try {
             const results = await Location.reverseGeocodeAsync({ latitude, longitude });
             if (results.length > 0) {
@@ -163,14 +160,32 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
     const getCurrentLocation = async () => {
         setIsLocating(true);
         try {
-            const { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== 'granted') return Alert.alert("Permission Denied");
+            const { status: existingStatus } = await Location.getForegroundPermissionsAsync();
+            let finalStatus = existingStatus;
+
+            if (existingStatus !== 'granted') {
+                const { status } = await Location.requestForegroundPermissionsAsync();
+                finalStatus = status;
+            }
+
+            if (finalStatus !== 'granted') {
+                return Alert.alert("Permission Denied", "Please enable location services in your device settings.");
+            }
             
-            const loc = await Location.getCurrentPositionAsync({});
+            // Get current location with high accuracy
+            const loc = await Location.getCurrentPositionAsync({
+                accuracy: Location.Accuracy.Balanced,
+            });
+
             const { latitude, longitude } = loc.coords;
-            animateToRegion(latitude, longitude);
+            
+            // Update map and marker
+            if (isMapReady) {
+                animateToRegion(latitude, longitude);
+            }
             setMarkerPosition({ latitude, longitude });
             
+            // Get address
             const results = await Location.reverseGeocodeAsync({ latitude, longitude });
             if (results.length > 0) {
                 const addr = results[0];
@@ -179,7 +194,8 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
                 setSearchQuery(formatted);
             }
         } catch (e) {
-            Alert.alert("Error", "Could not get current location.");
+            console.error("Location error:", e);
+            Alert.alert("Location Error", "Could not determine your location. Please check your GPS and try again.");
         } finally {
             setIsLocating(false);
         }
@@ -245,7 +261,7 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
                             <ActivityIndicator size="large" color={Colors.primary} />
                         </View>
                     )}
-                    <LeafletMap
+                    <GoogleMapView
                         ref={mapRef}
                         style={styles.modalMap}
                         latitude={initialLocation.latitude || DEFAULT_REGION.latitude}

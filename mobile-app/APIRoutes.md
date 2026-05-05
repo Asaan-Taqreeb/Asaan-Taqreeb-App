@@ -698,3 +698,41 @@ All error responses follow this format:
 - Images are stored in `services/` folder
 
 
+
+## Notifications Module (/notifications)
+
+### 1. Get My Notifications
+**GET** `/notifications`
+- **Description**: Get list of all notifications for the current user
+- **Access**: Protected
+- **Headers**: `Authorization: Bearer <token>`
+
+### 2. Get Unread Count
+**GET** `/notifications/unread-count`
+- **Description**: Get count of unread notifications
+
+### 3. Mark as Read
+**PUT** `/notifications/:id/read`
+- **Description**: Mark specific notification as read
+
+### 4. Mark All as Read
+**PUT** `/notifications/read-all`
+- **Description**: Mark all notifications as read
+
+### 5. Update Push Token
+**POST** `/notifications/push-token`
+- **Description**: Register/Update FCM push token for the user
+- **Payload**:
+```json
+{
+  "expoPushToken": "ExponentPushToken[...]"
+}
+```
+
+### 6. Delete Notification
+**DELETE** `/notifications/:id`
+- **Description**: Remove a specific notification
+
+### 7. Delete All Notifications
+**DELETE** `/notifications`
+- **Description**: Clear the entire notification history

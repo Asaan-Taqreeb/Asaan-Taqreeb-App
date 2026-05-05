@@ -2,6 +2,18 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import * as TaskManager from 'expo-task-manager';
+
+const BACKGROUND_NOTIFICATION_TASK = 'BACKGROUND_NOTIFICATION_TASK';
+
+// Define the background task for handling notifications when the app is closed
+TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, ({ data, error, executionContext }) => {
+  if (error) {
+    console.error('Background notification task error:', error);
+    return;
+  }
+  console.log('Background notification task triggered:', data);
+});
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -17,6 +29,17 @@ Notifications.setNotificationHandler({
  */
 export async function registerForPushNotificationsAsync() {
   let token;
+
+  // Register the background task
+  try {
+    const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_NOTIFICATION_TASK);
+    if (!isRegistered) {
+      await Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK);
+      console.log('Background notification task registered');
+    }
+  } catch (err) {
+    console.error('Failed to register background task:', err);
+  }
 
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
@@ -71,21 +94,20 @@ export async function registerForPushNotificationsAsync() {
 /**
  * Handle notification clicks
  */
-export function handleNotificationResponse(response: Notifications.NotificationResponse, router: any) {
+export function handleNotificationResponse(response: Notifications.NotificationResponse, router: any, userRole?: string) {
   const data = response.notification.request.content.data;
-  const type = data.type;
-
-  console.log('Notification Response received:', data);
+  
+  console.log('Notification Response received:', data, 'User Role:', userRole);
 
   if (data.chatId) {
     // Navigate to chat
-    if (data.vendorId) {
+    if (data.vendorId && userRole !== 'vendor') {
         // Client side
         router.push({
             pathname: '/screens/client/Component/VendorChatScreen',
             params: { chatId: data.chatId, vendorId: data.vendorId }
         });
-    } else if (data.clientId) {
+    } else if (data.clientId || userRole === 'vendor') {
         // Vendor side
         router.push({
             pathname: '/screens/vendor/Component/ClientChatScreen',
@@ -94,12 +116,23 @@ export function handleNotificationResponse(response: Notifications.NotificationR
     }
   } else if (data.bookingId) {
     // Navigate to booking detail
-    // We need to know if we are client or vendor
-    // This is a bit tricky, but we can try to guess or use the type
-    if (data.type === 'BOOKING_UPDATE') {
-        // If it's a vendor dashboard, go to order detail
-        // For now, let's just go to the relevant list
+    if (userRole === 'vendor') {
+        // For vendors, go to Orders screen (since we need full object for Detail)
+        router.push('/screens/vendor/_tabs/OrdersScreen');
+    } else {
+        // For clients
         router.push('/screens/client/Component/BookingHistoryScreen');
     }
   }
+}
+
+/**
+ * Dismiss all notifications from the system tray
+ */
+export async function dismissAllTrayNotifications() {
+    try {
+        await Notifications.dismissAllNotificationsAsync();
+    } catch (error) {
+        console.warn('Failed to dismiss all notifications:', error);
+    }
 }

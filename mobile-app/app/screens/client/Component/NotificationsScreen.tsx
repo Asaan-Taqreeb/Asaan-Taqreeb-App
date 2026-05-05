@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors } from '@/app/_constants/theme'
 import { useNotifications } from '@/app/_context/NotificationContext'
 import { markNotificationAsRead, clearAllNotifications, deleteNotification, deleteAllNotifications } from '@/app/_utils/notificationService'
+import { dismissAllTrayNotifications } from '@/app/_utils/pushNotificationService'
 
 export default function NotificationsScreen() {
     const insets = useSafeAreaInsets()
@@ -22,6 +23,7 @@ export default function NotificationsScreen() {
 
     const handleClearAll = async () => {
         await deleteAllNotifications()
+        await dismissAllTrayNotifications()
         refresh()
     }
 

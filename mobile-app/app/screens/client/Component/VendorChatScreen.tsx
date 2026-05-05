@@ -59,7 +59,10 @@ export default function VendorChatScreen() {
 
         socket.on('receiveMessage', (newMessage: Message) => {
             setMessages((prev) => {
-                // Check if we already have it (optimistic update)
+                // If it's from me, I already handled it optimistically
+                if (newMessage.senderId._id === user?.id) return prev;
+                
+                // Check if we already have it (safety check)
                 if (prev.some((msg) => msg._id === newMessage._id)) return prev;
                 return [...prev, newMessage];
             })
@@ -70,7 +73,7 @@ export default function VendorChatScreen() {
             socket.emit('leaveChat', chatId)
             socket.off('receiveMessage')
         }
-    }, [socket, chatId])
+    }, [socket, chatId, user])
 
     useEffect(() => {
         if (!isLoading) {

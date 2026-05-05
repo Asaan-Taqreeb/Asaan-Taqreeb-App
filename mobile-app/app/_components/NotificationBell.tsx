@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Modal, ActivityIndicator, SafeAreaView, Pressable } from 'react-native';
 import { Bell, X, Check, Clock, MessageSquare, Info } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 import { Colors, Shadows } from '@/app/_constants/theme';
 import { useNotifications } from '@/app/_context/NotificationContext';
 import { useSocket } from '@/app/_context/SocketContext';
@@ -13,6 +14,7 @@ interface NotificationBellProps {
 }
 
 export default function NotificationBell({ userId, userRole }: NotificationBellProps) {
+  const router = useRouter();
   const [modalVisible, setModalVisible] = useState(false);
   const { notifications, unreadCount: polledCount, refresh, markAsRead, markAllAsRead } = useNotifications(true);
   const { unreadNotificationCount: socketCount, clearNotificationCount } = useSocket();
@@ -31,10 +33,28 @@ export default function NotificationBell({ userId, userRole }: NotificationBellP
       await markAsRead(notification.id);
     }
 
-    // Handle navigation based on notification type or actionUrl
-    if (notification.actionUrl) {
-      // Logic for navigation would go here
-    }
+    // Use the central notification handler for consistent navigation
+    const { handleNotificationResponse } = require('@/app/_utils/pushNotificationService');
+    
+    // Construct a response object compatible with handleNotificationResponse
+    const dummyResponse = {
+        notification: {
+            request: {
+                content: {
+                    data: {
+                        ...notification.data,
+                        bookingId: notification.bookingId || notification.data?.bookingId,
+                        chatId: notification.data?.chatId,
+                        vendorId: notification.data?.vendorId,
+                        clientId: notification.data?.clientId
+                    }
+                }
+            }
+        }
+    } as any;
+    
+    setModalVisible(false);
+    handleNotificationResponse(dummyResponse, router, userRole);
   };
 
   const handleMarkAllRead = async () => {

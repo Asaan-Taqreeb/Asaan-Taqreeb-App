@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { CircleAlert, Dot, MapPin, Star, Circle, ChevronLeft, ChevronRight, X, ArrowLeft, Plus, MessageCircle } from 'lucide-react-native'
 import { useState, useEffect } from 'react'
 import { Dimensions, ScrollView, Modal, TextInput , Image, Pressable, StyleSheet, Text, View, KeyboardAvoidingView, Platform, Linking } from 'react-native'
-import LeafletMap from '@/app/_components/LeafletMap'
+import GoogleMapView from '@/app/_components/GoogleMapView'
 import * as ExpoLocation from 'expo-location'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors, getCategoryColor, Shadows, Spacing } from '@/app/_constants/theme'
@@ -341,7 +341,7 @@ export default function DetailScreenPage() {
                     
                     <View className='rounded-3xl overflow-hidden border-2' style={{borderColor: Colors.border, height: 200}}>
                         {hasAnyCoords ? (
-                            <LeafletMap
+                            <GoogleMapView
                                 style={{flex: 1}}
                                 latitude={finalLat}
                                 longitude={finalLng}

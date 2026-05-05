@@ -34,7 +34,7 @@ function NotificationHandler() {
 
     // Listen for notification clicks
     responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      handleNotificationResponse(response, router);
+      handleNotificationResponse(response, router, user?.role);
     });
 
     return () => {

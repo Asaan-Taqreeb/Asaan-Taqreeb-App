@@ -14,7 +14,7 @@
         "NSLocationWhenInUseUsageDescription": "Allow Asaan Taqreeb to access your location while you use the app to find nearby vendors.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow Asaan Taqreeb to access your location even when the app is in the background for real-time order tracking."
       },
-      "bundleIdentifier": "com.mirzazain1.asaantaqreeb"
+      "bundleIdentifier": "com.asaantaqreeb"
     },
     "android": {
       "config": {
@@ -33,7 +33,8 @@
         "backgroundColor": "#ECFEFF",
         "foregroundImage": "./assets/images/Logo.png"
       },
-      "package": "com.mirzazain1.asaantaqreeb"
+      "package": "com.asaantaqreeb",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",

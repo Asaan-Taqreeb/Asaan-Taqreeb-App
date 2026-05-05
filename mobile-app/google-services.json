@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "685446408403",
+    "project_id": "asaan-taqreeb-f996d",
+    "storage_bucket": "asaan-taqreeb-f996d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:685446408403:android:338113ce69db86c3eb4c26",
+        "android_client_info": {
+          "package_name": "com.asaantaqreeb"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDwQslXTjzuaFowJVRf42-Kml3161RYMGg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

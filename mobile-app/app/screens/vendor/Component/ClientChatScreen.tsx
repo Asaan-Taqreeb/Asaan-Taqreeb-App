@@ -48,6 +48,9 @@ export default function ClientChatScreen() {
 
         socket.on('receiveMessage', (newMessage: Message) => {
             setMessages((prev) => {
+                // If it's from me, I already handled it optimistically
+                if (newMessage.senderId._id === user?.id) return prev;
+                
                 if (prev.some((msg) => msg._id === newMessage._id)) return prev;
                 return [...prev, newMessage];
             })
@@ -58,7 +61,7 @@ export default function ClientChatScreen() {
             socket.emit('leaveChat', chatId)
             socket.off('receiveMessage')
         }
-    }, [socket, chatId])
+    }, [socket, chatId, user])
 
     useEffect(() => {
         if (!isLoading) {
