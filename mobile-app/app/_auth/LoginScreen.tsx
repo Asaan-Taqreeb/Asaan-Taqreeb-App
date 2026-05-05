@@ -108,6 +108,7 @@ const LoginScreen = ({
                             params: { 
                                 email: userData.email,
                                 role: authenticatedRole,
+                                otp: data.otp, // Pass the OTP if it exists (for dev mode)
                                 loginRoute: authenticatedRole === 'vendor' ? '/screens/vendor/VendorLoginScreen' : '/screens/client/Component/LoginScreen'
                             }
                         } as any)

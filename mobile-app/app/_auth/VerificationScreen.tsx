@@ -98,6 +98,14 @@ const VerificationScreen = ({
                             <Text style={{ fontWeight: '700', color: '#1F2937' }}>{userEmail}</Text>
                         </Text>
 
+                        {params.otp && (
+                            <View style={{ backgroundColor: '#EEF2FF', padding: 12, borderRadius: 12, marginBottom: 20, borderWidth: 1, borderColor: '#C7D2FE' }}>
+                                <Text style={{ color: '#4338CA', textAlign: 'center', fontSize: 14, fontWeight: '600' }}>
+                                    Debug Mode: Your OTP is {params.otp}
+                                </Text>
+                            </View>
+                        )}
+
                         <TextInput
                             placeholder='Enter 6-digit code'
                             style={styles.input}
