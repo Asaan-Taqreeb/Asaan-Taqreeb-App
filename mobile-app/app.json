@@ -80,8 +80,12 @@
       "reactCompiler": false
     },
     "extra": {
-      "router": {},
-      "eas": {}
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "5b5154ed-eb0c-4390-afa5-91870e37c28b"
+      }
     }
   }
 }
