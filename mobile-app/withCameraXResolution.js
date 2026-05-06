@@ -14,24 +14,21 @@ function addResolutionStrategy(buildGradle) {
     subprojects {
         project.configurations.all {
             resolutionStrategy {
-                force 'androidx.camera:camera-core:1.4.0'
-                force 'androidx.camera:camera-camera2:1.4.0'
-                force 'androidx.camera:camera-lifecycle:1.4.0'
-                force 'androidx.camera:camera-video:1.4.0'
-                force 'androidx.camera:camera-view:1.4.0'
-                force 'androidx.camera:camera-extensions:1.4.0'
-                force 'androidx.camera:camera-mlkit-vision:1.4.0'
-                force 'androidx.camera:camera-camera2-pipe:1.4.0'
+                force 'androidx.camera:camera-core:1.4.1'
+                force 'androidx.camera:camera-camera2:1.4.1'
+                force 'androidx.camera:camera-lifecycle:1.4.1'
+                force 'androidx.camera:camera-video:1.4.1'
+                force 'androidx.camera:camera-view:1.4.1'
+                force 'androidx.camera:camera-extensions:1.4.1'
             }
         }
     }
 `;
 
-  if (buildGradle.includes('androidx.camera:camera-core:1.4.0')) {
+  if (buildGradle.includes('androidx.camera:camera-core:1.4.1')) {
     return buildGradle;
   }
 
-  // Add it before the end of allprojects or at the end of the file
   if (buildGradle.includes('allprojects {')) {
     return buildGradle.replace(
       /allprojects\s*\{/,
