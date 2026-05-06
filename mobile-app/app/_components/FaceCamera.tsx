@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, Pressable, Dimensions } from 'react-native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
-import * as FaceDetector from 'expo-face-detector';
+import { StyleSheet, Text, View, Pressable, Dimensions, ActivityIndicator } from 'react-native';
+import { Camera, useCameraDevice, useCameraPermission, useFrameProcessor } from 'react-native-vision-camera';
+import { useFaceDetector } from 'react-native-vision-camera-face-detector';
+import { Worklets, useSharedValue } from 'react-native-worklets-core';
 import { Colors } from '@/app/_constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { Audio } from 'expo-av';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 interface FaceCameraProps {
   onCapture: (uri: string, livenessConfidence: number) => void;
@@ -15,23 +15,111 @@ interface FaceCameraProps {
 }
 
 const FaceCamera: React.FC<FaceCameraProps> = ({ onCapture, onCancel, type = 'front' }) => {
-  const [permission, requestPermission] = useCameraPermissions();
-  const [faceDetected, setFaceDetected] = useState(false);
-  const [isLivenessPassed, setIsLivenessPassed] = useState(false);
+  const { hasPermission, requestPermission } = useCameraPermission();
+  const device = useCameraDevice(type);
+  const cameraRef = useRef<Camera>(null);
+
+  const [isProcessing, setIsProcessing] = useState(false);
   const [instructions, setInstructions] = useState('Position your face in the oval');
   const [livenessStage, setLivenessStage] = useState<'position' | 'blink' | 'smile'>('position');
-  const cameraRef = useRef<CameraView>(null);
+  const [faceDetected, setFaceDetected] = useState(false);
+  const [isLivenessPassed, setIsLivenessPassed] = useState(false);
 
-  // For liveness check
-  const [lastBlinkTime, setLastBlinkTime] = useState(0);
-  const [hasSmiled, setHasSmiled] = useState(false);
+  // Use shared values for worklet state
+  const stageShared = useSharedValue<'position' | 'blink' | 'smile'>('position');
+  const faceDetectedShared = useSharedValue<boolean>(false);
+
+  const { detectFaces } = useFaceDetector({
+    performanceMode: 'fast',
+    contourMode: 'none',
+    landmarkMode: 'none',
+    classificationMode: 'all',
+  });
 
   useEffect(() => {
-    if (!permission) requestPermission();
-  }, [permission]);
+    if (!hasPermission) requestPermission();
+  }, [hasPermission]);
 
-  if (!permission) return <View />;
-  if (!permission.granted) {
+  // JS Thread function to update UI from Worklet
+  const updateStateFromWorklet = Worklets.createRunOnJS((newFaceDetected: boolean, newStage: 'position' | 'blink' | 'smile', pass: boolean) => {
+    if (faceDetected !== newFaceDetected) setFaceDetected(newFaceDetected);
+    
+    if (livenessStage !== newStage) {
+      setLivenessStage(newStage);
+      if (newStage === 'position') setInstructions('Position your face in the oval');
+      else if (newStage === 'blink') setInstructions('Now, blink your eyes');
+      else if (newStage === 'smile') setInstructions('Great! Now, give us a big smile');
+    }
+
+    if (pass && !isLivenessPassed && !isProcessing) {
+      setIsLivenessPassed(true);
+      setInstructions('Liveness verified! Hold still...');
+      takePicture(100);
+    }
+  });
+
+  const frameProcessor = useFrameProcessor((frame) => {
+    'worklet';
+    const faces = detectFaces(frame);
+
+    if (faces.length === 0 || faces.length > 1) {
+      if (faceDetectedShared.value !== false) {
+        faceDetectedShared.value = false;
+        stageShared.value = 'position';
+        updateStateFromWorklet(false, 'position', false);
+      }
+      return;
+    }
+
+    const face = faces[0];
+    let newStage = stageShared.value;
+    let passed = false;
+    
+    if (faceDetectedShared.value !== true) {
+      faceDetectedShared.value = true;
+    }
+
+    if (newStage === 'position') {
+      const faceWidth = face.bounds.width;
+      // Basic size check
+      if (faceWidth > frame.width * 0.3) {
+        newStage = 'blink';
+      }
+    } else if (newStage === 'blink') {
+      if (face.leftEyeOpenProbability < 0.3 && face.rightEyeOpenProbability < 0.3) {
+        newStage = 'smile';
+      }
+    } else if (newStage === 'smile') {
+      if (face.smilingProbability > 0.7) {
+        passed = true;
+      }
+    }
+
+    if (newStage !== stageShared.value || passed) {
+      stageShared.value = newStage;
+      updateStateFromWorklet(true, newStage, passed);
+    }
+  }, [detectFaces]);
+
+  const takePicture = async (confidence: number = 0) => {
+    if (cameraRef.current && !isProcessing) {
+      setIsProcessing(true);
+      try {
+        const photo = await cameraRef.current.takePhoto({
+            qualityPrioritization: 'speed',
+            flash: 'off'
+        });
+        if (photo) {
+            onCapture(`file://${photo.path}`, confidence);
+        }
+      } catch (e) {
+        console.error('Failed to take picture:', e);
+        setIsProcessing(false);
+      }
+    }
+  };
+
+  if (!hasPermission) {
     return (
       <View style={styles.centered}>
         <Text>Camera permission is required for identity verification.</Text>
@@ -42,85 +130,25 @@ const FaceCamera: React.FC<FaceCameraProps> = ({ onCapture, onCancel, type = 'fr
     );
   }
 
-  const handleFacesDetected = ({ faces }: { faces: any[] }) => {
-    if (faces.length === 0) {
-      setFaceDetected(false);
-      setInstructions('Face not detected');
-      return;
-    }
-
-    if (faces.length > 1) {
-      setFaceDetected(false);
-      setInstructions('Multiple faces detected. Please be alone.');
-      return;
-    }
-
-    const face = faces[0];
-    setFaceDetected(true);
-
-    // Stage 1: Position
-    if (livenessStage === 'position') {
-      const { x, y, width: faceWidth, height: faceHeight } = face.bounds;
-      // Basic check if face is somewhat centered and large enough
-      if (faceWidth > width * 0.4) {
-        setLivenessStage('blink');
-        setInstructions('Now, blink your eyes');
-      } else {
-        setInstructions('Move closer to the camera');
-      }
-    }
-
-    // Stage 2: Blink Detection (Simplified)
-    if (livenessStage === 'blink') {
-      if (face.leftEyeOpenProbability < 0.3 && face.rightEyeOpenProbability < 0.3) {
-        setLivenessStage('smile');
-        setInstructions('Great! Now, give us a big smile');
-      }
-    }
-
-    // Stage 3: Smile Detection
-    if (livenessStage === 'smile') {
-      if (face.smilingProbability > 0.7) {
-        setIsLivenessPassed(true);
-        setInstructions('Liveness verified! Hold still...');
-        takePicture();
-      }
-    }
-  };
-
-  const takePicture = async () => {
-    if (cameraRef.current) {
-      try {
-        const photo = await cameraRef.current.takePictureAsync({
-            quality: 0.8,
-            base64: false,
-        });
-        if (photo) {
-            onCapture(photo.uri, 100); // 100% confidence if they passed the blinking/smiling tests
-        }
-      } catch (e) {
-        console.error('Failed to take picture:', e);
-      }
-    }
-  };
+  if (device == null) {
+    return (
+      <View style={styles.centered}>
+         <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <CameraView
+      <Camera
         ref={cameraRef}
         style={styles.camera}
-        facing={type}
-        onFacesDetected={handleFacesDetected}
-        faceDetectorSettings={{
-          mode: FaceDetector.FaceDetectorMode.accurate,
-          detectLandmarks: FaceDetector.FaceDetectorLandmarks.all,
-          runClassifications: FaceDetector.FaceDetectorClassifications.all,
-          minDetectionInterval: 100,
-          tracking: true,
-        }}
-      >
+        device={device}
+        isActive={!isLivenessPassed && !isProcessing}
+        frameProcessor={frameProcessor}
+        photo={true}
+      />
         <View style={styles.overlay}>
-          {/* Oval Guide */}
           <View style={[
             styles.guide, 
             { borderColor: isLivenessPassed ? '#22C55E' : faceDetected ? Colors.primary : '#FFFFFF' }
@@ -137,15 +165,26 @@ const FaceCamera: React.FC<FaceCameraProps> = ({ onCapture, onCancel, type = 'fr
               <Text style={styles.instructionText}>{instructions}</Text>
             </View>
             
-            {/* Progress indicators */}
             <View style={styles.progressDots}>
                <View style={[styles.dot, livenessStage !== 'position' && styles.activeDot]} />
                <View style={[styles.dot, livenessStage === 'smile' && styles.activeDot]} />
                <View style={[styles.dot, isLivenessPassed && styles.activeDot]} />
             </View>
+
+            {/* Manual fallback capture button just in case */}
+            <Pressable 
+                style={[styles.captureButton, isProcessing && styles.captureButtonDisabled, { marginTop: 20 }]} 
+                onPress={() => takePicture(50)}
+                disabled={isProcessing}
+            >
+                {isProcessing ? (
+                    <ActivityIndicator color={Colors.primary} />
+                ) : (
+                    <View style={styles.captureButtonInner} />
+                )}
+            </Pressable>
           </View>
         </View>
-      </CameraView>
     </View>
   );
 };
@@ -156,7 +195,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'black',
   },
   camera: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
   },
   centered: {
     flex: 1,
@@ -176,6 +215,7 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderRadius: width * 0.5,
     borderStyle: 'dashed',
+    borderColor: '#FFFFFF',
   },
   topControls: {
     position: 'absolute',
@@ -219,6 +259,25 @@ const styles = StyleSheet.create({
   },
   activeDot: {
     backgroundColor: Colors.primary,
+  },
+  captureButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 4,
+    borderColor: 'white',
+  },
+  captureButtonDisabled: {
+    opacity: 0.5,
+  },
+  captureButtonInner: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'white',
   },
   button: {
     marginTop: 20,

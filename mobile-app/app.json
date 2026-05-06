@@ -61,6 +61,13 @@
           "locationAlwaysAndWhenInUsePermission": "Allow location mobileapp to use your location"
         }
       ],
+      [
+        "react-native-vision-camera",
+        {
+          "cameraPermissionText": "Allow Asaan Taqreeb to access your camera for identity verification.",
+          "enableMicrophonePermission": false
+        }
+      ],
       "expo-secure-store"
     ],
     "experiments": {
