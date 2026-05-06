@@ -12,7 +12,9 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Allow Asaan Taqreeb to access your location while you use the app to find nearby vendors.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow Asaan Taqreeb to access your location even when the app is in the background for real-time order tracking."
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow Asaan Taqreeb to access your location even when the app is in the background for real-time order tracking.",
+        "NSCameraUsageDescription": "Allow Asaan Taqreeb to access your camera for identity verification.",
+        "NSMicrophoneUsageDescription": "Allow Asaan Taqreeb to access your microphone for video recording."
       },
       "bundleIdentifier": "com.asaantaqreeb"
     },
@@ -27,7 +29,9 @@
         "ACCESS_FINE_LOCATION",
         "POST_NOTIFICATIONS",
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ],
       "adaptiveIcon": {
         "backgroundColor": "#ECFEFF",
@@ -59,13 +63,6 @@
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "Allow location mobileapp to use your location"
-        }
-      ],
-      [
-        "react-native-vision-camera",
-        {
-          "cameraPermissionText": "Allow Asaan Taqreeb to access your camera for identity verification.",
-          "enableMicrophonePermission": false
         }
       ],
       "expo-secure-store",
