@@ -73,7 +73,8 @@
             "minSdkVersion": 26
           }
         }
-      ]
+      ],
+      "./withCameraXResolution"
     ],
     "experiments": {
       "typedRoutes": true,
