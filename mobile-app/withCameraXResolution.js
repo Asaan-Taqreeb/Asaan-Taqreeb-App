@@ -20,6 +20,14 @@ function addResolutionStrategy(buildGradle) {
                 force 'androidx.camera:camera-video:1.4.1'
                 force 'androidx.camera:camera-view:1.4.1'
                 force 'androidx.camera:camera-extensions:1.4.1'
+                force 'androidx.camera:camera-mlkit-vision:1.4.1'
+                force 'androidx.camera:camera-camera2-pipe:1.4.1'
+                
+                eachDependency { DependencyResolveDetails details ->
+                    if (details.requested.group == 'androidx.camera') {
+                        details.useVersion '1.4.1'
+                    }
+                }
             }
         }
     }

@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { createVendorService, updateVendorService, getServiceById } from '@/app/_utils/servicesApi'
 import ImageUploader from "@/app/screens/vendor/Component/ImageUploader";
 import LocationPicker from "@/app/_components/LocationPicker";
+import { uploadMultipleToCloudinary, isCloudinaryConfigured } from '@/app/_utils/cloudinaryUpload';
 
 interface Package {
   id: string;
@@ -212,7 +213,6 @@ export default function PhotographyServiceForm() {
         // Upload images to Cloudinary for new service
         const newServiceId = result?._id || result?.id || result?.data?._id || result?.data?.id;
         if (newServiceId && images.length > 0) {
-          const { uploadMultipleToCloudinary, isCloudinaryConfigured } = await import('@/app/_utils/cloudinaryUpload');
           if (isCloudinaryConfigured()) {
             const cloudinaryUrls = await uploadMultipleToCloudinary(images);
             if (cloudinaryUrls.length > 0) {
