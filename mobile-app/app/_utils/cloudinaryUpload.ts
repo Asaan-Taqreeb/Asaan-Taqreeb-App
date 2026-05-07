@@ -20,7 +20,7 @@ const CLOUDINARY_CLOUD_NAME = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME || '
 const CLOUDINARY_UPLOAD_PRESET = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET || ''
 const CLOUDINARY_FOLDER = 'asaan-taqreeb/services'
 
-const BACKEND_URL = 'https://asaan-taqreeb-backend.onrender.com'
+const BACKEND_URL = 'https://asaantaqreeb.duckdns.org'
 const DELETE_ENDPOINT = `${BACKEND_URL}/api/v1/media/delete`
 
 export const isCloudinaryConfigured = () =>

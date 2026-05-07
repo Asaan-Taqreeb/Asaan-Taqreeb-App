@@ -20,7 +20,7 @@ const SocketContext = createContext<SocketContextType>({
 export const useSocket = () => useContext(SocketContext);
 
 // Use the live Render backend for socket connections
-const SOCKET_URL = 'https://asaan-taqreeb-backend.onrender.com';
+const SOCKET_URL = 'https://asaantaqreeb.duckdns.org';
 
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -54,7 +54,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       });
 
       newSocket.on('connect', () => {
-        console.log('Socket connected to Render backend');
+        console.log('Socket connected to backend');
         setIsConnected(true);
         // Join personal room for notifications
         if (user?.id) {

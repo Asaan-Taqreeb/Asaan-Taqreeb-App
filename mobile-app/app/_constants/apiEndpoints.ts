@@ -1,5 +1,5 @@
 // API Endpoints
-export const API_BASE_URL = 'https://asaan-taqreeb-backend.onrender.com'
+export const API_BASE_URL = 'https://asaantaqreeb.duckdns.org'
 export const API_PREFIX = '/api/v1'
 
 const withApiPrefix = (path: string) => `${API_BASE_URL}${API_PREFIX}${path}`
