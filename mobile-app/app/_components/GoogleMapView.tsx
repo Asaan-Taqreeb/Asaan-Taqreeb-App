@@ -83,10 +83,10 @@ const GoogleMapView = React.forwardRef<GoogleMapMethods, GoogleMapViewProps>((pr
                 scrollWheelZoom: ${zoomEnabled}
             }).setView([${latitude}, ${longitude}], ${zoom});
 
-            // Using Google Maps Tiles (Keyless approach)
-            L.tileLayer('http://{s}.google.com/vt/lyrs=${getTileLayer()}&hl=en&x={x}&y={y}&z={z}', {
-                maxZoom: 20,
-                subdomains:['mt0','mt1','mt2','mt3']
+            // Using OpenStreetMap Tiles (No API key required)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
 
             var marker;
