@@ -4,7 +4,7 @@ import { TextInput } from 'react-native-paper'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
-import { extractRoleFromAuthPayload, getCurrentUser, loginUser } from '@/app/_utils/authApi'
+import { extractRoleFromAuthPayload, getCurrentUser, loginUser, restoreAccount } from '@/app/_utils/authApi'
 import { clearAuthTokens } from '@/app/_utils/authStorage'
 import { useUser } from '@/app/_context/UserContext'
 import { hasSeenOnboarding } from '@/app/_utils/onboardingStorage'
@@ -41,6 +41,58 @@ const LoginScreen = ({
     const [loading, setLoading] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
 
+    const finalizeAuthSession = async (data: any, authenticatedRole: 'client' | 'vendor') => {
+        const userPayload = data?.data ?? data
+        const userInfo = userPayload?.user ?? userPayload
+        const userData = {
+            id: userInfo?.id || userInfo?._id,
+            name: userInfo?.name,
+            email: userInfo?.email,
+            role: authenticatedRole,
+            ...userInfo,
+        }
+        console.log('Setting user context with data:', userData)
+
+        if (!userData.isEmailVerified) {
+            await clearAuthTokens()
+            const verificationRoute = authenticatedRole === 'vendor'
+                ? '/screens/vendor/VerificationScreen'
+                : '/screens/client/Component/VerificationScreen'
+
+            Alert.alert('Verification Required', 'Your email is not verified. Please verify your account.', [
+                {
+                    text: 'Verify Now',
+                    onPress: () => router.push({
+                        pathname: verificationRoute,
+                        params: {
+                            email: userData.email,
+                            role: authenticatedRole,
+                            loginRoute: authenticatedRole === 'vendor' ? '/screens/vendor/VendorLoginScreen' : '/screens/client/Component/LoginScreen'
+                        }
+                    } as any)
+                },
+                { text: 'Cancel', style: 'cancel' }
+            ])
+            return
+        }
+
+        setUser(userData)
+
+        if (onLoginSuccess) {
+            onLoginSuccess(data)
+        }
+
+        if (authenticatedRole === 'client') {
+            const identifier = String(userData?.id || userData?.email || '')
+            const seenOnboarding = await hasSeenOnboarding(identifier)
+            const route = seenOnboarding ? '/screens/client/_tabs/ClientHomeScreen' : '/screens/client/Component/OnBoardingScreen'
+            router.replace(route as any)
+            return
+        }
+
+        router.replace(redirectHomeRoute as any)
+    }
+
     const handleLogin = async () => {
         if (!email.trim() || !password.trim()) {
             Alert.alert('Error', 'Please fill in all fields')
@@ -56,14 +108,14 @@ const LoginScreen = ({
         setLoading(true)
         try {
             await clearAuthTokens()
-            
+
             console.log('Starting login...', { email: email.trim().toLowerCase() })
 
             const data = await loginUser({
                 email: email.trim().toLowerCase(),
                 password,
             })
-            
+
             console.log('Login response received:', data)
 
             let authenticatedRole = extractRoleFromAuthPayload(data)
@@ -81,62 +133,64 @@ const LoginScreen = ({
                 return
             }
 
-            // Store user data in context
-            const userPayload = data?.data ?? data
-            // Handle nested user object structure
-            const userInfo = userPayload?.user ?? userPayload
-            const userData = {
-                id: userInfo?.id || userInfo?._id,
-                name: userInfo?.name,
-                email: userInfo?.email,
-                role: authenticatedRole,
-                ...userInfo,
-            }
-            console.log('Setting user context with data:', userData)
-            
-            if (!userData.isEmailVerified) {
-                await clearAuthTokens()
-                const verificationRoute = authenticatedRole === 'vendor' 
-                    ? '/screens/vendor/VerificationScreen' 
-                    : '/screens/client/Component/VerificationScreen'
-
-                Alert.alert('Verification Required', 'Your email is not verified. Please verify your account.', [
-                    { 
-                        text: 'Verify Now', 
-                        onPress: () => router.push({
-                            pathname: verificationRoute,
-                            params: { 
-                                email: userData.email,
-                                role: authenticatedRole,
-                                otp: data.otp, // Pass the OTP if it exists (for dev mode)
-                                loginRoute: authenticatedRole === 'vendor' ? '/screens/vendor/VendorLoginScreen' : '/screens/client/Component/LoginScreen'
-                            }
-                        } as any)
-                    },
-                    { text: 'Cancel', style: 'cancel' }
-                ])
-                return
-            }
-
-            setUser(userData)
-
-            if (onLoginSuccess) {
-                onLoginSuccess(data)
-            }
-
-            if (authenticatedRole === 'client') {
-                const identifier = String(userData?.id || userData?.email || '')
-                const seenOnboarding = await hasSeenOnboarding(identifier)
-                const route = seenOnboarding ? '/screens/client/_tabs/ClientHomeScreen' : '/screens/client/Component/OnBoardingScreen'
-                router.replace(route as any)
-                return
-            }
-
-            router.replace(redirectHomeRoute as any)
+            await finalizeAuthSession(data, authenticatedRole)
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Network error. Please check your connection.'
-            Alert.alert('Error', errorMessage)
+            if (errorMessage.toLowerCase().includes('deactivated')) {
+                Alert.alert('Account Deactivated', 'Your account is deleted but can be restored within 15 days. Use the restore button below.', [
+                    { text: 'OK' },
+                ])
+            } else {
+                Alert.alert('Error', errorMessage)
+            }
             console.error('Login error:', error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleRestoreAccount = async () => {
+        if (!email.trim() || !password.trim()) {
+            Alert.alert('Error', 'Please enter your email and password first')
+            return
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!emailRegex.test(email.trim())) {
+            Alert.alert('Error', 'Please enter a valid email address')
+            return
+        }
+
+        setLoading(true)
+        try {
+            await clearAuthTokens()
+            await restoreAccount({
+                email: email.trim().toLowerCase(),
+                password,
+            })
+
+            const data = await loginUser({
+                email: email.trim().toLowerCase(),
+                password,
+            })
+
+            let authenticatedRole = extractRoleFromAuthPayload(data)
+            if (!authenticatedRole) {
+                const currentUser = await getCurrentUser()
+                authenticatedRole = extractRoleFromAuthPayload(currentUser)
+            }
+
+            if (!authenticatedRole || authenticatedRole !== userRole) {
+                await clearAuthTokens()
+                Alert.alert('Restore Failed', 'Your account was restored, but you need to login with the correct account type.')
+                return
+            }
+
+            await finalizeAuthSession(data, authenticatedRole)
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unable to restore account.'
+            Alert.alert('Restore Failed', errorMessage)
+            console.error('Restore account error:', error)
         } finally {
             setLoading(false)
         }
@@ -206,6 +260,17 @@ const LoginScreen = ({
                     >
                         <Text className='text-center text-white font-semibold text-xl'>
                             {loading ? 'LOGGING IN...' : 'LOGIN'}
+                        </Text>
+                    </Pressable>
+
+                    <Pressable
+                        onPress={handleRestoreAccount}
+                        disabled={loading}
+                        className='w-4/5 self-center py-3 rounded-lg mt-3'
+                        style={{ backgroundColor: '#EEF2FF', borderWidth: 1, borderColor: '#C7D2FE' }}
+                    >
+                        <Text className='text-center font-semibold text-base' style={{ color: Colors.primary }}>
+                            {loading ? 'RESTORING...' : 'RESTORE DELETED ACCOUNT'}
                         </Text>
                     </Pressable>
                 </View>

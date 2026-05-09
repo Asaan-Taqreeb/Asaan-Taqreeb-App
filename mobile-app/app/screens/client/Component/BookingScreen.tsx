@@ -83,6 +83,8 @@ export default function BookingScreen() {
     }
 
     const categoryColor = getCategoryColor(bookingData.category)
+    const normalizedCategory = String(bookingData.category || '').trim().toLowerCase()
+    const requiresGuestCount = normalizedCategory === 'banquet' || normalizedCategory === 'catering'
     const vendorAvailabilityId = bookingData?.vendorId || bookingData?.serviceId
 
     const [selectedDate, setSelectedDate] = useState('')
@@ -169,7 +171,9 @@ export default function BookingScreen() {
         return sum
     }, 0)
 
-    const totalPrice = (bookingData.price * (bookingData.guestCount || 1)) + addonsTotal
+    const packagePrice = Number(bookingData.price) || 0
+    const guestMultiplier = requiresGuestCount ? (Number(bookingData.guestCount) || 1) : 1
+    const totalPrice = (packagePrice * guestMultiplier) + addonsTotal
     const advancePayment = Math.round(totalPrice * 0.5) // 50% advance
 
     // Get today's date for min date
@@ -406,7 +410,7 @@ export default function BookingScreen() {
                 category: bookingData.category,
                 eventDate: selectedDate,
                 eventTime: getSelectedTime(),
-                guestCount: bookingData.guestCount,
+                ...(bookingData.guestCount != null ? { guestCount: bookingData.guestCount } : {}),
                 location: location.trim() || bookingData.vendorLocation,
                 specialRequests: specialRequests.trim(),
                 addons: selectedAddonsList,
@@ -448,8 +452,8 @@ export default function BookingScreen() {
                 <Text className='text-xl font-extrabold mb-3' style={{color: Colors.textPrimary}}>{bookingData.packageName}</Text>
                 <View className='flex-row justify-between items-center'>
                     <View>
-                        <Text className='text-lg font-extrabold' style={{color: categoryColor}}>PKR {bookingData.price.toLocaleString()}</Text>
-                        {bookingData.guestCount && (
+                        <Text className='text-lg font-extrabold' style={{color: categoryColor}}>PKR {packagePrice.toLocaleString()}</Text>
+                        {requiresGuestCount && bookingData.guestCount && (
                             <Text className='text-sm font-medium mt-1' style={{color: Colors.textSecondary}}>For {bookingData.guestCount} guests</Text>
                         )}
                     </View>
@@ -753,11 +757,11 @@ export default function BookingScreen() {
                             <Text className='text-xs font-bold' style={{color: Colors.textSecondary}}>Package</Text>
                             <Text className='text-sm font-extrabold mt-1' style={{color: Colors.textPrimary}} numberOfLines={2}>{bookingData.packageName}</Text>
                         </View>
-                        <Text className='text-base font-extrabold' style={{color: Colors.textPrimary}}>PKR {bookingData.price.toLocaleString()}</Text>
+                        <Text className='text-base font-extrabold' style={{color: Colors.textPrimary}}>PKR {packagePrice.toLocaleString()}</Text>
                     </View>
 
                     {/* Guest Count */}
-                    {bookingData.guestCount && (
+                    {requiresGuestCount && bookingData.guestCount && (
                         <View className='flex-row justify-between items-center mb-3'>
                             <Text className='text-xs font-bold' style={{color: Colors.textSecondary}}>Guests</Text>
                             <Text className='text-sm font-bold' style={{color: Colors.textPrimary}}>{bookingData.guestCount}</Text>

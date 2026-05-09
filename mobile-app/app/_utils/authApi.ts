@@ -199,6 +199,22 @@ export const resendVerificationOtp = async (params: ForgotPasswordParams) => {
   return response
 }
 
+export const restoreAccount = async (params: LoginParams) => {
+  const response = await apiFetchJson<any>(
+    AUTH_ENDPOINTS.restoreAccount,
+    {
+      method: 'POST',
+      auth: false,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    },
+    'Failed to restore account.'
+  )
+
+  return response
+}
 
 export const getCurrentUser = async () => {
   const response = await apiFetchJson<any>(

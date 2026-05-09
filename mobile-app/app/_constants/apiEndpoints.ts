@@ -16,6 +16,7 @@ export const AUTH_ENDPOINTS = {
   resetPassword: withApiPrefix('/auth/reset-password'),
   verifyEmail: withApiPrefix('/auth/verify-email'),
   resendVerificationOtp: withApiPrefix('/auth/resend-verification-otp'),
+  restoreAccount: withApiPrefix('/auth/restore-account'),
   identitySubmit: withApiPrefix('/auth/identity/submit'),
   identityStatus: withApiPrefix('/auth/identity/status'),
 }
@@ -74,6 +75,7 @@ export const NOTIFICATION_ENDPOINTS = {
   unreadCount: withApiPrefix('/notifications/unread-count'),
   markAsRead: (id: string) => withApiPrefix(`/notifications/${id}/read`),
   markAllAsRead: withApiPrefix('/notifications/read-all'),
+  updateToken: withApiPrefix('/notifications/update-token'),
   deleteAll: withApiPrefix('/notifications'),
   delete: (id: string) => withApiPrefix(`/notifications/${id}`),
 }
