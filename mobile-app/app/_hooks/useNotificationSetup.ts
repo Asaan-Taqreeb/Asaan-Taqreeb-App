@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Platform } from 'react-native';
+import { InteractionManager, Platform } from 'react-native';
 import {
   registerForPushNotificationsAsync,
   setupFCMForegroundHandler,
@@ -21,11 +21,18 @@ export function useNotificationSetup() {
   const router = useRouter();
   const { user, loading } = useUser();
   const unsubscribesRef = useRef<(() => void)[]>([]);
+  const initializationStartedRef = useRef(false);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || !user?.id || initializationStartedRef.current) return;
+
+    initializationStartedRef.current = true;
+    let interactionHandle: { cancel: () => void } | null = null;
+    let cancelled = false;
 
     const initializeNotifications = async () => {
+      if (cancelled) return;
+
       try {
         console.log('🔧 Initializing push notifications...');
 
@@ -92,10 +99,14 @@ export function useNotificationSetup() {
       }
     };
 
-    initializeNotifications();
+    interactionHandle = InteractionManager.runAfterInteractions(() => {
+      initializeNotifications();
+    });
 
     // Cleanup on unmount
     return () => {
+      cancelled = true;
+      interactionHandle?.cancel();
       unsubscribesRef.current.forEach(unsubscribe => {
         try {
           unsubscribe?.();

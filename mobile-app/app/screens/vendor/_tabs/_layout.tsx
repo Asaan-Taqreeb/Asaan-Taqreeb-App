@@ -3,11 +3,11 @@ import { Home, ShoppingBasket, MessageCircle, User } from 'lucide-react-native';
 import { Colors } from '@/app/_constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { View } from 'react-native';
-import { useNotifications } from '@/app/_context/NotificationContext';
+import { useUnreadNotificationCount } from '@/app/_context/NotificationContext';
 
 export default function VendorTabLayout() {
   const insets = useSafeAreaInsets();
-  const { unreadCount } = useNotifications();
+  const unreadCount = useUnreadNotificationCount();
 
   return (
     <Tabs

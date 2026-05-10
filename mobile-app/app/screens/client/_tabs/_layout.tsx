@@ -3,11 +3,11 @@ import { Ionicons } from '@expo/vector-icons'
 import { View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors } from '@/app/_constants/theme'
-import { useNotifications } from '@/app/_context/NotificationContext'
+import { useUnreadNotificationCount } from '@/app/_context/NotificationContext'
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets()
-  const { unreadCount } = useNotifications()
+  const unreadCount = useUnreadNotificationCount()
 
   return (
     <Tabs
