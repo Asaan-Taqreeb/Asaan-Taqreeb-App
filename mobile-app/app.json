@@ -7,7 +7,7 @@
     "icon": "./assets/images/Logo.png",
     "scheme": "asaantaqreeb",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
