@@ -11,6 +11,7 @@ export interface UserData {
   name?: string
   email?: string
   role?: 'client' | 'vendor'
+  isGuest?: boolean
   [key: string]: any
 }
 

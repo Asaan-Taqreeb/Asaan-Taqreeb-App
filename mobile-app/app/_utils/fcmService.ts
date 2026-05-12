@@ -6,10 +6,28 @@ import * as TaskManager from 'expo-task-manager';
 import messaging from '@react-native-firebase/messaging';
 
 const BACKGROUND_NOTIFICATION_TASK = 'BACKGROUND_NOTIFICATION_TASK';
+const isExpoGoAndroid =
+  Platform.OS === 'android' &&
+  (Constants.executionEnvironment === 'storeClient' || Constants.appOwnership === 'expo');
+
+if (!isExpoGoAndroid) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+}
 
 // Request user permissions for notifications
 export async function requestNotificationPermissions() {
   try {
+    if (isExpoGoAndroid) {
+      console.log('Skipping Android push permissions in Expo Go');
+      return false;
+    }
+
     if (Platform.OS === 'android') {
       const granted = await Notifications.requestPermissionsAsync();
       console.log('Android notification permissions:', granted);
@@ -25,7 +43,7 @@ export async function requestNotificationPermissions() {
 // Get FCM Token (Android native Firebase Cloud Messaging)
 export async function getFCMToken() {
   try {
-    if (Platform.OS !== 'android') {
+    if (Platform.OS !== 'android' || isExpoGoAndroid) {
       console.log('FCM is only available on Android');
       return null;
     }
@@ -43,7 +61,7 @@ export async function getFCMToken() {
 
 // Listen to FCM token refresh (called when token changes)
 export function onFCMTokenRefresh(callback) {
-  if (Platform.OS !== 'android') {
+  if (Platform.OS !== 'android' || isExpoGoAndroid) {
     return () => {};
   }
 
@@ -62,7 +80,7 @@ export function onFCMTokenRefresh(callback) {
 
 // Handle foreground FCM messages
 export function setupFCMForegroundHandler() {
-  if (Platform.OS !== 'android') {
+  if (Platform.OS !== 'android' || isExpoGoAndroid) {
     return () => {};
   }
 
@@ -90,7 +108,7 @@ export function setupFCMForegroundHandler() {
 
 // Handle background FCM messages
 export function setupFCMBackgroundHandler() {
-  if (Platform.OS !== 'android') {
+  if (Platform.OS !== 'android' || isExpoGoAndroid) {
     return;
   }
 
@@ -109,7 +127,7 @@ export function setupFCMBackgroundHandler() {
 
 // Handle notification press (when user taps notification)
 export function setupFCMNotificationHandler(onNotificationPress) {
-  if (Platform.OS !== 'android') {
+  if (Platform.OS !== 'android' || isExpoGoAndroid) {
     return () => {};
   }
 
@@ -137,22 +155,15 @@ export function setupFCMNotificationHandler(onNotificationPress) {
 }
 
 // Define the background task for handling notifications when the app is closed
-TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, ({ data, error, executionContext }) => {
-  if (error) {
-    console.error('Background notification task error:', error);
-    return;
-  }
-  console.log('Background notification task triggered:', data);
-});
-
-// Configure notification behavior
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+if (!isExpoGoAndroid) {
+  TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, ({ data, error, executionContext }) => {
+    if (error) {
+      console.error('Background notification task error:', error);
+      return;
+    }
+    console.log('Background notification task triggered:', data);
+  });
+}
 
 /**
  * Register for push notifications and get both Expo and FCM tokens
@@ -160,6 +171,14 @@ Notifications.setNotificationHandler({
 export async function registerForPushNotificationsAsync() {
   let expoToken = null;
   let fcmToken = null;
+
+  if (isExpoGoAndroid) {
+    console.log('Skipping push notification registration in Expo Go on Android');
+    return {
+      expoToken,
+      fcmToken,
+    };
+  }
 
   try {
     // Register the background task

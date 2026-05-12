@@ -52,3 +52,7 @@ export const sendTestNotification = async () => {
     return false;
   }
 };
+
+export default function PushTokenManagerRouteStub() {
+  return null;
+}

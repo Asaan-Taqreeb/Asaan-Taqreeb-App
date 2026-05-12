@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { InteractionManager, Platform } from 'react-native';
+import Constants from 'expo-constants';
 import {
   registerForPushNotificationsAsync,
   setupFCMForegroundHandler,
@@ -22,9 +23,18 @@ export function useNotificationSetup() {
   const { user, loading } = useUser();
   const unsubscribesRef = useRef<(() => void)[]>([]);
   const initializationStartedRef = useRef(false);
+  const isExpoGoAndroid =
+    Platform.OS === 'android' &&
+    (Constants.executionEnvironment === 'storeClient' || Constants.appOwnership === 'expo');
 
   useEffect(() => {
     if (loading || !user?.id || initializationStartedRef.current) return;
+
+    if (isExpoGoAndroid) {
+      console.log('Skipping push notification setup in Expo Go on Android');
+      initializationStartedRef.current = true;
+      return;
+    }
 
     initializationStartedRef.current = true;
     let interactionHandle: { cancel: () => void } | null = null;

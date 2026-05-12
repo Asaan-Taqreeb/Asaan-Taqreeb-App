@@ -6,6 +6,10 @@ type ApiFetchOptions = RequestInit & {
   timeout?: number
 }
 
+const isFormDataBody = (body: unknown): body is FormData => {
+  return !!body && typeof body === 'object' && typeof (body as FormData).append === 'function'
+}
+
 export class RequestTimeoutError extends Error {
   constructor(message = 'Request timeout. Please check your internet connection and try again.') {
     super(message)
@@ -156,7 +160,7 @@ export const apiFetch = async (url: string, options: ApiFetchOptions = {}) => {
     ...(headers as Record<string, string>),
   }
 
-  if (!finalHeaders['Content-Type'] && rest.body && !(rest.body instanceof FormData)) {
+  if (!finalHeaders['Content-Type'] && rest.body && !isFormDataBody(rest.body)) {
     finalHeaders['Content-Type'] = 'application/json'
   }
 

@@ -1,13 +1,16 @@
 import { Tabs } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import { View } from 'react-native'
+import { Alert, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors } from '@/app/_constants/theme'
 import { useUnreadNotificationCount } from '@/app/_context/NotificationContext'
+import { useUser } from '@/app/_context/UserContext'
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets()
   const unreadCount = useUnreadNotificationCount()
+  const { user } = useUser()
+  const isGuest = Boolean(user?.isGuest)
 
   return (
     <Tabs
@@ -54,10 +57,17 @@ export default function TabLayout() {
         options={{
           title: 'Bookings',
           tabBarIcon: ({ color, size, focused }) => (
-            <View style={{ transform: [{ scale: focused ? 1.1 : 1 }] }}>
-              <Ionicons name={focused ? "calendar" : "calendar-outline"} size={size} color={color} />
+            <View style={{ transform: [{ scale: focused ? 1.1 : 1 }], opacity: isGuest ? 0.6 : 1 }}>
+              <Ionicons name={focused ? "calendar" : "calendar-outline"} size={size} color={isGuest ? Colors.textTertiary : color} />
             </View>
           ),
+        }}
+        listeners={{
+          tabPress: (event) => {
+            if (!isGuest) return
+            event.preventDefault()
+            Alert.alert('Guest Mode', 'Sign in to access bookings.')
+          },
         }}
       />
       <Tabs.Screen
@@ -66,10 +76,17 @@ export default function TabLayout() {
           title: 'Messages',
           tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
           tabBarIcon: ({ color, size, focused }) => (
-            <View style={{ transform: [{ scale: focused ? 1.1 : 1 }] }}>
-              <Ionicons name={focused ? "chatbubbles" : "chatbubbles-outline"} size={size} color={color} />
+            <View style={{ transform: [{ scale: focused ? 1.1 : 1 }], opacity: isGuest ? 0.6 : 1 }}>
+              <Ionicons name={focused ? "chatbubbles" : "chatbubbles-outline"} size={size} color={isGuest ? Colors.textTertiary : color} />
             </View>
           ),
+        }}
+        listeners={{
+          tabPress: (event) => {
+            if (!isGuest) return
+            event.preventDefault()
+            Alert.alert('Guest Mode', 'Sign in to access messages.')
+          },
         }}
       />
     </Tabs>

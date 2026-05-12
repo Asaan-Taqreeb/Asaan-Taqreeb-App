@@ -18,6 +18,11 @@ export default function Index() {
     const routeAuthenticatedUser = async () => {
       if (!user?.role) return
 
+      if (user.isGuest) {
+        router.replace('/screens/client/_tabs/ClientHomeScreen')
+        return
+      }
+
       if (user.role === 'vendor') {
         router.replace('/screens/vendor/VendorHomeScreen')
         return

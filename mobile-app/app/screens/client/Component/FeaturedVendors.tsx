@@ -5,11 +5,13 @@ import { useEffect, useMemo, useState } from "react";
 import { Colors, Shadows, Spacing } from "@/app/_constants/theme";
 import { getAllServices, ServiceListItem, getConciseAddress } from '@/app/_utils/servicesApi'
 import { getCategoryColor } from '@/app/_constants/theme'
+import { useLanguage } from '@/app/_context/LanguageContext'
 
 export default function FeaturedVendors() {
     const [vendors, setVendors] = useState<ServiceListItem[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+  const { t } = useLanguage()
 
     useEffect(() => {
       let mounted = true
@@ -24,7 +26,7 @@ export default function FeaturedVendors() {
           }
         } catch (apiError: any) {
           if (mounted) {
-            setError(apiError?.message || 'Failed to load vendors')
+            setError(apiError?.message || t('loadingVendors'))
           }
         } finally {
           if (mounted) {
@@ -49,13 +51,13 @@ export default function FeaturedVendors() {
     <View style={styles.container}>
         <View className="mt-2">
           <View className="flex-row justify-between items-center px-4 mb-3">
-            <Text className="text-lg font-bold" style={{color: Colors.textPrimary}}>Top Rated</Text>
+            <Text className="text-lg font-bold" style={{color: Colors.textPrimary}}>{t('topRated')}</Text>
             <Pressable className="active:opacity-70" onPress={() => router.push("/screens/client/Component/VendorListView")}>
-              <Text className="text-sm font-semibold" style={{color: Colors.primary}}>See All</Text>
+              <Text className="text-sm font-semibold" style={{color: Colors.primary}}>{t('seeAll')}</Text>
             </Pressable>
           </View>
           {loading && (
-            <Text className="px-4 py-2 text-sm" style={{color: Colors.textSecondary}}>Loading vendors...</Text>
+            <Text className="px-4 py-2 text-sm" style={{color: Colors.textSecondary}}>{t('loadingVendors')}</Text>
           )}
           {error && !loading && (
             <Text className="px-4 py-2 text-sm" style={{color: Colors.error}}>{error}</Text>
@@ -105,14 +107,14 @@ export default function FeaturedVendors() {
                       {item.category === "banquet" && (
                         <View className="flex-row items-center mb-1.5">
                           <Users size={12} color={Colors.textTertiary} />
-                          <Text className="text-xs font-bold ml-1" style={{color: Colors.textSecondary}}>{item.minGuests}-{item.maxGuests} Guests</Text>
+                          <Text className="text-xs font-bold ml-1" style={{color: Colors.textSecondary}}>{item.minGuests}-{item.maxGuests} {t('guests')}</Text>
                         </View>
                       )}
                     </View>
 
                     <View className="flex-row justify-between items-center mt-auto">
                       <View className="bg-gray-50 px-2 py-1 rounded-lg">
-                        <Text className="text-[10px] font-black uppercase tracking-widest" style={{color: Colors.textTertiary}}>Starting From</Text>
+                        <Text className="text-[10px] font-black uppercase tracking-widest" style={{color: Colors.textTertiary}}>{t('startingFrom')}</Text>
                       </View>
                       <Text className="text-base font-black" style={{color: Colors.primary}}>
                         PKR {item.category === "banquet" ? (item.price ?? 0).toLocaleString() : (item.packages?.[0]?.price ?? 0).toLocaleString()}

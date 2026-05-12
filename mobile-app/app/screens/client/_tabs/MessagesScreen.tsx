@@ -7,15 +7,24 @@ import { Colors } from '@/app/_constants/theme'
 import { getUserChats, deleteChatHistory, ChatOverview } from '@/app/_utils/messagesApi'
 import { useSocket } from '@/app/_context/SocketContext'
 import Avatar from '@/app/_components/Avatar'
+import { useUser } from '@/app/_context/UserContext'
+import { Shadows } from '@/app/_constants/theme'
 
 export default function MessagesScreen() {
   const insets = useSafeAreaInsets()
+  const { user } = useUser()
   const [chats, setChats] = useState<ChatOverview[]>([])
   const [refreshing, setRefreshing] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const { socket } = useSocket()
 
   const loadChats = async () => {
+    if (user?.isGuest) {
+      setChats([])
+      setIsLoading(false)
+      return
+    }
+
     try {
       const allChats = await getUserChats();
       const corruptedChats = allChats.filter(chat => chat.otherUser._id === 'deleted');
@@ -103,6 +112,13 @@ export default function MessagesScreen() {
 
   return (
     <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}>
+      {user?.isGuest && (
+        <View className='px-5 py-5' style={{borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.white}}>
+          <Text className='text-xl font-bold' style={{color: Colors.textPrimary}}>Messages locked in guest mode</Text>
+          <Text className='text-xs font-medium mt-0.5' style={{color: Colors.textSecondary}}>Sign in to chat with vendors.</Text>
+        </View>
+      )}
+
       <View className='px-5 py-5 flex-row justify-between items-center' style={{borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.white}}>
         <View>
           <Text className='text-xl font-bold' style={{color: Colors.textPrimary}}>Messages</Text>
@@ -119,6 +135,23 @@ export default function MessagesScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
         }
       >
+        {user?.isGuest && (
+          <View className='px-5 pt-4'>
+            <View className='rounded-2xl p-5' style={{backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, ...Shadows.small}}>
+              <Text className='text-lg font-bold text-center' style={{color: Colors.textPrimary}}>Chat is disabled for guests</Text>
+              <Text className='text-sm font-medium text-center mt-2' style={{color: Colors.textSecondary}}>
+                Sign in to view conversations and message vendors.
+              </Text>
+              <Pressable
+                className='mt-4 py-3 rounded-xl active:opacity-85'
+                style={{backgroundColor: Colors.primary}}
+                onPress={() => router.push('/screens/client/Component/LoginScreen')}
+              >
+                <Text className='text-center font-bold text-sm' style={{color: Colors.white}}>Sign In</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
         {!isLoading && chats.length === 0 ? (
           <View className='flex-1 justify-center items-center py-32 px-8'>
             <View className='w-20 h-20 rounded-full items-center justify-center mb-4' style={{backgroundColor: Colors.lightGray}}>

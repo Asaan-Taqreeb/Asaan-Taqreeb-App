@@ -31,39 +31,66 @@ export const isCloudinaryConfigured = () =>
  * Returns the secure HTTPS URL of the uploaded image.
  */
 export const uploadToCloudinary = async (uri: string): Promise<string> => {
-  const filename = uri.split('/').pop() || `image_${Date.now()}.jpg`
-  const match = /\.(\w+)$/.exec(filename)
-  const type = match ? `image/${match[1].toLowerCase()}` : 'image/jpeg'
-
-  const formData = new FormData()
-  
-  if (Platform.OS === 'web') {
-    // Web requires a Blob/File object
-    const response = await fetch(uri)
-    const blob = await response.blob()
-    formData.append('file', blob, filename)
-  } else {
-    // React Native handles the {uri, type, name} object
-    formData.append('file', { uri, type, name: filename } as any)
+  if (!uri) {
+    throw new Error('Image URI is required');
   }
 
-  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET)
-  formData.append('folder', CLOUDINARY_FOLDER)
+  try {
+    const filename = uri.split('/').pop() || `image_${Date.now()}.jpg`
+    const match = /\.(\w+)$/.exec(filename)
+    const type = match ? `image/${match[1].toLowerCase()}` : 'image/jpeg'
 
-  const response = await fetch(
-    `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
-    { method: 'POST', body: formData }
-  )
+    console.log('Creating FormData with:', { uri, type, filename });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}))
-    throw new Error(errorData?.error?.message || `Cloudinary upload failed (${response.status})`)
+    const formData = new FormData()
+    
+    if (Platform.OS === 'web') {
+      // Web requires a Blob/File object
+      try {
+        const response = await fetch(uri)
+        const blob = await response.blob()
+        formData.append('file', blob, filename)
+      } catch (fetchError) {
+        console.error('Failed to fetch image for web:', fetchError);
+        throw new Error(`Failed to load image from URI: ${fetchError}`);
+      }
+    } else {
+      // React Native handles the {uri, type, name} object
+      const fileObject = { uri, type, name: filename };
+      console.log('Appending React Native file object:', fileObject);
+      formData.append('file', fileObject as any)
+    }
+
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET)
+    formData.append('folder', CLOUDINARY_FOLDER)
+
+    console.log('Uploading to Cloudinary with preset:', CLOUDINARY_UPLOAD_PRESET, 'cloud:', CLOUDINARY_CLOUD_NAME);
+
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+      { method: 'POST', body: formData }
+    )
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      console.error('Cloudinary error response:', errorData);
+      throw new Error(errorData?.error?.message || `Cloudinary upload failed (${response.status})`)
+    }
+
+    const data = await response.json()
+    console.log('Cloudinary response:', JSON.stringify(data, null, 2));
+    
+    const url = data?.secure_url
+    if (!url) {
+      console.error('No secure_url in response:', data);
+      throw new Error('Cloudinary did not return a URL')
+    }
+    
+    return url
+  } catch (error) {
+    console.error('uploadToCloudinary error:', error);
+    throw error;
   }
-
-  const data = await response.json()
-  const url = data?.secure_url
-  if (!url) throw new Error('Cloudinary did not return a URL')
-  return url
 }
 
 /**

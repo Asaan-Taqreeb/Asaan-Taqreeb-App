@@ -1,19 +1,27 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { User, Store, ChevronRight } from "lucide-react-native"
 import { useRouter } from "expo-router";
 import { Colors, Shadows } from "@/app/_constants/theme";
 import AppLogo from "./client/Component/AppLogo";
+import { useUser } from "@/app/_context/UserContext";
+import { clearAuthTokens } from "@/app/_utils/authStorage";
+import { useLanguage } from "@/app/_context/LanguageContext";
+import LanguagePickerModal from "@/app/_components/LanguagePickerModal";
+import { useState } from "react";
 
 export default function WelcomeScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
+  const { setUser } = useUser()
+  const { language, languageLabel, languageOptions, setLanguage, t } = useLanguage()
+  const [showLanguagePicker, setShowLanguagePicker] = useState(false)
 
   const roles = [
     {
       keyRole: "Client",
-      title: "I want to Book",
-      subText: "Venues, Food, Decor & more.",
+      title: t('bookRoleTitle'),
+      subText: t('welcomeSubtitleClient'),
       icon: User,
       color: Colors.accent, // Electric Blue
       bgColor: '#EFF6FF',
@@ -21,8 +29,8 @@ export default function WelcomeScreen() {
     },
     {
       keyRole: "Vendor",
-      title: "I am a Vendor",
-      subText: "List services & get orders.",
+      title: t('vendorRoleTitle'),
+      subText: t('welcomeSubtitleVendor'),
       icon: Store,
       color: Colors.primary, // Electric Cyan
       bgColor: Colors.primaryMuted,
@@ -30,11 +38,35 @@ export default function WelcomeScreen() {
     }
   ]
 
+  const handleContinueAsGuest = async () => {
+    try {
+      await clearAuthTokens()
+      setUser({
+        id: 'guest-user',
+        name: 'Guest',
+        role: 'client',
+        isGuest: true,
+      })
+      router.replace('/screens/client/_tabs/ClientHomeScreen')
+    } catch {
+      Alert.alert('Guest Mode Unavailable', 'Please try again.')
+    }
+  }
+
   return (
     <View style={[style.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]} >
       <View className="flex-1 justify-center px-6">
         <View className="items-center mb-16">
           <AppLogo size="medium" />
+          <Pressable
+            onPress={() => setShowLanguagePicker(true)}
+            className="mt-5 px-4 py-2 rounded-full"
+            style={{ backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border }}
+          >
+            <Text className="text-xs font-bold uppercase tracking-widest" style={{ color: Colors.textPrimary }}>
+              {t('appLanguage')}: {languageLabel}
+            </Text>
+          </Pressable>
         </View>
 
         <View className="gap-5">
@@ -68,12 +100,51 @@ export default function WelcomeScreen() {
               </View>
             </Pressable>
           ))}
+
+          <Pressable
+            onPress={handleContinueAsGuest}
+            className="active:opacity-90"
+          >
+            <View
+              className="flex-row items-center p-6 rounded-[24px] border border-dashed"
+              style={[style.cardShadow, { backgroundColor: '#F8FAFC', borderColor: Colors.border }]}
+            >
+              <View
+                className="w-16 h-16 rounded-2xl items-center justify-center"
+                style={{ backgroundColor: '#E0F2FE' }}
+              >
+                <User color={Colors.primary} size={30} />
+              </View>
+
+              <View className="flex-1 ml-5">
+                <Text className="text-xl font-extrabold" style={{ color: Colors.textPrimary }}>
+                  {t('continueAsGuest')}
+                </Text>
+                <Text className="text-sm font-medium mt-1" style={{ color: Colors.textSecondary }}>
+                  {t('guestDescription')}
+                </Text>
+              </View>
+
+              <ChevronRight size={20} color={Colors.textTertiary} />
+            </View>
+          </Pressable>
         </View>
       </View>
 
       <Text className="text-center text-xs font-bold mb-4 uppercase tracking-widest" style={{ color: Colors.textTertiary }}>
         Asaan Taqreeb • Premium
       </Text>
+
+      <LanguagePickerModal
+        visible={showLanguagePicker}
+        currentLanguage={language}
+        options={languageOptions}
+        onSelect={(nextLanguage) => {
+          setLanguage(nextLanguage)
+          setShowLanguagePicker(false)
+        }}
+        onClose={() => setShowLanguagePicker(false)}
+      />
     </View>
   )
 };

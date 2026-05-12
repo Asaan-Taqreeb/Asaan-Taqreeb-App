@@ -7,10 +7,50 @@ import { useUser } from '@/app/_context/UserContext'
 import Avatar from '@/app/_components/Avatar'
 import { logoutUser, deleteUserAccount } from '@/app/_utils/authApi'
 import { Alert } from 'react-native'
+import { useState } from 'react'
+import { useLanguage } from '@/app/_context/LanguageContext'
+import LanguagePickerModal from '@/app/_components/LanguagePickerModal'
 
 export default function ProfileView() {
   const insets = useSafeAreaInsets()
   const { user, setUser } = useUser()
+    const { language, languageLabel, languageOptions, setLanguage, t } = useLanguage()
+    const [showLanguagePicker, setShowLanguagePicker] = useState(false)
+
+    if (user?.isGuest) {
+        return (
+            <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}] }>
+                <ScrollView showsVerticalScrollIndicator={false}>
+                    <View className='flex-row items-center gap-4 px-5 py-5' style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
+                        <Pressable className='rounded-full p-2 active:opacity-70' style={{backgroundColor: Colors.lightGray}} onPress={() => router.push('/screens/client/_tabs/ClientHomeScreen')}>
+                            <ArrowLeft color={Colors.primary} size={24} />
+                        </Pressable>
+                        <Text className='text-lg font-bold' style={{color: Colors.textPrimary}}>Guest Profile</Text>
+                    </View>
+
+                    <View style={[styles.profileCard, Shadows.small]} className='px-6 py-8 rounded-3xl w-11/12 self-center my-6'>
+                        <View className='flex-row items-center'>
+                            <Avatar name='Guest' size='lg' color={Colors.primary} />
+                            <View className='flex-1 ml-4'>
+                                <Text className='text-xl font-bold' style={{color: Colors.textPrimary}}>Guest</Text>
+                                <Text className='text-sm font-medium mt-1' style={{color: Colors.textSecondary}} numberOfLines={1}>Browsing without an account</Text>
+                            </View>
+                        </View>
+                        <Text className='text-sm font-medium mt-5' style={{color: Colors.textSecondary}}>
+                            Sign in to save your profile, book vendors, and message them directly.
+                        </Text>
+                        <Pressable
+                            className='mt-5 py-3 rounded-xl active:opacity-85'
+                            style={{backgroundColor: Colors.primary}}
+                            onPress={() => router.push('/screens/client/Component/LoginScreen')}
+                        >
+                            <Text className='text-center font-bold' style={{color: Colors.white}}>Sign In</Text>
+                        </Pressable>
+                    </View>
+                </ScrollView>
+            </View>
+        )
+    }
 
   const handleLogout = async () => {
     try {
@@ -93,6 +133,20 @@ export default function ProfileView() {
                     <Pressable 
                         className='px-5 flex-row items-center rounded-2xl gap-4 active:opacity-80 py-4' 
                         style={styles.menuItem}
+                        onPress={() => setShowLanguagePicker(true)}
+                    >
+                        <View className='p-2.5 rounded-xl' style={{backgroundColor: Colors.infoLight}}>
+                            <CircleQuestionMark size={20} color={Colors.info} />
+                        </View>
+                        <View className='flex-1'>
+                            <Text className='text-base font-semibold' style={{color: Colors.textPrimary}}>{t('appLanguage')}</Text>
+                            <Text className='text-xs font-medium mt-1' style={{color: Colors.textSecondary}}>{languageLabel}</Text>
+                        </View>
+                    </Pressable>
+
+                    <Pressable 
+                        className='px-5 flex-row items-center rounded-2xl gap-4 active:opacity-80 py-4' 
+                        style={styles.menuItem}
                         onPress={() => router.push('/screens/client/Component/BookingHistoryScreen')}
                     >
                         <View className='p-2.5 rounded-xl' style={{backgroundColor: Colors.warningLight}}>
@@ -143,6 +197,17 @@ export default function ProfileView() {
                     </TouchableOpacity>
                 </View>
             </ScrollView>
+
+            <LanguagePickerModal
+                visible={showLanguagePicker}
+                currentLanguage={language}
+                options={languageOptions}
+                onSelect={(nextLanguage) => {
+                  setLanguage(nextLanguage)
+                  setShowLanguagePicker(false)
+                }}
+                onClose={() => setShowLanguagePicker(false)}
+            />
         </View>
   )
 }

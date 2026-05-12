@@ -5,13 +5,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, Save } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '@/app/_constants/theme';
+import { useLanguage } from '@/app/_context/LanguageContext';
+import LanguagePickerModal from '@/app/_components/LanguagePickerModal';
 
 export default function VendorSettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { language, languageLabel, languageOptions, setLanguage, t } = useLanguage();
 
   const [pushNotifications, setPushNotifications] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [showLanguagePicker, setShowLanguagePicker] = useState(false);
 
   React.useEffect(() => {
     loadSettings();
@@ -73,16 +77,16 @@ export default function VendorSettingsScreen() {
         {/* Notifications Section */}
         <View className="mb-6">
           <Text className="text-xs font-semibold text-gray-400 mb-3 tracking-wider">
-            PREFERENCES
+            {t('preferences')}
           </Text>
           <View className="bg-white rounded-2xl p-4 mb-3">
             <View className="flex-row items-center justify-between">
               <View className="flex-1">
                 <Text className="text-base font-semibold" style={{ color: Colors.textPrimary }}>
-                  App Notifications
+                  {t('appNotifications')}
                 </Text>
                 <Text className="text-sm text-gray-500 mt-1">
-                  Receive alerts for new orders and messages
+                  {t('receiveAlerts')}
                 </Text>
               </View>
               <Switch
@@ -93,12 +97,25 @@ export default function VendorSettingsScreen() {
               />
             </View>
           </View>
+
+          <TouchableOpacity
+            className="bg-white rounded-2xl p-4"
+            activeOpacity={0.7}
+            onPress={() => setShowLanguagePicker(true)}
+          >
+            <Text className="text-base font-semibold" style={{ color: Colors.textPrimary }}>
+              {t('appLanguage')}
+            </Text>
+            <Text className="text-sm text-gray-500 mt-1">
+              {languageLabel}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Privacy Section */}
         <View className="mb-6">
           <Text className="text-xs font-semibold text-gray-400 mb-3 tracking-wider">
-            PRIVACY & SECURITY
+            {t('privacySecurity')}
           </Text>
 
           <TouchableOpacity
@@ -153,12 +170,23 @@ export default function VendorSettingsScreen() {
             <>
               <Save size={20} color="#FFFFFF" />
               <Text className="text-white text-base font-bold ml-2">
-                Save Settings
+                {t('saveSettings')}
               </Text>
             </>
           )}
         </TouchableOpacity>
       </View>
+
+      <LanguagePickerModal
+        visible={showLanguagePicker}
+        currentLanguage={language}
+        options={languageOptions}
+        onSelect={(nextLanguage) => {
+          setLanguage(nextLanguage)
+          setShowLanguagePicker(false)
+        }}
+        onClose={() => setShowLanguagePicker(false)}
+      />
     </View>
   );
 }

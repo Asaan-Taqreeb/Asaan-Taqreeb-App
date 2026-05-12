@@ -10,12 +10,14 @@ import OrderCard from '../Component/OrderCard';
 
 import NotificationBell from '@/app/_components/NotificationBell'
 import { useUser } from '@/app/_context/UserContext';
+import { useLanguage } from '@/app/_context/LanguageContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function VendorDashboardHome() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useUser();
+  const { t } = useLanguage();
   const [orders, setOrders] = React.useState<VendorOrderItem[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
   const [recentReviews, setRecentReviews] = React.useState<any[]>([])
@@ -106,10 +108,10 @@ export default function VendorDashboardHome() {
         <View className="flex-row justify-between items-center">
           <View>
             <Text className="text-xl font-black tracking-tight" style={{ color: Colors.textPrimary }}>
-              Dashboard
+              {t('dashboard')}
             </Text>
             <Text className="text-[10px] font-bold uppercase tracking-widest mt-0.5" style={{ color: Colors.textSecondary }}>
-              Vendor Control Panel
+              {t('vendorControlPanel')}
             </Text>
           </View>
           <NotificationBell userId={user?.id} userRole='vendor' />
@@ -137,7 +139,7 @@ export default function VendorDashboardHome() {
                 <DollarSign size={16} color="#FFFFFF" />
               </View>
               <Text className="text-white/60 text-[10px] font-black uppercase tracking-[2px] ml-1">
-                Total Revenue
+                {t('totalRevenue')}
               </Text>
             </View>
             <View className="flex-row items-baseline mt-3">
@@ -152,7 +154,7 @@ export default function VendorDashboardHome() {
             </View>
             <View className="mt-5 pt-5 flex-row justify-between items-center" style={{borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', borderStyle: 'solid'}}>
               <Text className="text-white/70 text-xs font-bold">
-                {stats.acceptedOrders} Confirmed Bookings
+                {stats.acceptedOrders} {t('confirmedBookings')}
               </Text>
               <View className="bg-emerald-400 px-3 py-1 rounded-full">
                 <Text className="text-emerald-950 text-[9px] font-black tracking-widest">REALTIME</Text>
@@ -166,14 +168,14 @@ export default function VendorDashboardHome() {
           <View className="flex-row gap-4 mb-4">
             <StatCard
               icon={CheckCircle}
-              title="Accepted"
+              title={t('accepted')}
               value={stats.acceptedOrders}
               color={Colors.success}
               bgColor={Colors.successLight}
             />
             <StatCard
               icon={XCircle}
-              title="Rejected"
+              title={t('rejected')}
               value={stats.rejectedOrders}
               color={Colors.error}
               bgColor={Colors.errorLight}
@@ -182,14 +184,14 @@ export default function VendorDashboardHome() {
           <View className="flex-row gap-4">
             <StatCard
               icon={Clock}
-              title="Pending"
+              title={t('pending')}
               value={stats.pendingOrders}
               color={Colors.warning}
               bgColor={Colors.warningLight}
             />
             <StatCard
               icon={Star}
-              title="Avg Rating"
+              title={t('avgRating')}
               value={`${avgRating}`}
               color="#F59E0B"
               bgColor="#FEF3C7"
@@ -201,7 +203,7 @@ export default function VendorDashboardHome() {
         <View className="px-5 mt-8">
           <View className="flex-row justify-between items-center mb-4">
             <Text className="text-lg font-bold" style={{ color: Colors.textPrimary }}>
-              Pending Bookings
+              {t('pendingBookings')}
             </Text>
             <TouchableOpacity
               className="flex-row items-center"
@@ -210,7 +212,7 @@ export default function VendorDashboardHome() {
               }}
             >
               <Text className="text-xs font-bold mr-1" style={{ color: Colors.vendor }}>
-                See All
+                {t('seeAll')}
               </Text>
               <ChevronRight size={12} color={Colors.vendor} />
             </TouchableOpacity>
@@ -218,11 +220,11 @@ export default function VendorDashboardHome() {
 
           {isLoading ? (
             <View className="bg-white rounded-2xl p-6" style={Shadows.small}>
-              <Text className="text-sm font-medium text-center" style={{color: Colors.textTertiary}}>Loading recent orders...</Text>
+              <Text className="text-sm font-medium text-center" style={{color: Colors.textTertiary}}>{t('loadingRecentOrders')}</Text>
             </View>
           ) : recentOrders.length === 0 ? (
             <View className="bg-white rounded-2xl p-10 items-center justify-center" style={[Shadows.small, {borderWidth: 1, borderColor: Colors.border, borderStyle: 'dashed'}]}>
-              <Text className="text-sm font-medium" style={{color: Colors.textTertiary}}>No pending bookings</Text>
+              <Text className="text-sm font-medium" style={{color: Colors.textTertiary}}>{t('noPendingBookings')}</Text>
             </View>
           ) : (
             recentOrders.map((order) => (
@@ -244,7 +246,7 @@ export default function VendorDashboardHome() {
         {recentReviews.length > 0 && (
           <View className="px-5 mt-8">
             <Text className="text-lg font-bold mb-4" style={{ color: Colors.textPrimary }}>
-              Recent Reviews
+              {t('recentReviews')}
             </Text>
             {recentReviews.map((review, index) => (
               <View 

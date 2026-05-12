@@ -302,8 +302,14 @@ export default function OrderDetailScreen() {
               <Text className="text-sm text-gray-500 mt-1">
                 {order.serviceType}
               </Text>
-              <Text className="text-lg font-bold mt-2" style={{ color: Colors.vendor }}>
+              <Text className="text-sm font-medium mt-2 text-gray-500">
+                Booking total
+              </Text>
+              <Text className="text-lg font-bold mt-1" style={{ color: Colors.vendor }}>
                 PKR {order.totalAmount ? order.totalAmount.toLocaleString() : '0'}
+              </Text>
+              <Text className="text-xs text-gray-500 mt-2 leading-4">
+                Token or advance payment is handled in chat. Confirm payment from the screenshot before accepting.
               </Text>
             </View>
           </View>
@@ -358,6 +364,9 @@ export default function OrderDetailScreen() {
               PKR {order.totalAmount ? order.totalAmount.toLocaleString() : '0'}
             </Text>
           </View>
+          <Text className="text-white text-xs mt-2 opacity-90">
+            This is the service value. The token is confirmed separately in chat.
+          </Text>
         </View>
       </ScrollView>
 

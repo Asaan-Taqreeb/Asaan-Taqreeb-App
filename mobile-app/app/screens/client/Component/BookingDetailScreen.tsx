@@ -5,11 +5,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, Calendar, Clock, MapPin, Phone, MessageSquare, Info, CreditCard, DollarSign } from 'lucide-react-native';
 import { Colors, Shadows } from '@/app/_constants/theme';
 import StatusStepper from '@/app/_components/StatusStepper';
+import { useUser } from '@/app/_context/UserContext';
 
 export default function BookingDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
+  const { user } = useUser();
   
   const booking = params.booking ? JSON.parse(params.booking as string) : null;
 
@@ -59,10 +61,20 @@ export default function BookingDetailScreen() {
               <Text className="text-sm font-medium text-gray-400 uppercase tracking-tighter">{booking.category}</Text>
             </View>
             <TouchableOpacity 
-              onPress={() => router.push({
-                pathname: '/screens/client/Component/VendorChatScreen',
-                params: { vendorId: booking.vendorId, vendorName: booking.vendorName }
-              })}
+              onPress={() => {
+                if (user?.isGuest) {
+                  Alert.alert('Guest Mode', 'Sign in to chat with vendors.', [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Sign In', onPress: () => router.push('/screens/client/Component/LoginScreen') },
+                  ])
+                  return
+                }
+
+                router.push({
+                  pathname: '/screens/client/Component/VendorChatScreen',
+                  params: { vendorId: booking.vendorId, vendorName: booking.vendorName }
+                })
+              }}
               className="w-12 h-12 rounded-full bg-blue-50 items-center justify-center"
             >
               <MessageSquare size={20} color={Colors.info} />
@@ -107,9 +119,9 @@ export default function BookingDetailScreen() {
           </View>
         </View>
 
-        {/* Package & Price */}
+        {/* Booking & Price */}
         <View className="bg-white mx-5 mt-4 p-5 rounded-3xl" style={Shadows.small}>
-          <Text className="text-sm font-bold mb-4" style={{ color: Colors.textPrimary }}>Payment Details</Text>
+          <Text className="text-sm font-bold mb-4" style={{ color: Colors.textPrimary }}>Booking Summary</Text>
           
           <View className="flex-row justify-between mb-2">
             <Text className="text-sm text-gray-500 font-medium">{booking.packageName}</Text>
@@ -117,7 +129,7 @@ export default function BookingDetailScreen() {
           </View>
           
           <View className="flex-row justify-between mb-4 pb-4 border-b border-gray-50">
-            <Text className="text-sm text-gray-500 font-medium">Service Fee</Text>
+            <Text className="text-sm text-gray-500 font-medium">Booking Service Fee</Text>
             <Text className="text-sm font-bold text-gray-700">PKR 500</Text>
           </View>
 
@@ -133,7 +145,7 @@ export default function BookingDetailScreen() {
 
           <View className="mt-4 p-3 bg-teal-50 rounded-xl flex-row items-center">
             <CreditCard size={16} color={Colors.vendor} />
-            <Text className="text-xs font-bold ml-2" style={{ color: Colors.vendor }}>Payment Method: Cash at Venue</Text>
+            <Text className="text-xs font-bold ml-2" style={{ color: Colors.vendor }}>Payment is coordinated directly in chat by the vendor</Text>
           </View>
         </View>
 

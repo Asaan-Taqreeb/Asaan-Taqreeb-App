@@ -8,6 +8,7 @@ import { getChatById, addMessageToChat, Message, deleteChat } from '@/app/_utils
 import { getAIResponseFromGroq, ChatMessage } from '@/app/_utils/aiAssistantApi'
 
 import { getAllServices } from '@/app/_utils/servicesApi'
+import { useUser } from '@/app/_context/UserContext'
 
 const AI_CHAT_ID = 'ai-assistant'
 const AI_CHAT_NAME = 'AI Assistant'
@@ -20,12 +21,19 @@ export default function AIChatScreen() {
     const [isLoading, setIsLoading] = useState(true)
     const [isTyping, setIsTyping] = useState(false)
     const [vendorContext, setVendorContext] = useState('')
+    const { user } = useUser()
+    const isGuest = Boolean(user?.isGuest)
 
     // Load chat history and vendor context on mount
     useEffect(() => {
+        if (isGuest) {
+            setIsLoading(false)
+            return
+        }
+
         loadChatHistory()
         loadVendorContext()
-    }, [])
+    }, [isGuest])
 
     const loadVendorContext = async () => {
         try {
@@ -197,6 +205,27 @@ export default function AIChatScreen() {
     const formatTime = (date: Date) => {
         const d = new Date(date)
         return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    }
+
+    if (isGuest) {
+        return (
+            <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}>
+                <View className='flex-1 justify-center items-center px-6'>
+                    <Bot color={Colors.primary} size={44} />
+                    <Text className='text-2xl font-extrabold text-center mt-4' style={{color: Colors.textPrimary}}>AI chat is for signed-in users</Text>
+                    <Text className='text-sm font-medium text-center mt-3' style={{color: Colors.textSecondary}}>
+                        Sign in to ask the assistant about vendors, pricing, and planning help.
+                    </Text>
+                    <Pressable
+                        className='mt-6 px-6 py-4 rounded-2xl active:opacity-85'
+                        style={{backgroundColor: Colors.primary}}
+                        onPress={() => router.push('/screens/client/Component/LoginScreen')}
+                    >
+                        <Text className='font-extrabold text-base' style={{color: Colors.white}}>Sign In</Text>
+                    </Pressable>
+                </View>
+            </View>
+        )
     }
 
     if (isLoading) {

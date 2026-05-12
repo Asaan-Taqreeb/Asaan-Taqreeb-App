@@ -14,6 +14,7 @@ import { ArrowLeft, Plus, Trash2, AlertCircle } from 'lucide-react-native';
 import { Colors, Shadows } from '@/app/_constants/theme';
 import { getMyVendorServices, uploadServiceImages, deleteServiceImage, type ServiceListItem } from '@/app/_utils/servicesApi';
 import ImageUploader from './ImageUploader';
+import ImageViewerModal from '@/app/_components/ImageViewerModal';
 
 export default function ServiceImageManager() {
   const router = useRouter();
@@ -21,6 +22,9 @@ export default function ServiceImageManager() {
   const [services, setServices] = useState<ServiceListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeletingImage, setIsDeletingImage] = useState<string | null>(null);
+  const [viewerVisible, setViewerVisible] = useState(false);
+  const [viewerImages, setViewerImages] = useState<string[]>([]);
+  const [viewerIndex, setViewerIndex] = useState(0);
 
   useEffect(() => {
     loadServices();
@@ -146,11 +150,13 @@ export default function ServiceImageManager() {
                   <View className="flex-row flex-wrap gap-3">
                     {service.images.map((imageUrl, index) => (
                       <View key={index} className="relative">
-                        <Image
-                          source={{ uri: imageUrl }}
-                          className="w-24 h-24 rounded-xl"
-                          onError={() => console.log('Image load error:', imageUrl)}
-                        />
+                            <TouchableOpacity onPress={() => { setViewerImages(service.images || []); setViewerIndex(index); setViewerVisible(true); }}>
+                              <Image
+                                source={{ uri: imageUrl }}
+                                className="w-24 h-24 rounded-xl"
+                                onError={() => console.log('Image load error:', imageUrl)}
+                              />
+                            </TouchableOpacity>
                         <TouchableOpacity
                           className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1.5"
                           onPress={() => handleDeleteImage(service.id || service.serviceId, imageUrl, service.name)}
@@ -194,6 +200,14 @@ export default function ServiceImageManager() {
           ))}
         </ScrollView>
       )}
+
+      {/* Single modal instance to avoid conflicts across repeated service cards */}
+      <ImageViewerModal
+        visible={viewerVisible}
+        images={viewerImages}
+        index={viewerIndex}
+        onRequestClose={() => setViewerVisible(false)}
+      />
     </View>
   );
 }

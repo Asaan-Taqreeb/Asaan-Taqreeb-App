@@ -8,6 +8,7 @@ import { Colors, getCategoryColor, Shadows } from '@/app/_constants/theme'
 import { createBooking } from '@/app/_utils/bookingsApi'
 import { getVendorAvailability, type VendorAvailabilityDay } from '@/app/_utils/availabilityApi'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { useUser } from '@/app/_context/UserContext'
 
 type BookingAddon = {
     id: number
@@ -65,6 +66,7 @@ const rangesOverlap = (
 export default function BookingScreen() {
     const insets = useSafeAreaInsets()
     const params = useLocalSearchParams()
+    const { user } = useUser()
     
     // Parse booking data from params
     let bookingData: any = {
@@ -392,6 +394,14 @@ export default function BookingScreen() {
     }
 
     const handleRequestBooking = async () => {
+        if (user?.isGuest) {
+            Alert.alert('Guest Mode', 'Sign in to request a booking.', [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Sign In', onPress: () => router.push('/screens/client/Component/LoginScreen') },
+            ])
+            return
+        }
+
         if (!validateBooking() || isSubmitting) {
             return
         }
@@ -445,6 +455,30 @@ export default function BookingScreen() {
             <Text className='text-xl font-extrabold' style={{color: Colors.textPrimary}}>Booking Details</Text>
         </View>
 
+        {user?.isGuest ? (
+            <View className='flex-1 px-5 justify-center items-center'>
+                <View className='w-full rounded-3xl p-6' style={[{backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border}, Shadows.medium]}>
+                    <Text className='text-2xl font-extrabold text-center mb-2' style={{color: Colors.textPrimary}}>Booking locked in guest mode</Text>
+                    <Text className='text-sm font-medium text-center mb-6' style={{color: Colors.textSecondary}}>
+                        You can browse vendors, but sign in to submit booking requests.
+                    </Text>
+                    <Pressable
+                        className='py-4 rounded-2xl active:opacity-85 mb-3'
+                        style={{backgroundColor: categoryColor}}
+                        onPress={() => router.push('/screens/client/Component/LoginScreen')}
+                    >
+                        <Text className='text-center font-extrabold text-base' style={{color: Colors.white}}>Sign In</Text>
+                    </Pressable>
+                    <Pressable
+                        className='py-4 rounded-2xl active:opacity-80'
+                        style={{borderWidth: 1, borderColor: Colors.border}}
+                        onPress={() => router.back()}
+                    >
+                        <Text className='text-center font-bold text-base' style={{color: Colors.textPrimary}}>Continue Browsing</Text>
+                    </Pressable>
+                </View>
+            </View>
+        ) : (
         <ScrollView showsVerticalScrollIndicator={false}>
             {/* Selected Package Info - Locked */}
             <View className='mx-5 my-5 rounded-2xl p-5' style={[{backgroundColor: Colors.white, borderWidth: 2, borderColor: categoryColor}, Shadows.medium]}>
@@ -832,15 +866,12 @@ export default function BookingScreen() {
                         <Text className='text-xl font-extrabold' style={{color: categoryColor}}>PKR {totalPrice.toLocaleString()}</Text>
                     </View>
 
-                    {/* Advance Payment */}
+                    {/* Token Payment */}
                     <View className='rounded-xl p-4' style={{backgroundColor: Colors.lightGray}}>
-                        <View className='flex-row justify-between items-center'>
-                            <View className='flex-1'>
-                                <Text className='text-sm font-bold' style={{color: Colors.textSecondary}}>Advance Payment (50%)</Text>
-                                <Text className='text-xs font-medium mt-1' style={{color: Colors.textSecondary}}>Pay now to confirm</Text>
-                            </View>
-                            <Text className='text-lg font-extrabold' style={{color: Colors.success}}>PKR {advancePayment.toLocaleString()}</Text>
-                        </View>
+                        <Text className='text-sm font-bold' style={{color: Colors.textSecondary}}>Token Payment via Chat</Text>
+                        <Text className='text-xs font-medium mt-1 leading-relaxed' style={{color: Colors.textSecondary}}>
+                            After the vendor approves your booking, they will ask for a 5% to 10% token payment in chat. Send the payment screenshot there for confirmation.
+                        </Text>
                     </View>
                 </View>
             </View>
@@ -856,6 +887,7 @@ export default function BookingScreen() {
                 </Text>
             </Pressable>
         </ScrollView>
+        )}
         </KeyboardAvoidingView>
   )
 }

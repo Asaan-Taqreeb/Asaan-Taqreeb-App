@@ -7,6 +7,8 @@ export type Message = {
   senderId: { _id: string; name: string; email: string };
   receiverId: { _id: string; name: string; email: string };
   text: string;
+  imageUrl?: string;
+  isSending?: boolean;
   isRead: boolean;
   createdAt: string;
 };
@@ -49,15 +51,55 @@ export const sendMessage = async (
   chatId: string,
   receiverId: string,
   text: string,
-  bookingId?: string
+  bookingId?: string,
+  imageUrl?: string,
+  imageUri?: string
 ): Promise<Message> => {
   const url = MESSAGE_ENDPOINTS.sendMessage;
-  const response = await apiFetchJson<Message>(url, {
-    method: 'POST',
-    auth: true,
-    body: JSON.stringify({ chatId, receiverId, text, bookingId }),
-  });
-  return response;
+  try {
+    const hasLocalImage = Boolean(imageUri);
+    const body = hasLocalImage
+      ? (() => {
+          const formData = new FormData();
+          formData.append('chatId', chatId);
+          formData.append('receiverId', receiverId);
+          if (text) formData.append('text', text);
+          if (bookingId) formData.append('bookingId', bookingId);
+          if (imageUrl) formData.append('imageUrl', imageUrl);
+
+          const filename = imageUri!.split('/').pop() || `image_${Date.now()}.jpg`;
+          const match = /\.(\w+)$/.exec(filename);
+          const type = match ? `image/${match[1].toLowerCase()}` : 'image/jpeg';
+          formData.append('image', { uri: imageUri, type, name: filename } as any);
+          return formData;
+        })()
+      : JSON.stringify({ chatId, receiverId, text, bookingId, imageUrl });
+
+    const response = await apiFetchJson<Message>(url, {
+      method: 'POST',
+      auth: true,
+      body,
+    });
+    
+    // Validate response structure
+    if (!response || typeof response !== 'object') {
+      console.error('Invalid message response structure:', response);
+      throw new Error('Server returned an invalid message format');
+    }
+    
+    if (!response._id || !response.senderId || !response.receiverId) {
+      console.error('Message missing required fields:', response);
+      throw new Error('Server message missing required fields (_id, senderId, receiverId)');
+    }
+    
+    return {
+      ...response,
+      imageUrl: response.imageUrl || (response as any).image || (response as any).image_url || imageUrl || '',
+    };
+  } catch (error) {
+    console.error('sendMessage API error:', error);
+    throw error;
+  }
 };
 
 export const markChatAsRead = async (chatId: string): Promise<any> => {

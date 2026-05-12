@@ -8,10 +8,12 @@ import { getMyBookings, ClientBookingItem } from '@/app/_utils/bookingsApi';
 import RatingModal from './RatingModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Star } from 'lucide-react-native';
+import { useUser } from '@/app/_context/UserContext';
 
 export default function BookingHistoryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user } = useUser();
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [bookings, setBookings] = useState<ClientBookingItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -58,6 +60,13 @@ export default function BookingHistoryScreen() {
   };
 
   const fetchBookings = async () => {
+    if (user?.isGuest) {
+      setBookings([]);
+      setIsLoading(false);
+      setIsRefreshing(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
       const data = await getMyBookings();
@@ -146,7 +155,22 @@ export default function BookingHistoryScreen() {
 
   return (
     <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: '#F9FAFB' }}>
+      {user?.isGuest && (
+        <View className="bg-white px-5 py-4 border-b border-gray-100">
+          <Text className="text-lg font-bold" style={{ color: Colors.textPrimary }}>Booking history is unavailable in guest mode</Text>
+          <Text className="text-xs font-medium mt-1" style={{ color: Colors.textSecondary }}>Sign in to view past bookings and ratings.</Text>
+          <TouchableOpacity
+            onPress={() => router.push('/screens/client/Component/LoginScreen')}
+            className="mt-4 py-3 rounded-xl"
+            style={{ backgroundColor: Colors.primary }}
+          >
+            <Text className="text-center text-white font-bold">Sign In</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Header */}
+      {!user?.isGuest && (
       <View className="bg-white px-5 py-4 border-b border-gray-100">
         <View className="flex-row items-center justify-between mb-4">
           <TouchableOpacity
@@ -174,6 +198,7 @@ export default function BookingHistoryScreen() {
           <FilterButton label="Cancelled" value="cancelled" />
         </ScrollView>
       </View>
+      )}
 
       {/* Bookings List */}
       {isLoading && !isRefreshing ? (

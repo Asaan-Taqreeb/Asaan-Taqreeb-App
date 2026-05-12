@@ -1,12 +1,13 @@
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { ArrowLeft, Send } from 'lucide-react-native'
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, Alert, ViewStyle } from 'react-native'
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, Alert, ViewStyle, Image } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors } from '@/app/_constants/theme'
 import { getChatHistory, sendMessage, markChatAsRead, Message } from '@/app/_utils/messagesApi'
 import { useSocket } from '@/app/_context/SocketContext'
 import { useUser } from '@/app/_context/UserContext'
+import ImageViewerModal from '@/app/_components/ImageViewerModal'
 
 export default function ClientChatScreen() {
     const insets = useSafeAreaInsets()
@@ -16,6 +17,9 @@ export default function ClientChatScreen() {
     const [message, setMessage] = useState('')
     const [messages, setMessages] = useState<Message[]>([])
     const [isLoading, setIsLoading] = useState(true)
+    const [viewerVisible, setViewerVisible] = useState(false)
+    const [viewerImages, setViewerImages] = useState<string[]>([])
+    const [viewerIndex, setViewerIndex] = useState(0)
 
     // Params will include the client's info
     const clientId = params.clientId as string
@@ -25,18 +29,26 @@ export default function ClientChatScreen() {
 
     const chatId = (params.chatId as string) || (user?.id && clientId ? `chat_${clientId}_${user.id}` : '')
 
+    const normalizeMessage = useCallback((msg: Message) => {
+        const raw = msg as Message & { image?: string; image_url?: string }
+        return {
+            ...msg,
+            imageUrl: raw.imageUrl || raw.image || raw.image_url || '',
+        }
+    }, [])
+
     const loadChatHistory = useCallback(async () => {
         if (!chatId) return
         try {
             const history = await getChatHistory(chatId)
-            setMessages(history)
+            setMessages(history.map(normalizeMessage))
             await markChatAsRead(chatId)
         } catch (error) {
             console.log('Error loading chat history:', error)
         } finally {
             setIsLoading(false)
         }
-    }, [chatId])
+    }, [chatId, normalizeMessage])
 
     useEffect(() => {
         loadChatHistory()
@@ -48,12 +60,13 @@ export default function ClientChatScreen() {
         socket.emit('joinChat', chatId)
 
         socket.on('receiveMessage', (newMessage: Message) => {
+            const normalizedMessage = normalizeMessage(newMessage)
             setMessages((prev) => {
                 // If it's from me, I already handled it optimistically
-                if (newMessage.senderId._id === user?.id) return prev;
+                if (normalizedMessage.senderId._id === user?.id) return prev;
                 
-                if (prev.some((msg) => msg._id === newMessage._id)) return prev;
-                return [...prev, newMessage];
+                if (prev.some((msg) => msg._id === normalizedMessage._id)) return prev;
+                return [...prev, normalizedMessage];
             })
             markChatAsRead(chatId)
         })
@@ -88,7 +101,7 @@ export default function ClientChatScreen() {
             setMessages(prev => [...prev, optimisticMessage])
 
             try {
-                const savedMessage = await sendMessage(chatId, clientId, textToSend)
+                const savedMessage = normalizeMessage(await sendMessage(chatId, clientId, textToSend))
                 setMessages(prev => {
                     // If socket already added the real message, just remove the optimistic placeholder
                     if (prev.some(m => m._id === savedMessage._id)) {
@@ -105,6 +118,44 @@ export default function ClientChatScreen() {
     const formatTime = (date: Date) => {
         return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
     }
+
+    const renderMessageBody = (msg: Message, isUser: boolean) => (
+        <View
+            className='px-4 py-3 rounded-2xl max-w-[75%]'
+            style={{
+                backgroundColor: isUser ? Colors.primary : Colors.white,
+                borderWidth: !isUser ? 1 : 0,
+                borderColor: Colors.border
+            }}
+        >
+            {msg.imageUrl ? (
+                <Pressable
+                    onPress={() => {
+                        const imageOnlyMessages = messages.filter((item) => Boolean(item.imageUrl))
+                        const images = imageOnlyMessages.map((item) => item.imageUrl as string)
+                        const currentIndex = Math.max(0, images.findIndex((uri) => uri === msg.imageUrl))
+                        setViewerImages(images)
+                        setViewerIndex(currentIndex)
+                        setViewerVisible(true)
+                    }}
+                >
+                    <Image
+                        source={{ uri: msg.imageUrl }}
+                        style={{ width: 220, height: 220, borderRadius: 16, marginBottom: msg.text ? 10 : 0 }}
+                        resizeMode='cover'
+                    />
+                </Pressable>
+            ) : null}
+            {msg.text ? (
+                <Text
+                    className='text-base leading-relaxed'
+                    style={{color: isUser ? Colors.white : Colors.textPrimary}}
+                >
+                    {msg.text}
+                </Text>
+            ) : null}
+        </View>
+    )
 
     if (isLoading) {
         return (
@@ -151,21 +202,7 @@ export default function ClientChatScreen() {
                         key={msg._id}
                         className={`mb-3 ${isUser ? 'items-end' : 'items-start'}`}
                     >
-                        <View
-                            className='px-4 py-3 rounded-2xl max-w-[75%]'
-                            style={{
-                                backgroundColor: isUser ? Colors.primary : Colors.white,
-                                borderWidth: !isUser ? 1 : 0,
-                                borderColor: Colors.border
-                            }}
-                        >
-                            <Text
-                                className='text-base leading-relaxed'
-                                style={{color: isUser ? Colors.white : Colors.textPrimary}}
-                            >
-                                {msg.text}
-                            </Text>
-                        </View>
+                        {renderMessageBody(msg, isUser)}
                         <Text className='text-xs mt-1 px-1' style={{color: Colors.textTertiary}}>
                             {formatTime(new Date(msg.createdAt))}
                         </Text>
@@ -197,6 +234,13 @@ export default function ClientChatScreen() {
                     </Pressable>
                 </View>
             </View>
+
+            <ImageViewerModal
+                visible={viewerVisible}
+                images={viewerImages}
+                index={viewerIndex}
+                onRequestClose={() => setViewerVisible(false)}
+            />
         </KeyboardAvoidingView>
     )
 }

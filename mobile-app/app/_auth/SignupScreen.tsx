@@ -6,6 +6,8 @@ import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 import { registerUser } from '@/app/_utils/authApi'
 import AppLogo from '../screens/client/Component/AppLogo'
+import { useLanguage } from '@/app/_context/LanguageContext'
+import LanguagePickerModal from '@/app/_components/LanguagePickerModal'
 
 interface SignupScreenProps {
     role?: 'client' | 'vendor'
@@ -26,6 +28,7 @@ const SignupScreen = ({
     const userRole = (params.role as 'client' | 'vendor') || role
     const redirectLoginRoute = (params.loginRoute as string) || loginRoute
     const redirectForgotPasswordRoute = (params.forgotPasswordRoute as string) || forgotPasswordRoute
+    const { language, languageLabel, languageOptions, setLanguage, t } = useLanguage()
 
     const [name, setName] = useState('')
     const [email, setEmail] = useState('')
@@ -33,30 +36,31 @@ const SignupScreen = ({
     const [confirmPassword, setConfirmPassword] = useState('')
     const [phone, setPhone] = useState('')
     const [loading, setLoading] = useState(false)
+    const [showLanguagePicker, setShowLanguagePicker] = useState(false)
 
     const [showPassword, setShowPassword] = useState(false)
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
     const handleSignup = async () => {
         if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim() || !phone.trim()) {
-            Alert.alert('Error', 'Please fill in all fields')
+            Alert.alert('Error', t('Please fill in all fields'))
             return
         }
 
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
         if (!emailRegex.test(email.trim())) {
-            Alert.alert('Error', 'Please enter a valid email address')
+            Alert.alert('Error', t('Please enter a valid email address'))
             return
         }
 
         if (password !== confirmPassword) {
-            Alert.alert('Error', 'Passwords do not match')
+            Alert.alert('Error', t('Passwords do not match'))
             return
         }
 
         if (password.length < 6) {
-            Alert.alert('Error', 'Password must be at least 6 characters')
+            Alert.alert('Error', t('Password must be at least 6 characters'))
             return
         }
 
@@ -73,7 +77,7 @@ const SignupScreen = ({
             })
             
             console.log('Registration successful:', result)
-            Alert.alert('Success', 'Account created! Please verify your email.')
+            Alert.alert('Success', t('Account created! Please verify your email.'))
             
             const verificationRoute = userRole === 'vendor' 
                 ? '/screens/vendor/VerificationScreen' 
@@ -100,7 +104,7 @@ const SignupScreen = ({
     }
 
     const getSubtitle = () => {
-        return userRole === 'vendor' ? 'Register Your Business' : 'Create Your Account'
+        return userRole === 'vendor' ? t('registerBusiness') : t('createAccount')
     }
 
     return (
@@ -116,12 +120,21 @@ const SignupScreen = ({
                     <AppLogo size="small" showText={false} />
                     <Text style={styles.appTitle}>Asaan<Text style={{color: Colors.primary}}>Taqreeb</Text></Text>
                     <Text style={styles.subtitle}>{getSubtitle()}</Text>
+                    <Pressable
+                        onPress={() => setShowLanguagePicker(true)}
+                        className='mt-4 px-4 py-2 rounded-full'
+                        style={{ backgroundColor: Colors.primary + '12' }}
+                    >
+                        <Text className='font-bold' style={{ color: Colors.primary }}>
+                            {t('appLanguage')}: {languageLabel}
+                        </Text>
+                    </Pressable>
                 </View>
 
                 {/* Form Section */}
                 <View style={styles.formContainer}>
                     <TextInput
-                        placeholder='Full Name'
+                        placeholder={t('fullName')}
                         style={styles.input}
                         mode='outlined'
                         outlineColor='#ddd'
@@ -134,7 +147,7 @@ const SignupScreen = ({
                     />
 
                     <TextInput
-                        placeholder='Email Address'
+                        placeholder={t('emailAddress')}
                         style={styles.input}
                         mode='outlined'
                         outlineColor='#ddd'
@@ -149,7 +162,7 @@ const SignupScreen = ({
                     />
 
                     <TextInput
-                        placeholder='Phone Number (e.g. 03XXXXXXXXX)'
+                        placeholder={t('phoneNumber')}
                         style={styles.input}
                         mode='outlined'
                         outlineColor='#ddd'
@@ -162,7 +175,7 @@ const SignupScreen = ({
                     />
 
                     <TextInput
-                        placeholder='Password'
+                        placeholder={t('password')}
                         style={styles.input}
                         mode='outlined'
                         outlineColor='#ddd'
@@ -176,7 +189,7 @@ const SignupScreen = ({
                     />
 
                     <TextInput
-                        placeholder='Confirm Password'
+                        placeholder={t('confirmPassword')}
                         style={styles.input}
                         mode='outlined'
                         outlineColor='#ddd'
@@ -197,21 +210,31 @@ const SignupScreen = ({
                         className='w-4/5 self-center py-4 rounded-lg mt-6'
                     >
                         <Text className='text-center text-white font-semibold text-xl'>
-                            {loading ? 'CREATING ACCOUNT...' : 'SIGN UP'}
+                            {loading ? t('creatingAccount') : t('signUp')}
                         </Text>
                     </Pressable>
                 </View>
 
                 <View className='mt-5 self-center'>
-                    <Text className='text-base'>Already have an account? <Pressable onPress={() => router.push(redirectLoginRoute as any)}><Text className='text-indigo-600 font-medium underline'>Login Here</Text></Pressable></Text>
+                    <Text className='text-base'>{t('alreadyHaveAccount')} <Pressable onPress={() => router.push(redirectLoginRoute as any)}><Text className='text-indigo-600 font-medium underline'>{t('loginHere')}</Text></Pressable></Text>
                 </View>
 
                 <View className='mt-3 self-center'>
                     <Pressable onPress={() => router.push(redirectForgotPasswordRoute as any)}>
-                        <Text className='text-indigo-600 font-medium underline'>Forgot Password?</Text>
+                        <Text className='text-indigo-600 font-medium underline'>{t('forgotPassword')}</Text>
                     </Pressable>
                 </View>
                 </ScrollView>
+                <LanguagePickerModal
+                    visible={showLanguagePicker}
+                    currentLanguage={language}
+                    options={languageOptions}
+                    onSelect={(nextLanguage) => {
+                        setLanguage(nextLanguage)
+                        setShowLanguagePicker(false)
+                    }}
+                    onClose={() => setShowLanguagePicker(false)}
+                />
             </View>
         </KeyboardAvoidingView>
     )

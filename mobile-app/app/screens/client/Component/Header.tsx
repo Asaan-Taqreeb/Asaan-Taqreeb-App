@@ -7,6 +7,7 @@ import { router } from 'expo-router'
 import { Colors } from '@/app/_constants/theme'
 import { useUser } from '@/app/_context/UserContext'
 import Avatar from '@/app/_components/Avatar'
+import { useLanguage } from '@/app/_context/LanguageContext'
 
 import NotificationBell from '@/app/_components/NotificationBell'
 import AppLogo from './AppLogo'
@@ -15,6 +16,7 @@ const Header = () => {
   const {result, error} = useLocation()
   const [query, setQuery] = useState("")
   const { user } = useUser()
+  const { t } = useLanguage()
   
   const location = Array.isArray(result) ? result[0] : result
 
@@ -32,7 +34,7 @@ const Header = () => {
         <View className='flex-row items-center gap-3 flex-1'>
           <AppLogo size="small" showText={false} />
           <View>
-            <Text className='text-[10px] font-bold mx-2 uppercase tracking-[1px]' style={{color: Colors.textSecondary}}>Current Location</Text>
+            <Text className='text-[10px] font-bold mx-2 uppercase tracking-[1px]' style={{color: Colors.textSecondary}}>{t('currentLocation')}</Text>
             {location ? (
               <View className='flex flex-row items-center gap-1 mx-2'>
                 <Icon name={"location-dot"} size={12} color={Colors.primary} />          
@@ -41,10 +43,10 @@ const Header = () => {
             ) : error ? (
               <View className='flex flex-row items-center gap-2 mx-2'>
                 <Icon name={"location-dot"} size={12} color={Colors.textSecondary} />          
-                <Text className='text-xs font-medium' style={{color: Colors.textSecondary}}>Location unavailable</Text>
+                <Text className='text-xs font-medium' style={{color: Colors.textSecondary}}>{t('locationUnavailable')}</Text>
               </View>
             ) : (
-              <Text className='text-xs mx-2 font-medium' style={{color: Colors.textTertiary}}>Detecting location...</Text>
+              <Text className='text-xs mx-2 font-medium' style={{color: Colors.textTertiary}}>{t('detectingLocation')}</Text>
             )}      
           </View>
         </View>

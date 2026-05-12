@@ -1,4 +1,4 @@
-import { View, StyleSheet, ScrollView, Pressable } from "react-native";
+import { Alert, View, StyleSheet, ScrollView, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Bot } from "lucide-react-native";
@@ -6,9 +6,22 @@ import Header from "../Component/Header";
 import CategoriesView from "../Component/CategoriesView";
 import FeaturedVendors from "../Component/FeaturedVendors";
 import { Colors, Shadows } from "@/app/_constants/theme";
+import { useUser } from "@/app/_context/UserContext";
+import { useLanguage } from '@/app/_context/LanguageContext'
 
 export default function ClientHomeScreen() {
     const insets = useSafeAreaInsets()
+    const { user } = useUser()
+    const { t } = useLanguage()
+
+    const handleOpenAIChat = () => {
+      if (user?.isGuest) {
+        Alert.alert('Guest Mode', t('signInToUseChat'))
+        return
+      }
+
+      router.push("/screens/client/Component/AIChatScreen")
+    }
 
   return (
     <View style={[styles.container, {paddingTop: insets.top}]}>
@@ -22,7 +35,7 @@ export default function ClientHomeScreen() {
       <Pressable
         className='absolute bottom-6 right-6 rounded-full p-4 active:opacity-80'
         style={[{backgroundColor: Colors.primary}, Shadows.large]}
-        onPress={() => router.push("/screens/client/Component/AIChatScreen")}
+        onPress={handleOpenAIChat}
       >
         <Bot color={Colors.white} size={28} />
       </Pressable>

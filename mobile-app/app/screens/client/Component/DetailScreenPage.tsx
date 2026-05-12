@@ -1,16 +1,18 @@
 import { router, useLocalSearchParams } from 'expo-router'
 import { CircleAlert, Dot, MapPin, Star, Circle, ChevronLeft, ChevronRight, X, ArrowLeft, Plus, MessageCircle } from 'lucide-react-native'
 import { useState, useEffect } from 'react'
-import { Dimensions, ScrollView, Modal, TextInput , Image, Pressable, StyleSheet, Text, View, KeyboardAvoidingView, Platform, Linking } from 'react-native'
+import { Alert, Dimensions, ScrollView, Modal, TextInput , Image, Pressable, StyleSheet, Text, View, KeyboardAvoidingView, Platform, Linking } from 'react-native'
 import GoogleMapView from '@/app/_components/GoogleMapView'
 import * as ExpoLocation from 'expo-location'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors, getCategoryColor, Shadows, Spacing } from '@/app/_constants/theme'
 import { getConciseAddress } from '@/app/_utils/servicesApi'
+import { useUser } from '@/app/_context/UserContext'
 
 export default function DetailScreenPage() {
     const insets = useSafeAreaInsets()
     const params = useLocalSearchParams()
+    const { user } = useUser()
     
     // ... rest of state ...
     const [expandedPackages, setExpandedPackages] = useState<{[key: number]: boolean}>({})
@@ -93,12 +95,14 @@ export default function DetailScreenPage() {
         const minGuests = toPositiveNumber(vendor?.minGuests)
 
         if (minGuests && numericValue < minGuests) {
+            setSelectedGuestCount(null)
             setGuestCountError(`Minimum ${minGuests.toLocaleString()} guests required`)
             return
         }
 
         const maxGuests = toPositiveNumber(vendor?.maxGuests)
         if (maxGuests && numericValue > maxGuests) {
+            setSelectedGuestCount(null)
             setGuestCountError(`Maximum ${maxGuests.toLocaleString()} guests allowed`)
             return
         }
@@ -191,6 +195,17 @@ export default function DetailScreenPage() {
         if (imageUrls.length) {
             setCurrentImageIndex((prev) => (prev === imageUrls.length - 1 ? 0 : prev + 1))
         }
+    }
+
+    const promptGuestRestriction = (action: string) => {
+        Alert.alert(
+            'Guest Mode',
+            `Sign in to ${action}.`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Sign In', onPress: () => router.push('/screens/client/Component/LoginScreen') },
+            ]
+        )
     }
 
     if (!vendor) {
@@ -547,6 +562,11 @@ export default function DetailScreenPage() {
                                     className='rounded-xl py-4 px-4 mt-3 active:opacity-85'
                                     style={{backgroundColor: categoryColor}}
                                     onPress={() => {
+                                        if (user?.isGuest) {
+                                            promptGuestRestriction('request a booking')
+                                            return
+                                        }
+
                                         if (guestCountError) {
                                             return
                                         }
@@ -722,6 +742,11 @@ export default function DetailScreenPage() {
             className='absolute bottom-6 right-6 rounded-full p-4 active:opacity-80'
             style={[{backgroundColor: categoryColor}, Shadows.large]}
             onPress={() => {
+                if (user?.isGuest) {
+                    promptGuestRestriction('chat with vendors')
+                    return
+                }
+
                 router.push({
                     pathname: "/screens/client/Component/VendorChatScreen",
                     params: { vendor: JSON.stringify(vendor) }
