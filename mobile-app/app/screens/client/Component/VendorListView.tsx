@@ -1,13 +1,14 @@
 import { Alert, FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import React, { useEffect, useMemo, useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { ArrowLeft, MapPin, Star, Users, ArrowUpDown } from 'lucide-react-native'
+import { ArrowLeft, MapPin, Star, Users, ArrowUpDown, Map as MapIcon } from 'lucide-react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 import SearchBar from './SearchBar'
 import FilterComponent from './FilterComponent'
 import { Colors, Shadows, Spacing, getCategoryColor } from '@/app/_constants/theme'
 import { getAllServices, ServiceListItem, getConciseAddress } from '@/app/_utils/servicesApi'
 import { buildClientCategoryCards } from './categoryConfig'
+import GoogleMapView from '@/app/_components/GoogleMapView'
 
 export default function VendorListView() {
     const insets = useSafeAreaInsets()
@@ -27,6 +28,7 @@ export default function VendorListView() {
       maxGuests: ""
     })
     const [sortBy, setSortBy] = useState<'default' | 'price_asc' | 'price_desc' | 'rating_desc'>('default')
+    const [isMapView, setIsMapView] = useState(false)
 
     const activeFiltersCount = useMemo(() => {
       let count = 0
@@ -176,6 +178,15 @@ export default function VendorListView() {
           <View className='flex-row items-center gap-2'>
             <Pressable 
               className='p-2 rounded-xl flex-row items-center gap-1.5'
+              style={{ backgroundColor: isMapView ? Colors.primary : Colors.white, borderWidth: 1, borderColor: isMapView ? Colors.primary : Colors.border }}
+              onPress={() => setIsMapView(!isMapView)}
+            >
+              <MapIcon size={18} color={isMapView ? Colors.white : Colors.textSecondary} />
+              <Text className='text-xs font-bold' style={{ color: isMapView ? Colors.white : Colors.textSecondary }}>Map</Text>
+            </Pressable>
+
+            <Pressable 
+              className='p-2 rounded-xl flex-row items-center gap-1.5'
               style={{ backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border }}
               onPress={() => {
                 const options = [
@@ -235,7 +246,9 @@ export default function VendorListView() {
             </View>
           </ScrollView>
         </View>
-        <ScrollView className='flex-1' style={{marginTop: Spacing.sm}}>
+        
+        {!isMapView && (
+          <ScrollView className='flex-1' style={{marginTop: Spacing.sm}}>
           {loading && (
             <View className='px-5 py-4'>
               <Text className='text-sm font-medium' style={{color: Colors.textSecondary}}>Loading vendors...</Text>
@@ -316,6 +329,38 @@ export default function VendorListView() {
             />
           )}
         </ScrollView>
+        )}
+
+        {isMapView && (
+          <View className='flex-1 mt-2'>
+            {filteredData.filter(v => v.latitude && v.longitude).length === 0 ? (
+              <View className='flex-1 items-center justify-center'>
+                <Text className='text-sm text-center' style={{color: Colors.textSecondary}}>No vendors with map locations found in this area.</Text>
+              </View>
+            ) : (
+              <GoogleMapView
+                latitude={filteredData.find(v => v.latitude && v.longitude)?.latitude || 24.8607}
+                longitude={filteredData.find(v => v.latitude && v.longitude)?.longitude || 67.0011}
+                zoom={11}
+                markers={filteredData.filter(v => v.latitude && v.longitude).map(v => ({
+                  id: v.id,
+                  latitude: v.latitude as number,
+                  longitude: v.longitude as number,
+                  title: v.name,
+                }))}
+                onMarkerPress={(id) => {
+                  const vendor = filteredData.find(v => v.id === id);
+                  if (vendor) {
+                    router.push({
+                      pathname: "/screens/client/Component/DetailScreenPage",
+                      params: { vendor: JSON.stringify(vendor), category: vendor.key }
+                    });
+                  }
+                }}
+              />
+            )}
+          </View>
+        )}
     </View>
   )
 }

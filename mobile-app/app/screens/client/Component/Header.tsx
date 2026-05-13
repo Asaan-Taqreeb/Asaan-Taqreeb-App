@@ -57,7 +57,7 @@ const Header = () => {
           </Pressable>
         </View>
       </View>
-      <SearchBar value={query} onChange={setQuery} onSubmit={handleSearchSubmit} />
+      <SearchBar value={query} onChange={setQuery} onSubmit={handleSearchSubmit} placeholder={t('searchPlaceholder')} />
     </View>
   )
 }

@@ -1,11 +1,11 @@
-import { ScrollView, StyleSheet, Text, View, Pressable } from 'react-native'
+import { ScrollView, StyleSheet, Text, View, Pressable, TextInput } from 'react-native'
 import { useEffect, useState, useCallback } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import { Clock, MapPin, Users, Calendar, CheckCircle, XCircle, AlertCircle } from 'lucide-react-native'
-import { Colors, getCategoryColor, Shadows } from '@/app/_constants/theme'
+import { Clock, MapPin, Users, Calendar, CheckCircle, XCircle, AlertCircle, Star } from 'lucide-react-native'
 import { ClientBookingItem, getMyBookings } from '@/app/_utils/bookingsApi'
+import { createReview } from '@/app/_utils/reviewsApi'
 import { useUser } from '@/app/_context/UserContext'
 import { useLanguage } from '@/app/_context/LanguageContext'
 
@@ -20,6 +20,12 @@ export default function BookingScreen() {
   const [bookings, setBookings] = useState<ClientBookingItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const [reviewModalVisible, setReviewModalVisible] = useState(false)
+  const [selectedBookingForReview, setSelectedBookingForReview] = useState<ClientBookingItem | null>(null)
+  const [rating, setRating] = useState(5)
+  const [comment, setComment] = useState('')
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false)
 
     const loadBookings = useCallback(async () => {
       if (user?.isGuest) {
@@ -98,6 +104,23 @@ export default function BookingScreen() {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+
+  const submitReview = async () => {
+    if (!selectedBookingForReview) return
+    try {
+      setIsSubmittingReview(true)
+      await createReview(selectedBookingForReview.id as string, rating, comment)
+      alert('Review submitted successfully!')
+      setReviewModalVisible(false)
+      setComment('')
+      setRating(5)
+      // Optionally reload bookings if you want to disable the review button next time
+    } catch (err: any) {
+      alert(err.message || 'Failed to submit review.')
+    } finally {
+      setIsSubmittingReview(false)
+    }
   }
 
   
@@ -308,14 +331,29 @@ export default function BookingScreen() {
                         </Pressable>
                       )}
 
-                      {(booking.status === 'pending' || booking.status === 'confirmed') && (
+                      {(booking.status === 'pending' || booking.status === 'confirmed' || booking.status === 'completed') && (
                         <View className='py-3 px-4 rounded-xl items-center justify-center' style={{backgroundColor: Colors.lightGray}}>
                           <Text className='text-xs font-bold' style={{color: Colors.textSecondary}}>
                             {booking.status === 'pending' 
                               ? 'Waiting for Vendor' 
-                              : 'Booking Confirmed'}
+                              : booking.status === 'confirmed' ? 'Booking Confirmed' : 'Booking Completed'}
                           </Text>
                         </View>
+                      )}
+
+                      {(booking.status === 'confirmed' || booking.status === 'completed') && (
+                        <Pressable 
+                          className='py-3.5 mt-2 rounded-xl active:opacity-80'
+                          style={{backgroundColor: Colors.primary}}
+                          onPress={() => {
+                            setSelectedBookingForReview(booking)
+                            setReviewModalVisible(true)
+                          }}
+                        >
+                          <Text className='text-center font-bold text-sm' style={{color: Colors.white}}>
+                            Leave a Review
+                          </Text>
+                        </Pressable>
                       )}
                     </View>
 
@@ -330,6 +368,59 @@ export default function BookingScreen() {
         )}
       </ScrollView>
 
+      {/* Review Modal */}
+      {reviewModalVisible && (
+        <View className='absolute w-full h-full justify-center items-center px-5' style={{backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 50}}>
+          <View className='w-full p-6 rounded-3xl' style={{backgroundColor: Colors.white}}>
+            <Text className='text-xl font-extrabold mb-4' style={{color: Colors.textPrimary}}>Rate your experience</Text>
+            
+            <View className='flex-row justify-center mb-6 gap-2'>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Pressable key={star} onPress={() => setRating(star)}>
+                  <Star 
+                    size={36} 
+                    color={star <= rating ? Colors.rating : Colors.borderDark} 
+                    fill={star <= rating ? Colors.rating : 'transparent'} 
+                  />
+                </Pressable>
+              ))}
+            </View>
+
+            <View className='rounded-xl px-4 py-3 mb-6' style={{backgroundColor: Colors.lightGray, borderWidth: 1, borderColor: Colors.border}}>
+              <TextInput
+                value={comment}
+                onChangeText={setComment}
+                placeholder='Write your review (optional)...'
+                placeholderTextColor={Colors.textTertiary}
+                multiline
+                numberOfLines={4}
+                className='text-base text-black'
+                style={{minHeight: 80, textAlignVertical: 'top'}}
+              />
+            </View>
+
+            <View className='flex-row gap-3'>
+              <Pressable 
+                className='flex-1 py-3 rounded-xl active:opacity-80'
+                style={{backgroundColor: Colors.lightGray}}
+                onPress={() => setReviewModalVisible(false)}
+              >
+                <Text className='text-center font-bold text-sm' style={{color: Colors.textPrimary}}>Cancel</Text>
+              </Pressable>
+              <Pressable 
+                className='flex-1 py-3 rounded-xl active:opacity-80 justify-center items-center'
+                style={{backgroundColor: isSubmittingReview ? Colors.borderDark : Colors.primary}}
+                onPress={submitReview}
+                disabled={isSubmittingReview}
+              >
+                <Text className='text-center font-bold text-sm' style={{color: Colors.white}}>
+                  {isSubmittingReview ? 'Submitting...' : 'Submit'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      )}
       
     </View>
   )

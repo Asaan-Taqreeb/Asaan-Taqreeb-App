@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router'
-import { CircleAlert, Dot, MapPin, Star, Circle, ChevronLeft, ChevronRight, X, ArrowLeft, Plus, MessageCircle } from 'lucide-react-native'
+import { CircleAlert, Dot, MapPin, Star, Circle, ChevronLeft, ChevronRight, X, ArrowLeft, Plus, MessageCircle, Heart } from 'lucide-react-native'
 import { useState, useEffect } from 'react'
 import { Alert, Dimensions, ScrollView, Modal, TextInput , Image, Pressable, StyleSheet, Text, View, KeyboardAvoidingView, Platform, Linking } from 'react-native'
 import GoogleMapView from '@/app/_components/GoogleMapView'
@@ -8,6 +8,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors, getCategoryColor, Shadows, Spacing } from '@/app/_constants/theme'
 import { getConciseAddress } from '@/app/_utils/servicesApi'
 import { useUser } from '@/app/_context/UserContext'
+import { getVendorReviews, Review } from '@/app/_utils/reviewsApi'
+import { toggleFavorite, getMyFavoriteIds } from '@/app/_utils/favoritesApi'
 
 export default function DetailScreenPage() {
     const insets = useSafeAreaInsets()
@@ -18,6 +20,9 @@ export default function DetailScreenPage() {
     const [expandedPackages, setExpandedPackages] = useState<{[key: number]: boolean}>({})
     // ...
     
+    const [reviews, setReviews] = useState<Review[]>([])
+    const [isFavorite, setIsFavorite] = useState(false)
+    const [isTogglingFavorite, setIsTogglingFavorite] = useState(false)
 
     const [selectedGuestCount, setSelectedGuestCount] = useState<number | null>(null)
     const [guestCountInput, setGuestCountInput] = useState('')
@@ -70,7 +75,20 @@ export default function DetailScreenPage() {
             }
         };
         tryGeocode();
-    }, [vendor?.location, vendor?.latitude, vendor?.longitude]);
+
+        if (vendor?.vendorId) {
+            getVendorReviews(vendor.vendorId).then(setReviews);
+        }
+
+        if (user && !user.isGuest && (vendor?.serviceId || vendor?.id)) {
+            getMyFavoriteIds().then((ids) => {
+                const sId = vendor.serviceId || vendor.id;
+                if (ids.includes(sId)) {
+                    setIsFavorite(true);
+                }
+            });
+        }
+    }, [vendor?.location, vendor?.latitude, vendor?.longitude, vendor?.vendorId, user]);
 
     const finalLat = Number(vendor?.latitude || vendor?.basicInfo?.latitude || fallbackCoords?.latitude);
     const finalLng = Number(vendor?.longitude || vendor?.basicInfo?.longitude || fallbackCoords?.longitude);
@@ -215,6 +233,25 @@ export default function DetailScreenPage() {
             </View>
         )
     }
+    const handleToggleFavorite = async () => {
+        if (user?.isGuest) {
+            promptGuestRestriction('add to favorites');
+            return;
+        }
+
+        const sId = vendor?.serviceId || vendor?.id;
+        if (!sId) return;
+
+        try {
+            setIsTogglingFavorite(true);
+            const res = await toggleFavorite(sId);
+            setIsFavorite(res.isFavorite);
+        } catch (error) {
+            console.log('Error toggling favorite:', error);
+        } finally {
+            setIsTogglingFavorite(false);
+        }
+    };
 
 
   return (
@@ -228,6 +265,15 @@ export default function DetailScreenPage() {
                 <ArrowLeft color={categoryColor} size={24} />
             </Pressable>
             <Text className='text-xl font-extrabold flex-1' style={{color: Colors.textPrimary}}>Browse Details</Text>
+            
+            <Pressable 
+                className='rounded-full p-2 active:opacity-70' 
+                style={{backgroundColor: Colors.lightGray}} 
+                onPress={handleToggleFavorite}
+                disabled={isTogglingFavorite}
+            >
+                <Heart color={isFavorite ? Colors.error : Colors.textSecondary} fill={isFavorite ? Colors.error : 'transparent'} size={24} />
+            </Pressable>
         </View>
         <View className='flex-1'>
             <View className='relative'>
@@ -618,6 +664,33 @@ export default function DetailScreenPage() {
                         <Text className='text-sm font-bold text-center' style={{color: Colors.warning}}>Please select guest count to view packages and pricing</Text>
                     </View>
                 )}
+
+                {/* Reviews Section */}
+                <View className='px-5 mb-10'>
+                    <Text className='text-xl font-extrabold mb-4' style={{color: Colors.textPrimary}}>Reviews ({reviews.length})</Text>
+                    
+                    {reviews.length === 0 ? (
+                        <View className='rounded-xl p-4' style={{backgroundColor: Colors.lightGray}}>
+                            <Text className='text-sm text-center' style={{color: Colors.textSecondary}}>No reviews yet.</Text>
+                        </View>
+                    ) : (
+                        reviews.map((review) => (
+                            <View key={review._id} className='mb-4 p-4 rounded-xl' style={[{backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border}, Shadows.small]}>
+                                <View className='flex-row justify-between items-center mb-2'>
+                                    <Text className='font-extrabold text-base' style={{color: Colors.textPrimary}}>{review.client?.name || 'User'}</Text>
+                                    <View className='flex-row items-center'>
+                                        <Star size={12} color={Colors.rating} fill={Colors.rating} />
+                                        <Text className='text-xs font-bold ml-1' style={{color: Colors.rating}}>{review.rating}</Text>
+                                    </View>
+                                </View>
+                                {review.comment ? (
+                                    <Text className='text-sm leading-relaxed mt-1' style={{color: Colors.textSecondary}}>{review.comment}</Text>
+                                ) : null}
+                            </View>
+                        ))
+                    )}
+                </View>
+
             </ScrollView>
         </View>
 

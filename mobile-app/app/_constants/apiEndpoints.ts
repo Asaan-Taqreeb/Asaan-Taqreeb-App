@@ -80,6 +80,28 @@ export const NOTIFICATION_ENDPOINTS = {
   delete: (id: string) => withApiPrefix(`/notifications/${id}`),
 }
 
+export const REVIEW_ENDPOINTS = {
+  createReview: withApiPrefix('/reviews'),
+  vendorReviews: (vendorId: string | number) => withApiPrefix(`/reviews/vendor/${vendorId}`),
+  serviceReviews: (serviceId: string | number) => withApiPrefix(`/reviews/service/${serviceId}`),
+}
+
+export const FAVORITE_ENDPOINTS = {
+  toggle: withApiPrefix('/favorites/toggle'),
+  myFavorites: withApiPrefix('/favorites/me'),
+  myFavoriteIds: withApiPrefix('/favorites/ids'),
+  checkIsFavorite: (serviceId: string | number) => withApiPrefix(`/favorites/${serviceId}/check`),
+}
+
+export const PLANNER_ENDPOINTS = {
+  getPlanner: withApiPrefix('/planner'),
+  updatePlanner: withApiPrefix('/planner'),
+  addTask: withApiPrefix('/planner/tasks'),
+  updateTask: (taskId: string) => withApiPrefix(`/planner/tasks/${taskId}`),
+  deleteTask: (taskId: string) => withApiPrefix(`/planner/tasks/${taskId}`),
+  linkBooking: (taskId: string) => withApiPrefix(`/planner/tasks/${taskId}/link-booking`),
+}
+
 export default function ApiEndpointsRouteStub() {
   return null
 }

@@ -7,7 +7,9 @@ interface GoogleMapViewProps {
     longitude: number;
     zoom?: number;
     markerPosition?: { latitude: number; longitude: number } | null;
+    markers?: Array<{ id: string | number; latitude: number; longitude: number; title?: string; color?: string }>;
     onMapPress?: (lat: number, lng: number) => void;
+    onMarkerPress?: (id: string | number) => void;
     onMapReady?: () => void;
     scrollEnabled?: boolean;
     zoomEnabled?: boolean;
@@ -25,7 +27,9 @@ const GoogleMapView = React.forwardRef<GoogleMapMethods, GoogleMapViewProps>((pr
         longitude,
         zoom = 15,
         markerPosition,
+        markers = [],
         onMapPress,
+        onMarkerPress,
         onMapReady,
         scrollEnabled = true,
         zoomEnabled = true,
@@ -89,10 +93,26 @@ const GoogleMapView = React.forwardRef<GoogleMapMethods, GoogleMapViewProps>((pr
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
 
-            var marker;
+            var singleMarker;
             if (${!!markerPosition}) {
-                marker = L.marker([${markerPosition?.latitude || 0}, ${markerPosition?.longitude || 0}]).addTo(map);
+                singleMarker = L.marker([${markerPosition?.latitude || 0}, ${markerPosition?.longitude || 0}]).addTo(map);
             }
+
+            var multiMarkers = {};
+            var markersData = ${JSON.stringify(markers)};
+            markersData.forEach(function(m) {
+                var marker = L.marker([m.latitude, m.longitude]).addTo(map);
+                if (m.title) {
+                    marker.bindPopup('<b>' + m.title + '</b>');
+                }
+                marker.on('click', function() {
+                    window.ReactNativeWebView.postMessage(JSON.stringify({
+                        type: 'ON_MARKER_PRESS',
+                        payload: { id: m.id }
+                    }));
+                });
+                multiMarkers[m.id] = marker;
+            });
 
             map.on('click', function(e) {
                 if (${!!onMapPress}) {
@@ -108,8 +128,22 @@ const GoogleMapView = React.forwardRef<GoogleMapMethods, GoogleMapViewProps>((pr
                 if (message.type === 'SET_VIEW') {
                     map.setView([message.payload.lat, message.payload.lng], message.payload.zoom || map.getZoom());
                 } else if (message.type === 'SET_MARKER') {
-                    if (marker) map.removeLayer(marker);
-                    marker = L.marker([message.payload.lat, message.payload.lng]).addTo(map);
+                    if (singleMarker) map.removeLayer(singleMarker);
+                    singleMarker = L.marker([message.payload.lat, message.payload.lng]).addTo(map);
+                } else if (message.type === 'UPDATE_MARKERS') {
+                    Object.values(multiMarkers).forEach(m => map.removeLayer(m));
+                    multiMarkers = {};
+                    message.payload.markers.forEach(function(m) {
+                        var marker = L.marker([m.latitude, m.longitude]).addTo(map);
+                        if (m.title) marker.bindPopup('<b>' + m.title + '</b>');
+                        marker.on('click', function() {
+                            window.ReactNativeWebView.postMessage(JSON.stringify({
+                                type: 'ON_MARKER_PRESS',
+                                payload: { id: m.id }
+                            }));
+                        });
+                        multiMarkers[m.id] = marker;
+                    });
                 } else if (message.type === 'ANIMATE_TO') {
                     map.flyTo([message.payload.lat, message.payload.lng], message.payload.zoom || map.getZoom(), {
                         duration: 1.5
@@ -129,6 +163,8 @@ const GoogleMapView = React.forwardRef<GoogleMapMethods, GoogleMapViewProps>((pr
             const data = JSON.parse(event.nativeEvent.data);
             if (data.type === 'ON_PRESS' && onMapPress) {
                 onMapPress(data.payload.lat, data.payload.lng);
+            } else if (data.type === 'ON_MARKER_PRESS' && onMarkerPress) {
+                onMarkerPress(data.payload.id);
             } else if (data.type === 'ON_READY' && onMapReady) {
                 onMapReady();
             }
@@ -149,8 +185,14 @@ const GoogleMapView = React.forwardRef<GoogleMapMethods, GoogleMapViewProps>((pr
                     payload: { lat: markerPosition.latitude, lng: markerPosition.longitude }
                 }));
             }
+            if (markers.length > 0) {
+                webViewRef.current.postMessage(JSON.stringify({
+                    type: 'UPDATE_MARKERS',
+                    payload: { markers: markers }
+                }));
+            }
         }
-    }, [latitude, longitude, markerPosition]);
+    }, [latitude, longitude, markerPosition, markers]);
 
     return (
         <View style={[styles.container, style]}>

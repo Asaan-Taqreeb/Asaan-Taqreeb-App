@@ -71,6 +71,42 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="PlannerScreen"
+        options={{
+          title: 'Planner',
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={{ transform: [{ scale: focused ? 1.1 : 1 }], opacity: isGuest ? 0.6 : 1 }}>
+              <Ionicons name={focused ? "list" : "list-outline"} size={size} color={isGuest ? Colors.textTertiary : color} />
+            </View>
+          ),
+        }}
+        listeners={{
+          tabPress: (event) => {
+            if (!isGuest) return
+            event.preventDefault()
+            Alert.alert('Guest Mode', 'Sign in to access the planner.')
+          },
+        }}
+      />
+      <Tabs.Screen
+        name="FavoritesScreen"
+        options={{
+          title: 'Favorites',
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={{ transform: [{ scale: focused ? 1.1 : 1 }], opacity: isGuest ? 0.6 : 1 }}>
+              <Ionicons name={focused ? "heart" : "heart-outline"} size={size} color={isGuest ? Colors.textTertiary : color} />
+            </View>
+          ),
+        }}
+        listeners={{
+          tabPress: (event) => {
+            if (!isGuest) return
+            event.preventDefault()
+            Alert.alert('Guest Mode', 'Sign in to access favorites.')
+          },
+        }}
+      />
+      <Tabs.Screen
         name="MessagesScreen"
         options={{
           title: 'Messages',

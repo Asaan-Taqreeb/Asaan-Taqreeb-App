@@ -6,9 +6,10 @@ type SearchBarProps = {
     value: string
     onChange: (text: string) => void
     onSubmit?: (text: string) => void
+    placeholder?: string
 }
 
-export default function SearchBar({ value, onChange, onSubmit }: SearchBarProps) {
+export default function SearchBar({ value, onChange, onSubmit, placeholder }: SearchBarProps) {
     const handleSubmit = () => {
         if (onSubmit) {
             onSubmit(value)
@@ -19,7 +20,7 @@ export default function SearchBar({ value, onChange, onSubmit }: SearchBarProps)
         <View style={styles.container} className='w-11/12 self-center'>
             <Search size={20} color={Colors.textTertiary} style={{marginLeft: 14}} />
             <TextInput 
-                placeholder='Search venues, catering, parlors...' 
+                placeholder={placeholder || 'Search venues, catering, parlors...'} 
                 value={value}
                 onChangeText={onChange}
                 onSubmitEditing={handleSubmit}

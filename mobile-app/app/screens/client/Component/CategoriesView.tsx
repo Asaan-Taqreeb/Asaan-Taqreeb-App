@@ -65,7 +65,9 @@ const CategoriesView = () => {
               >
                 <IconComponent size={28} color={data.color} />
               </View>
-              <Text className='text-[11px] mt-2 font-bold text-center' style={{color: Colors.textPrimary}} numberOfLines={1}>{data.title}</Text>
+              <Text className='text-[11px] mt-2 font-bold text-center' style={{color: Colors.textPrimary}} numberOfLines={1}>
+                {t(data.key === 'photo' ? 'photoShoot' : data.key === 'banquet' ? 'banquets' : data.key)}
+              </Text>
               <View className="bg-white px-2 py-0.5 rounded-full mt-1 border border-gray-100">
                 <Text className='text-[8px] font-black uppercase tracking-widest text-center' style={{color: Colors.textTertiary}}>
                   {data.count} {t('live')}
