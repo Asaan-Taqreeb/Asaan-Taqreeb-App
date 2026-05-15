@@ -127,8 +127,8 @@ export default function PaymentModal({ isVisible, onClose, amount, onPaymentSucc
               <Text className="text-xs font-bold text-gray-400 mb-2 uppercase">CVV</Text>
               <TextInput
                 value={cvv}
-                onChangeText={setCv}
-                placeholder="000"
+                onChangeText={setCvv}
+                placeholder="123"
                 keyboardType="number-pad"
                 secureTextEntry
                 className="p-4 rounded-xl border"

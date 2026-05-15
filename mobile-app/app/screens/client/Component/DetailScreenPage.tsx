@@ -246,8 +246,9 @@ export default function DetailScreenPage() {
             setIsTogglingFavorite(true);
             const res = await toggleFavorite(sId);
             setIsFavorite(res.isFavorite);
-        } catch (error) {
+        } catch (error: any) {
             console.log('Error toggling favorite:', error);
+            Alert.alert('Error', error.message || 'Failed to update favorite.');
         } finally {
             setIsTogglingFavorite(false);
         }

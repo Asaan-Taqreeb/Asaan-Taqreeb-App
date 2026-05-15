@@ -106,7 +106,7 @@ export default function ManageServicesScreen() {
             if (item.category === 'parlor') formPath = '/screens/vendor/ParlorServiceForm';
             
             router.push({
-              pathname: formPath,
+              pathname: formPath as any,
               params: { serviceId: item.serviceId, edit: 'true' }
             });
           }}

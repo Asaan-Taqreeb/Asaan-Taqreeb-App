@@ -8,6 +8,7 @@ import { ClientBookingItem, getMyBookings } from '@/app/_utils/bookingsApi'
 import { createReview } from '@/app/_utils/reviewsApi'
 import { useUser } from '@/app/_context/UserContext'
 import { useLanguage } from '@/app/_context/LanguageContext'
+import { Colors, Shadows, getCategoryColor } from '@/app/_constants/theme'
 
 type BookingStatus = 'pending' | 'approved' | 'rejected' | 'confirmed' | 'completed'
 
@@ -110,7 +111,7 @@ export default function BookingScreen() {
     if (!selectedBookingForReview) return
     try {
       setIsSubmittingReview(true)
-      await createReview(selectedBookingForReview.id as string, rating, comment)
+      await createReview(String(selectedBookingForReview.id), rating, comment)
       alert('Review submitted successfully!')
       setReviewModalVisible(false)
       setComment('')

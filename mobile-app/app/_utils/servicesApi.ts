@@ -57,6 +57,7 @@ export type ServiceListItem = {
   price: number
   images: string[]
   minGuests?: number
+  maxGuests?: number
   rating: number
   latitude?: number
   longitude?: number

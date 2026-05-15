@@ -74,7 +74,7 @@ export default function CategorySelection() {
             key={category.id}
             className="bg-white rounded-[32px] p-6 mb-5 flex-row items-center"
             style={Shadows.medium}
-            onPress={() => router.push(category.route)}
+            onPress={() => router.push(category.route as any)}
           >
             <View 
               className="w-14 h-14 rounded-2xl items-center justify-center mr-5"
