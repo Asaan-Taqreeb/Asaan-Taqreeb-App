@@ -1,154 +1,156 @@
-// Theme Constants for Asaan Taqreeb
-// Professional color palette — Primary (Electric Cyan), Vendor (Midnight Slate), Accent (Electric Blue)
+/**
+ * Asaan Taqreeb — Design System
+ * Aesthetic: Swiss Design / Functional Minimalism
+ * Grid: 8pt base unit | Radius: 4px max | No gradients | No glassmorphism
+ * Accent: Electric Blue #2563EB (used sparingly)
+ */
 
 export const Colors = {
-  // Brand Colors (Modern Luxe)
-  primary: '#06B6D4',      // Electric Cyan
-  primaryLight: '#22D3EE',
-  primaryDark: '#0891B2',
-  primaryMuted: '#ECFEFF',
+  // ── Core ──────────────────────────────────────────────────────────
+  primary:      '#2563EB',   // Electric Blue — ONE accent color
+  primaryLight: '#3B82F6',
+  primaryDark:  '#1D4ED8',
+  primaryMuted: '#EFF6FF',   // near-white blue tint
 
-  // Secondary / Vendor (Midnight Slate)
-  vendor: '#0F172A',
-  vendorLight: '#1E293B',
-  vendorAccent: '#334155',
+  // ── Vendor (kept for vendor-specific surfaces) ────────────────────
+  vendor:       '#0A0A0A',   // near-black
+  vendorLight:  '#18181B',
+  vendorAccent: '#27272A',
 
-  // Accent (Warm Gold)
-  accent: '#2563EB',
-  accentLight: '#60A5FA',
-  accentMuted: '#EFF6FF',
+  // ── Accent (reused as primary) ────────────────────────────────────
+  accent:       '#2563EB',
+  accentLight:  '#3B82F6',
+  accentMuted:  '#EFF6FF',
 
-  // Background Colors
-  background: '#F8FAFC',   // Cloud White
-  white: '#FFFFFF',
-  lightGray: '#F1F5F9',
+  // ── Backgrounds ───────────────────────────────────────────────────
+  background:   '#FAFAFA',   // off-white page surface
+  white:        '#FFFFFF',
+  lightGray:    '#F4F4F5',   // input fill, secondary surface
 
-  // Text Colors
-  textPrimary: '#0F172A',
-  textSecondary: '#475569',
-  textTertiary: '#94A3B8',
-  textLight: '#F8FAFC',
+  // ── Text ──────────────────────────────────────────────────────────
+  textPrimary:   '#0A0A0A',  // near-black
+  textSecondary: '#52525B',  // zinc-600
+  textTertiary:  '#A1A1AA',  // zinc-400
+  textLight:     '#FAFAFA',
 
-  // Status Colors
-  success: '#14B8A6',      // Teal Mint
-  successLight: '#CCFBF1',
-  warning: '#F59E0B',
-  warningLight: '#FEF3C7',
-  error: '#EF4444',
-  errorLight: '#FEE2E2',
-  info: '#2563EB',
-  infoLight: '#DBEAFE',
+  // ── Status ────────────────────────────────────────────────────────
+  success:      '#16A34A',
+  successLight: '#F0FDF4',
+  warning:      '#D97706',
+  warningLight: '#FFFBEB',
+  error:        '#DC2626',
+  errorLight:   '#FEF2F2',
+  info:         '#2563EB',
+  infoLight:    '#EFF6FF',
 
-  // Category Colors
-  banquet: '#0F172A',
-  catering: '#06B6D4',
-  photo: '#2563EB',
-  parlor: '#14B8A6',
+  // ── Category (muted, professional) ───────────────────────────────
+  banquet:  '#0A0A0A',   // near-black
+  catering: '#2563EB',   // electric blue
+  photo:    '#52525B',   // dark gray
+  parlor:   '#16A34A',   // deep green
 
-  // Rating
-  rating: '#F59E0B',
+  // ── Rating ────────────────────────────────────────────────────────
+  rating: '#D97706',
 
-  // Border Colors
-  border: '#E2E8F0',
-  borderDark: '#94A3B8',
+  // ── Borders ───────────────────────────────────────────────────────
+  border:     '#E4E4E7',   // zinc-200 — used for ALL 1px borders
+  borderDark: '#A1A1AA',   // zinc-400
 
-  // Shadow Colors
-  shadow: '#0F172A',
-
-  // Overlay
-  overlay: 'rgba(15, 23, 42, 0.5)',
-  overlayLight: 'rgba(15, 23, 42, 0.25)',
+  // ── Misc ──────────────────────────────────────────────────────────
+  shadow:      '#0A0A0A',
+  overlay:     'rgba(10,10,10,0.5)',
+  overlayLight:'rgba(10,10,10,0.2)',
 }
 
-// Urban Luxe Gradients
 export const Gradients = {
-  luxury: ['#0F172A', '#2563EB'],
-  cyan: ['#06B6D4', '#22D3EE'],
-  blue: ['#2563EB', '#60A5FA'],
+  // Swiss design: no gradients — these are kept for compatibility only
+  luxury: [Colors.vendor, Colors.vendor],
+  cyan:   [Colors.primary, Colors.primary],
+  blue:   [Colors.primary, Colors.primary],
 }
 
-// Category color helper
+/** Returns a muted, professional color per service category */
 export const getCategoryColor = (category?: string | null): string => {
   if (!category) return Colors.primary
-  switch(category.toLowerCase()) {
-    case 'banquet': return Colors.banquet
-    case 'catering': return Colors.catering
-    case 'photo': 
+  switch (category.toLowerCase()) {
+    case 'banquet':
+    case 'banquet_hall': return Colors.banquet
+    case 'catering':     return Colors.catering
+    case 'photo':
     case 'photographer':
-    case 'photography': return Colors.photo
+    case 'photography':  return Colors.photo
     case 'parlor':
-    case 'salon': return Colors.parlor
-    default: return Colors.primary
+    case 'salon':
+    case 'parlor_salon': return Colors.parlor
+    default:             return Colors.primary
   }
 }
 
-export default function ThemeRouteStub() {
-  return null
-}
+export default function ThemeRouteStub() { return null }
 
-// Spacing system (following 8pt grid system)
+// ── Spacing (8pt grid) ────────────────────────────────────────────
 export const Spacing = {
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  xxl: 24,
+  xs:   4,
+  sm:   8,
+  md:   12,
+  lg:   16,
+  xl:   20,
+  xxl:  24,
   xxxl: 32,
 }
 
-// Typography
+// ── Typography ────────────────────────────────────────────────────
 export const Typography = {
   sizes: {
-    xs: 12,
-    sm: 14,
+    xs:   12,
+    sm:   14,
     base: 16,
-    lg: 18,
-    xl: 20,
-    xxl: 24,
+    lg:   18,
+    xl:   20,
+    xxl:  24,
     xxxl: 28,
     huge: 32,
   },
   weights: {
-    regular: '400' as const,
-    medium: '500' as const,
-    semibold: '600' as const,
-    bold: '700' as const,
+    regular:   '400' as const,
+    medium:    '500' as const,
+    semibold:  '600' as const,
+    bold:      '700' as const,
     extrabold: '800' as const,
-  }
+  },
 }
 
-// Border Radius
+// ── Border Radius — strict 4px max ────────────────────────────────
 export const BorderRadius = {
-  sm: 6,
-  md: 10,
-  lg: 14,
-  xl: 18,
-  xxl: 22,
-  full: 9999,
+  sm:   2,
+  md:   4,
+  lg:   4,
+  xl:   4,
+  xxl:  4,
+  full: 4,
 }
 
-// Shadow Styles
+// ── Shadows — flat design, no visible shadows ─────────────────────
 export const Shadows = {
   small: {
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   medium: {
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   large: {
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
 }

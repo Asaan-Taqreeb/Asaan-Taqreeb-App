@@ -200,7 +200,7 @@ export default function PlannerScreen() {
 
             <ScrollView className='flex-1' showsVerticalScrollIndicator={false} contentContainerStyle={{padding: 20}}>
                 {/* Budget Overview Card */}
-                <View className='rounded-3xl p-5 mb-6' style={[{backgroundColor: Colors.white}, Shadows.medium]}>
+                <View style={{backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: 4, padding: 20, marginBottom: 24}}>
                     <View className='flex-row justify-between items-center mb-4'>
                         <Text className='text-base font-bold' style={{color: Colors.textPrimary}}>Total Budget</Text>
                         <Pressable onPress={() => {
@@ -270,7 +270,7 @@ export default function PlannerScreen() {
 
                 {/* Tasks List */}
                 {planner?.tasks.map(task => (
-                    <View key={task._id} className='rounded-2xl p-4 mb-3 flex-row items-center gap-3' style={[{backgroundColor: Colors.white, borderWidth: 1, borderColor: task.isCompleted ? Colors.border : Colors.white}, Shadows.small]}>
+                    <View key={task._id} style={{backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: 4, padding: 16, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 12}}>
                         <Pressable onPress={() => toggleTaskCompletion(task)}>
                             <CheckCircle 
                                 size={24} 
@@ -313,7 +313,7 @@ export default function PlannerScreen() {
                 onRequestClose={() => setIsTaskModalVisible(false)}
             >
                 <View className='flex-1 justify-end' style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
-                    <View className='bg-white rounded-t-3xl p-6'>
+                    <View style={{backgroundColor: Colors.white, borderWidth: 1, borderColor: '#FECACA', borderRadius: 4, padding: 12, marginBottom: 16}}>
                         <View className='flex-row justify-between items-center mb-6'>
                             <Text className='text-xl font-bold' style={{color: Colors.textPrimary}}>
                                 {editingTask ? 'Edit Task' : 'Add New Task'}

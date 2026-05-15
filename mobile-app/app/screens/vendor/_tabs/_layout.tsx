@@ -1,82 +1,66 @@
 import { Tabs } from 'expo-router';
 import { Home, ShoppingBasket, MessageCircle, User } from 'lucide-react-native';
-import { Colors } from '@/app/_constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { View } from 'react-native';
 import { useUnreadNotificationCount } from '@/app/_context/NotificationContext';
 
 export default function VendorTabLayout() {
-  const insets = useSafeAreaInsets();
-  const unreadCount = useUnreadNotificationCount();
+  const insets       = useSafeAreaInsets();
+  const unreadCount  = useUnreadNotificationCount();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors.vendor,
-        tabBarInactiveTintColor: Colors.textTertiary,
+        headerShown: false,
+        tabBarActiveTintColor: '#0A0A0A',    // near-black active
+        tabBarInactiveTintColor: '#A1A1AA',  // zinc-400 inactive
         tabBarStyle: {
-          backgroundColor: Colors.white,
-          borderTopWidth: 0,
-          height: 64 + (insets.bottom > 0 ? insets.bottom : 8),
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: 1,
+          borderTopColor: '#E4E4E7',
+          height: 60 + (insets.bottom > 0 ? insets.bottom : 8),
           paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
           paddingTop: 8,
-          shadowColor: Colors.shadow,
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.06,
-          shadowRadius: 8,
-          elevation: 8,
+          shadowColor: 'transparent',
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0,
+          shadowRadius: 0,
+          elevation: 0,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
-          marginTop: 2,
+          fontSize: 9,
+          fontWeight: '700',
+          letterSpacing: 0.5,
+          marginTop: 3,
         },
-        headerShown: false,
       }}
     >
       <Tabs.Screen
         name="VendorDashboardHome"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color, size, focused }) => (
-            <View style={{ transform: [{ scale: focused ? 1.1 : 1 }] }}>
-              <Home color={color} size={size} />
-            </View>
-          ),
+          title: 'DASHBOARD',
+          tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="OrdersScreen"
         options={{
-          title: 'Orders',
-          tabBarIcon: ({ color, size, focused }) => (
-            <View style={{ transform: [{ scale: focused ? 1.1 : 1 }] }}>
-              <ShoppingBasket color={color} size={size} />
-            </View>
-          ),
+          title: 'ORDERS',
+          tabBarIcon: ({ color, size }) => <ShoppingBasket color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="VendorMessagesScreen"
         options={{
-          title: 'Messages',
+          title: 'MESSAGES',
           tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
-          tabBarIcon: ({ color, size, focused }) => (
-            <View style={{ transform: [{ scale: focused ? 1.1 : 1 }] }}>
-              <MessageCircle color={color} size={size} />
-            </View>
-          ),
+          tabBarIcon: ({ color, size }) => <MessageCircle color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="VendorProfileScreen"
         options={{
-          title: 'Profile',
-          tabBarIcon: ({ color, size, focused }) => (
-            <View style={{ transform: [{ scale: focused ? 1.1 : 1 }] }}>
-              <User color={color} size={size} />
-            </View>
-          ),
+          title: 'PROFILE',
+          tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
         }}
       />
     </Tabs>

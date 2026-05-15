@@ -4,60 +4,71 @@ import useLocation from './hooks/useLocation'
 import Icon from "@expo/vector-icons/FontAwesome6"
 import SearchBar from './SearchBar'
 import { router } from 'expo-router'
-import { Colors } from '@/app/_constants/theme'
 import { useUser } from '@/app/_context/UserContext'
 import Avatar from '@/app/_components/Avatar'
 import { useLanguage } from '@/app/_context/LanguageContext'
-
 import NotificationBell from '@/app/_components/NotificationBell'
-import AppLogo from './AppLogo'
+
+const S = {
+  white:  '#FFFFFF',
+  black:  '#0A0A0A',
+  gray400:'#A1A1AA',
+  blue:   '#2563EB',
+  border: '#E4E4E7',
+}
 
 const Header = () => {
-  const {result, error} = useLocation()
-  const [query, setQuery] = useState("")
-  const { user } = useUser()
-  const { t } = useLanguage()
-  
+  const { result, error } = useLocation()
+  const [query, setQuery]   = useState('')
+  const { user }            = useUser()
+  const { t }               = useLanguage()
+
   const location = Array.isArray(result) ? result[0] : result
 
   const handleSearchSubmit = (text: string) => {
     const normalized = text.trim()
     router.push({
-      pathname: "/screens/client/Component/VendorListView",
-      params: normalized ? { query: normalized } : undefined
+      pathname: '/screens/client/Component/VendorListView',
+      params: normalized ? { query: normalized } : undefined,
     })
   }
 
   return (
     <View style={styles.container}>
-      <View className='flex flex-row justify-between items-center px-4 py-4'>
-        <View className='flex-row items-center gap-3 flex-1'>
-          <AppLogo size="small" showText={false} />
-          <View>
-            <Text className='text-[10px] font-bold mx-2 uppercase tracking-[1px]' style={{color: Colors.textSecondary}}>{t('currentLocation')}</Text>
-            {location ? (
-              <View className='flex flex-row items-center gap-1 mx-2'>
-                <Icon name={"location-dot"} size={12} color={Colors.primary} />          
-                <Text className='text-sm font-bold' style={{color: Colors.textPrimary}} numberOfLines={1}>{location.district}, {location.city}</Text>
-              </View>
-            ) : error ? (
-              <View className='flex flex-row items-center gap-2 mx-2'>
-                <Icon name={"location-dot"} size={12} color={Colors.textSecondary} />          
-                <Text className='text-xs font-medium' style={{color: Colors.textSecondary}}>{t('locationUnavailable')}</Text>
-              </View>
-            ) : (
-              <Text className='text-xs mx-2 font-medium' style={{color: Colors.textTertiary}}>{t('detectingLocation')}</Text>
-            )}      
+      <View style={styles.topRow}>
+        {/* Brand + Location */}
+        <View style={styles.brandBlock}>
+          <Text style={styles.brand}>ASAAN TAQREEB</Text>
+          <View style={styles.locationRow}>
+            <Icon name="location-dot" size={10} color={location ? S.blue : S.gray400} />
+            <Text style={styles.locationText} numberOfLines={1}>
+              {location
+                ? `${location.district}, ${location.city}`
+                : error
+                  ? t('locationUnavailable')
+                  : t('detectingLocation')}
+            </Text>
           </View>
         </View>
-        <View className='flex-row justify-center items-center gap-2 mr-1'>
-          <NotificationBell userId={user?.id} userRole='client' />
-          <Pressable className='active:opacity-70 ml-2' onPress={() => router.push("/screens/client/Component/ProfileView")}>
-            <Avatar name={user?.name || 'U'} size='md' />
+
+        {/* Right actions */}
+        <View style={styles.actions}>
+          <NotificationBell userId={user?.id} userRole="client" />
+          <Pressable
+            onPress={() => router.push('/screens/client/Component/ProfileView')}
+            style={styles.avatarBtn}
+          >
+            <Avatar name={user?.name || 'U'} size="md" />
           </Pressable>
         </View>
       </View>
-      <SearchBar value={query} onChange={setQuery} onSubmit={handleSearchSubmit} placeholder={t('searchPlaceholder')} />
+
+      <SearchBar
+        value={query}
+        onChange={setQuery}
+        onSubmit={handleSearchSubmit}
+        placeholder={t('searchPlaceholder')}
+      />
     </View>
   )
 }
@@ -66,10 +77,47 @@ export default Header
 
 const styles = StyleSheet.create({
   container: {
-    width: "100%",
-    backgroundColor: Colors.white,
-    paddingBottom: 4,
+    width: '100%',
+    backgroundColor: S.white,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  }
+    borderBottomColor: S.border,
+    paddingBottom: 4,
+  },
+  topRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 2,
+  },
+  brandBlock: {
+    gap: 3,
+    flex: 1,
+  },
+  brand: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 3,
+    color: S.black,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  locationText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: S.gray400,
+    flexShrink: 1,
+  },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  avatarBtn: {
+    opacity: 1,
+  },
 })

@@ -20,24 +20,26 @@ export default function TabLayout() {
         tabBarInactiveTintColor: Colors.textTertiary,
         tabBarShowLabel: true,
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
-          marginTop: 2,
+          fontSize: 9,
+          fontWeight: '700',
+          letterSpacing: 0.5,
+          marginTop: 3,
         },
         tabBarItemStyle: {
-          paddingVertical: 6,
+          paddingVertical: 8,
         },
         tabBarStyle: {
-          height: 64 + (insets.bottom > 0 ? insets.bottom : 8),
+          height: 60 + (insets.bottom > 0 ? insets.bottom : 8),
           paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
           paddingTop: 8,
-          borderTopWidth: 0,
-          backgroundColor: Colors.white,
-          shadowColor: Colors.shadow,
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.06,
-          shadowRadius: 8,
-          elevation: 8,
+          borderTopWidth: 1,
+          borderTopColor: '#E4E4E7',
+          backgroundColor: '#FFFFFF',
+          shadowColor: 'transparent',
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0,
+          shadowRadius: 0,
+          elevation: 0,
         }
       }}
     >
@@ -46,7 +48,7 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, size, focused }) => (
-            <View style={{ transform: [{ scale: focused ? 1.1 : 1 }] }}>
+            <View>
               <Ionicons name={focused ? "home" : "home-outline"} size={size} color={color} />
             </View>
           ),

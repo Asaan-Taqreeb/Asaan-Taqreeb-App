@@ -162,11 +162,14 @@ export default function BookingScreen() {
               {filters.map((filter) => (
                 <Pressable
                   key={filter.id}
-                  className='px-4 py-2 rounded-full mr-2 active:opacity-80'
                   style={{
                     backgroundColor: selectedFilter === filter.id ? Colors.primary : Colors.white,
                     borderWidth: 1,
-                    borderColor: selectedFilter === filter.id ? Colors.primary : Colors.border
+                    borderColor: selectedFilter === filter.id ? Colors.primary : Colors.border,
+                    borderRadius: 4,
+                    paddingHorizontal: 14,
+                    paddingVertical: 7,
+                    marginRight: 8,
                   }}
                   onPress={() => setSelectedFilter(filter.id as any)}
                 >
@@ -227,7 +230,7 @@ export default function BookingScreen() {
                 <View 
                   key={booking.id}
                   className='rounded-2xl overflow-hidden'
-                  style={[{backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border}, Shadows.small]}
+                  style={[{backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: 4}]}
                 >
                   <View 
                     className='px-4 py-3 flex-row items-center gap-2'
@@ -372,7 +375,7 @@ export default function BookingScreen() {
       {/* Review Modal */}
       {reviewModalVisible && (
         <View className='absolute w-full h-full justify-center items-center px-5' style={{backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 50}}>
-          <View className='w-full p-6 rounded-3xl' style={{backgroundColor: Colors.white}}>
+          <View style={{backgroundColor: Colors.white, borderRadius: 4, padding: 24, width: '100%'}}>
             <Text className='text-xl font-extrabold mb-4' style={{color: Colors.textPrimary}}>Rate your experience</Text>
             
             <View className='flex-row justify-center mb-6 gap-2'>
