@@ -262,7 +262,7 @@ export default function DetailScreenPage() {
         keyboardVerticalOffset={insets.top}
     > 
         <View className='flex-row items-center gap-4 px-5 py-4' style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
-            <Pressable className='rounded-full p-2 active:opacity-70' style={{backgroundColor: Colors.lightGray}} onPress={() => router.push("/screens/client/Component/VendorListView")}>
+            <Pressable className='rounded-full p-2 active:opacity-70' style={{backgroundColor: Colors.lightGray}} onPress={() => router.back()}>
                 <ArrowLeft color={categoryColor} size={24} />
             </Pressable>
             <Text className='text-xl font-extrabold flex-1' style={{color: Colors.textPrimary}}>Browse Details</Text>

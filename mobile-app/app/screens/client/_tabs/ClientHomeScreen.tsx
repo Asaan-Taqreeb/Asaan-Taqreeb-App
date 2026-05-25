@@ -1,67 +1,52 @@
-import { Alert, View, StyleSheet, ScrollView, Pressable } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { router } from 'expo-router'
-import { Bot } from 'lucide-react-native'
-import Header from '../Component/Header'
-import CategoriesView from '../Component/CategoriesView'
-import FeaturedVendors from '../Component/FeaturedVendors'
-import { useUser } from '@/app/_context/UserContext'
+import { Alert, View, StyleSheet, ScrollView, Pressable } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { router } from "expo-router";
+import { Bot } from "lucide-react-native";
+import Header from "../Component/Header";
+import CategoriesView from "../Component/CategoriesView";
+import FeaturedVendors from "../Component/FeaturedVendors";
+import { Colors, Shadows } from "@/app/_constants/theme";
+import { useUser } from "@/app/_context/UserContext";
 import { useLanguage } from '@/app/_context/LanguageContext'
 
-const S = {
-  gray50: '#FAFAFA',
-  blue:   '#2563EB',
-  white:  '#FFFFFF',
-  border: '#E4E4E7',
-}
-
 export default function ClientHomeScreen() {
-  const insets    = useSafeAreaInsets()
-  const { user }  = useUser()
-  const { t }     = useLanguage()
+    const insets = useSafeAreaInsets()
+    const { user } = useUser()
+    const { t } = useLanguage()
 
-  const handleOpenAIChat = () => {
-    if (user?.isGuest) {
-      Alert.alert('Guest Mode', t('signInToUseChat'))
-      return
+    const handleOpenAIChat = () => {
+      if (user?.isGuest) {
+        Alert.alert('Guest Mode', t('signInToUseChat'))
+        return
+      }
+
+      router.push("/screens/client/Component/AIChatScreen")
     }
-    router.push('/screens/client/Component/AIChatScreen')
-  }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, {paddingTop: insets.top}]}>
       <Header />
       <ScrollView showsVerticalScrollIndicator={false}>
         <CategoriesView />
         <FeaturedVendors />
       </ScrollView>
 
-      {/* ── AI Chat FAB ─────────────────────────────────────────── */}
+      {/* Floating AI Chat Button */}
       <Pressable
-        style={styles.fab}
+        className='absolute bottom-6 right-6 rounded-full p-4 active:opacity-80'
+        style={[{backgroundColor: Colors.primary}, Shadows.large]}
         onPress={handleOpenAIChat}
       >
-        <Bot color={S.white} size={22} />
+        <Bot color={Colors.white} size={28} />
       </Pressable>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: S.gray50,
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
-    width: 48,
-    height: 48,
-    borderRadius: 4,
-    backgroundColor: S.blue,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+    container: {
+        width: "100%",
+        height: "100%",
+        backgroundColor: Colors.background
+    },
 })

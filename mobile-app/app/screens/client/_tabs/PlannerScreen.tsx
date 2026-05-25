@@ -1,4 +1,4 @@
-import { Alert, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Alert, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import React, { useCallback, useState } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -87,8 +87,9 @@ export default function PlannerScreen() {
             }
             setIsTaskModalVisible(false)
             setEditingTask(null)
-        } catch (error) {
-            Alert.alert('Error', 'Failed to save task')
+        } catch (error: any) {
+            console.error('Save task error:', error)
+            Alert.alert('Error', error?.message || 'Failed to save task. Please check your connection and try again.')
         }
     }
 
@@ -200,7 +201,7 @@ export default function PlannerScreen() {
 
             <ScrollView className='flex-1' showsVerticalScrollIndicator={false} contentContainerStyle={{padding: 20}}>
                 {/* Budget Overview Card */}
-                <View style={{backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: 4, padding: 20, marginBottom: 24}}>
+                <View className='rounded-3xl p-5 mb-6' style={[{backgroundColor: Colors.white}, Shadows.medium]}>
                     <View className='flex-row justify-between items-center mb-4'>
                         <Text className='text-base font-bold' style={{color: Colors.textPrimary}}>Total Budget</Text>
                         <Pressable onPress={() => {
@@ -270,7 +271,7 @@ export default function PlannerScreen() {
 
                 {/* Tasks List */}
                 {planner?.tasks.map(task => (
-                    <View key={task._id} style={{backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: 4, padding: 16, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 12}}>
+                    <View key={task._id} className='rounded-2xl p-4 mb-3 flex-row items-center gap-3' style={[{backgroundColor: Colors.white, borderWidth: 1, borderColor: task.isCompleted ? Colors.border : Colors.white}, Shadows.small]}>
                         <Pressable onPress={() => toggleTaskCompletion(task)}>
                             <CheckCircle 
                                 size={24} 
@@ -312,8 +313,15 @@ export default function PlannerScreen() {
                 animationType="slide"
                 onRequestClose={() => setIsTaskModalVisible(false)}
             >
-                <View className='flex-1 justify-end' style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
-                    <View style={{backgroundColor: Colors.white, borderWidth: 1, borderColor: '#FECACA', borderRadius: 4, padding: 12, marginBottom: 16}}>
+                <KeyboardAvoidingView
+                    style={{flex: 1}}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+                >
+                    <Pressable style={{flex: 1}} onPress={() => setIsTaskModalVisible(false)}>
+                        <View style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.5)'}} />
+                    </Pressable>
+                    <View className='bg-white rounded-t-3xl p-6'>
                         <View className='flex-row justify-between items-center mb-6'>
                             <Text className='text-xl font-bold' style={{color: Colors.textPrimary}}>
                                 {editingTask ? 'Edit Task' : 'Add New Task'}
@@ -386,7 +394,7 @@ export default function PlannerScreen() {
                             </Text>
                         </Pressable>
                     </View>
-                </View>
+                </KeyboardAvoidingView>
             </Modal>
         </View>
     )

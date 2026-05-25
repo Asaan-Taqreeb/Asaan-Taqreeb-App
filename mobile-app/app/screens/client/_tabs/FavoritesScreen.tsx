@@ -63,7 +63,7 @@ export default function FavoritesScreen() {
             <View className='flex-1'>
                 {user?.isGuest && (
                     <View className='px-5 mt-4'>
-                        <View style={{backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: 4, padding: 20}}>
+                        <View className='rounded-2xl p-5' style={{backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, ...Shadows.small}}>
                             <Text className='text-lg font-bold text-center' style={{color: Colors.textPrimary}}>Sign In Required</Text>
                             <Text className='text-sm font-medium text-center mt-2' style={{color: Colors.textSecondary}}>
                                 Sign in to save and view your favorite vendors.
@@ -117,9 +117,13 @@ export default function FavoritesScreen() {
                                 pathname: "/screens/client/Component/DetailScreenPage",
                                 params: { vendor: JSON.stringify(item), category: item.key }
                             })}>
-                                <View style={[
-                                {backgroundColor: Colors.white, borderLeftWidth: 4, borderLeftColor: catColor, borderWidth: 1, borderColor: Colors.border, borderRadius: 4, flexDirection: 'row', alignItems: 'center', gap: 16, padding: 14}, 
-                            ]}> 
+                                <View 
+                                    className="rounded-3xl p-4 flex-row items-center gap-4 relative" 
+                                    style={[
+                                        {backgroundColor: Colors.white, borderLeftWidth: 6, borderLeftColor: catColor}, 
+                                        Shadows.medium
+                                    ]}
+                                > 
                                     <Image 
                                         className="rounded-2xl" 
                                         source={{ uri: item.images[0] }}

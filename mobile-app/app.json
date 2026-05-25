@@ -2,7 +2,7 @@
   "expo": {
     "name": "Asaan Taqreeb",
     "slug": "mobileapp",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/images/Logo.png",
     "scheme": "asaantaqreeb",
@@ -75,7 +75,7 @@
         "origin": false
       },
       "eas": {
-        "projectId": "5b5154ed-eb0c-4390-afa5-91870e37c28b"
+        "projectId": "ff43c3fb-f92b-4500-925e-d387fb9cf01e"
       }
     }
   }
