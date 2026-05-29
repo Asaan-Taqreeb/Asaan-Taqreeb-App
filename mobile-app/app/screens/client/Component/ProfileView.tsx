@@ -22,7 +22,7 @@ export default function ProfileView() {
             <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}] }>
                 <ScrollView showsVerticalScrollIndicator={false}>
                     <View className='flex-row items-center gap-4 px-5 py-5' style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
-                        <Pressable className='rounded-full p-2 active:opacity-70' style={{backgroundColor: Colors.lightGray}} onPress={() => router.push('/screens/client/_tabs/ClientHomeScreen')}>
+                        <Pressable className='rounded-full p-2 active:opacity-70' style={{backgroundColor: Colors.lightGray}} onPress={() => router.push('/screens/client/ClientHomeScreen')}>
                             <ArrowLeft color={Colors.primary} size={24} />
                         </Pressable>
                         <Text className='text-lg font-bold' style={{color: Colors.textPrimary}}>Guest Profile</Text>
@@ -90,7 +90,7 @@ export default function ProfileView() {
         <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}>
             <ScrollView showsVerticalScrollIndicator={false}>
                 <View className='flex-row items-center gap-4 px-5 py-5' style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
-                    <Pressable className='rounded-full p-2 active:opacity-70' style={{backgroundColor: Colors.lightGray}} onPress={() => router.push("/screens/client/_tabs/ClientHomeScreen")}>
+                    <Pressable className='rounded-full p-2 active:opacity-70' style={{backgroundColor: Colors.lightGray}} onPress={() => router.push("/screens/client/ClientHomeScreen")}>
                         <ArrowLeft color={Colors.primary} size={24} />
                     </Pressable>
                     <Text className='text-lg font-bold' style={{color: Colors.textPrimary}}>Profile Overview</Text>

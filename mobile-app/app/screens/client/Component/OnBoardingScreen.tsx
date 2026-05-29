@@ -58,7 +58,7 @@ export default function OnBoadingScreen() {
       if (!isMounted) return
 
       if (seenOnboarding) {
-        router.replace('/screens/client/_tabs/ClientHomeScreen')
+        router.replace('/screens/client/ClientHomeScreen')
       }
     }
 
@@ -73,7 +73,7 @@ export default function OnBoadingScreen() {
     if (userIdentifier) {
       await markOnboardingSeen(userIdentifier)
     }
-    router.replace('/screens/client/_tabs/ClientHomeScreen')
+    router.replace('/screens/client/ClientHomeScreen')
   }
 
   return (

@@ -69,7 +69,7 @@ export default function VendorHomeScreen() {
           if (existingServices.length > 0) {
             const firstCategory = String(existingServices[0]?.category || '').toLowerCase()
             setLockedCategory(firstCategory || null)
-            router.replace('/screens/vendor/_tabs/VendorDashboardHome')
+            router.replace('/screens/vendor/VendorDashboardHome')
             return
           }
 

@@ -7,7 +7,7 @@ const ClientLoginScreen = () => {
             role='client'
             signupRoute='/screens/client/Component/SignupScreen'
             forgotPasswordRoute='/screens/client/Component/ForgotPasswordScreen'
-            homeScreenRoute='/screens/client/_tabs/ClientHomeScreen'
+            homeScreenRoute='/screens/client/ClientHomeScreen'
         />
     )
 }

@@ -19,7 +19,7 @@ export default function Index() {
       if (!user?.role) return
 
       if (user.isGuest) {
-        router.replace('/screens/client/_tabs/ClientHomeScreen')
+        router.replace('/screens/client/ClientHomeScreen')
         return
       }
 
@@ -32,7 +32,7 @@ export default function Index() {
       const seenOnboarding = await hasSeenOnboarding(identifier)
       if (!isMounted) return
 
-      router.replace(seenOnboarding ? '/screens/client/_tabs/ClientHomeScreen' : '/screens/client/Component/OnBoardingScreen')
+      router.replace(seenOnboarding ? '/screens/client/ClientHomeScreen' : '/screens/client/Component/OnBoardingScreen')
     }
 
     if (!loading && user) {

@@ -170,7 +170,7 @@ export default function VendorListView() {
     <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}>
         <View className='flex-row justify-between items-center gap-4 px-5 py-4' style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
           <View className='flex-row items-center gap-4 flex-1'>
-            <Pressable className='rounded-full p-2 active:opacity-70' style={{backgroundColor: Colors.lightGray}} onPress={() => router.push("/screens/client/_tabs/ClientHomeScreen")}>
+            <Pressable className='rounded-full p-2 active:opacity-70' style={{backgroundColor: Colors.lightGray}} onPress={() => router.push("/screens/client/ClientHomeScreen")}>
               <ArrowLeft color={Colors.primary} size={24} />
             </Pressable>
             <Text className='text-lg font-bold flex-1' style={{color: Colors.textPrimary}} numberOfLines={1}>Browse Vendors</Text>

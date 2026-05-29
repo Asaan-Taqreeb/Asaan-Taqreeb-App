@@ -118,7 +118,7 @@ export function handleNotificationResponse(response: Notifications.NotificationR
     // Navigate to booking detail
     if (userRole === 'vendor') {
         // For vendors, go to Orders screen (since we need full object for Detail)
-        router.push('/screens/vendor/_tabs/OrdersScreen');
+        router.push('/screens/vendor/OrdersScreen');
     } else {
         // For clients
         router.push('/screens/client/Component/BookingHistoryScreen');

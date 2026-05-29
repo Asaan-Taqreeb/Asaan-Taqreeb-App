@@ -431,7 +431,7 @@ export default function BookingScreen() {
             Alert.alert('Success', 'Booking request sent to vendor successfully.', [
                 {
                     text: 'OK',
-                    onPress: () => router.replace('/screens/client/_tabs/BookingScreen'),
+                    onPress: () => router.replace('/screens/client/BookingScreen'),
                 },
             ])
         } catch (error: any) {

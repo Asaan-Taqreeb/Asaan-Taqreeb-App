@@ -47,7 +47,7 @@ export default function WelcomeScreen() {
         role: 'client',
         isGuest: true,
       })
-      router.replace('/screens/client/_tabs/ClientHomeScreen')
+      router.replace('/screens/client/ClientHomeScreen')
     } catch {
       Alert.alert('Guest Mode Unavailable', 'Please try again.')
     }

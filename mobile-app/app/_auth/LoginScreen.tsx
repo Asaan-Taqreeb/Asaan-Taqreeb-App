@@ -23,7 +23,7 @@ const LoginScreen = ({
     signupRoute = '/screens/client/Component/SignupScreen',
     forgotPasswordRoute = '/screens/client/Component/ForgotPasswordScreen',
     onLoginSuccess,
-    homeScreenRoute = '/screens/client/_tabs/ClientHomeScreen'
+    homeScreenRoute = '/screens/client/ClientHomeScreen'
 }: LoginScreenProps) => {
     const insets = useSafeAreaInsets()
     const router = useRouter()
@@ -85,7 +85,7 @@ const LoginScreen = ({
         if (authenticatedRole === 'client') {
             const identifier = String(userData?.id || userData?.email || '')
             const seenOnboarding = await hasSeenOnboarding(identifier)
-            const route = seenOnboarding ? '/screens/client/_tabs/ClientHomeScreen' : '/screens/client/Component/OnBoardingScreen'
+            const route = seenOnboarding ? '/screens/client/ClientHomeScreen' : '/screens/client/Component/OnBoardingScreen'
             router.replace(route as any)
             return
         }
