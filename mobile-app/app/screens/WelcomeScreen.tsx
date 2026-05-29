@@ -57,7 +57,7 @@ export default function WelcomeScreen() {
     <View style={[style.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]} >
       <View className="flex-1 justify-center px-6">
         <View className="items-center mb-16">
-          <AppLogo size="medium" />
+          <AppLogo size="large" />
           <Pressable
             onPress={() => setShowLanguagePicker(true)}
             className="mt-5 px-4 py-2 rounded-full"

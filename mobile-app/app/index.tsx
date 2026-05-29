@@ -5,7 +5,6 @@ import { useEffect } from 'react'
 import { ActivityIndicator, View, Text, StyleSheet } from 'react-native'
 import { hasSeenOnboarding } from '@/app/_utils/onboardingStorage'
 import { Colors, Shadows } from "@/app/_constants/theme";
-import { PartyPopper } from "lucide-react-native"
 import AppLogo from "./screens/client/Component/AppLogo";
 
 export default function Index() {
@@ -47,7 +46,7 @@ export default function Index() {
   if (loading || user) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background }}>
-        <AppLogo size="medium" />
+        <AppLogo size="large" />
         <ActivityIndicator 
           size="small" 
           color={Colors.primary} 

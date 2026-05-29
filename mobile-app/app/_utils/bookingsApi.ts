@@ -284,6 +284,20 @@ export const updateBookingStatus = async (bookingId: string | number, status: 'a
   )
 }
 
+export const cancelBooking = async (bookingId: string | number) => {
+  return apiFetchJson<any>(
+    BOOKING_ENDPOINTS.cancelBooking(bookingId),
+    {
+      method: 'PATCH',
+      auth: true,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    },
+    `Failed to cancel booking.`
+  )
+}
+
 export default function BookingsApiStub() {
   return null;
 }

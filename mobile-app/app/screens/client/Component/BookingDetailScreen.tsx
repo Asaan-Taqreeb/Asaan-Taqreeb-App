@@ -1,11 +1,15 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, Calendar, Clock, MapPin, Phone, MessageSquare, Info, CreditCard, DollarSign } from 'lucide-react-native';
+import { ArrowLeft, Calendar, Clock, MapPin, Phone, MessageSquare, Info, CreditCard, DollarSign, Star } from 'lucide-react-native';
 import { Colors, Shadows } from '@/app/_constants/theme';
 import StatusStepper from '@/app/_components/StatusStepper';
 import { useUser } from '@/app/_context/UserContext';
+import RatingModal from './RatingModal';
+import { createReview } from '@/app/_utils/reviewsApi';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { cancelBooking } from '@/app/_utils/bookingsApi';
 
 export default function BookingDetailScreen() {
   const router = useRouter();
@@ -13,7 +17,74 @@ export default function BookingDetailScreen() {
   const params = useLocalSearchParams();
   const { user } = useUser();
   
-  const booking = params.booking ? JSON.parse(params.booking as string) : null;
+  const booking = params.booking 
+    ? JSON.parse(
+        params.booking.toString().startsWith('{') 
+          ? params.booking as string 
+          : decodeURIComponent(params.booking as string)
+      ) 
+    : null;
+
+  const [isRatingModalVisible, setIsRatingModalVisible] = useState(false);
+  const [ratedBookings, setRatedBookings] = useState<Record<string, {rating: number, comment: string}>>({});
+
+  useEffect(() => {
+    loadRatedBookings();
+  }, []);
+
+  const loadRatedBookings = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('client_rated_bookings');
+      if (saved) {
+        setRatedBookings(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.log('Failed to load ratings:', error);
+    }
+  };
+
+  const onRatingSubmit = async (rating: number, comment: string) => {
+    if (!booking) return;
+    
+    try {
+      await createReview(String(booking.id), rating, comment);
+      const newRated = {
+        ...ratedBookings,
+        [booking.id]: { rating, comment }
+      };
+      setRatedBookings(newRated);
+      await AsyncStorage.setItem('client_rated_bookings', JSON.stringify(newRated));
+      Alert.alert('Success', 'Your review has been submitted successfully.');
+    } catch (error: any) {
+      console.error('Failed to submit review:', error);
+      Alert.alert('Error', error.message || 'Failed to submit review. Please try again.');
+    }
+  };
+
+  const handleCancelBooking = () => {
+    Alert.alert(
+      'Cancel Booking Request',
+      'Are you sure you want to cancel this booking request?',
+      [
+        { text: 'No, Keep Request', style: 'cancel' },
+        {
+          text: 'Yes, Cancel Request',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await cancelBooking(booking.id);
+              Alert.alert('Cancelled', 'Your booking request has been successfully cancelled.', [
+                { text: 'OK', onPress: () => router.back() }
+              ]);
+            } catch (error: any) {
+              console.error('Failed to cancel booking:', error);
+              Alert.alert('Error', error.message || 'Failed to cancel booking. Please try again.');
+            }
+          }
+        }
+      ]
+    );
+  };
 
   if (!booking) {
     return (
@@ -150,10 +221,61 @@ export default function BookingDetailScreen() {
         </View>
 
         {/* Special Requests */}
-        {booking.specialRequests && (
+        {!!booking.specialRequests && (
           <View className="bg-white mx-5 mt-4 p-5 rounded-3xl" style={Shadows.small}>
             <Text className="text-sm font-bold mb-2" style={{ color: Colors.textPrimary }}>Special Requests</Text>
             <Text className="text-sm text-gray-600 leading-5">{booking.specialRequests}</Text>
+          </View>
+        )}
+
+        {/* Cancel Booking Section */}
+        {booking.status === 'pending' && (
+          <View className="bg-white mx-5 mt-4 p-5 rounded-3xl" style={Shadows.small}>
+            <Text className="text-sm font-bold mb-3" style={{ color: Colors.textPrimary }}>Manage Booking</Text>
+            <TouchableOpacity 
+              onPress={handleCancelBooking}
+              className="py-3.5 rounded-2xl items-center"
+              style={{ backgroundColor: Colors.error }}
+            >
+              <Text className="text-white font-bold text-sm">Cancel Booking Request</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Review / Rating Section */}
+        {(booking.status === 'completed' || booking.status === 'confirmed') && (
+          <View className="bg-white mx-5 mt-4 p-5 rounded-3xl" style={Shadows.small}>
+            <Text className="text-sm font-bold mb-3" style={{ color: Colors.textPrimary }}>Your Review</Text>
+            {ratedBookings[booking.id] ? (
+              <View className="bg-yellow-50/50 border border-yellow-100 p-4 rounded-2xl">
+                <View className="flex-row items-center mb-1.5">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star 
+                      key={star} 
+                      size={16} 
+                      color={star <= ratedBookings[booking.id].rating ? "#FCD34D" : Colors.border} 
+                      fill={star <= ratedBookings[booking.id].rating ? "#FCD34D" : "transparent"} 
+                    />
+                  ))}
+                  <Text className="text-xs font-extrabold ml-2" style={{ color: "#F59E0B" }}>
+                    {ratedBookings[booking.id].rating}.0 / 5.0
+                  </Text>
+                </View>
+                {ratedBookings[booking.id].comment ? (
+                  <Text className="text-xs font-medium text-gray-500 italic mt-1">
+                    "{ratedBookings[booking.id].comment}"
+                  </Text>
+                ) : null}
+              </View>
+            ) : (
+              <TouchableOpacity 
+                onPress={() => setIsRatingModalVisible(true)}
+                className="py-3.5 rounded-2xl items-center"
+                style={{ backgroundColor: Colors.primary }}
+              >
+                <Text className="text-white font-bold text-sm">Rate Experience</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
@@ -165,6 +287,13 @@ export default function BookingDetailScreen() {
           <Text className="text-xs font-bold text-gray-400">HAVE AN ISSUE WITH THIS BOOKING?</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <RatingModal
+        isVisible={isRatingModalVisible}
+        onClose={() => setIsRatingModalVisible(false)}
+        vendorName={booking.vendorName}
+        onConfirm={onRatingSubmit}
+      />
     </View>
   );
 }

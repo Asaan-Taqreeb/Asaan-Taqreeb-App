@@ -286,7 +286,7 @@ export default function BookingScreen() {
                           Time: <Text className='font-bold' style={{color: Colors.textPrimary}}>{booking.time}</Text>
                         </Text>
                       </View>
-                      {booking.guestCount && (
+                      {!!booking.guestCount && (
                         <View className='flex-row items-center gap-2'>
                           <Users size={14} color={categoryColor} />
                           <Text className='text-xs font-semibold' style={{color: Colors.textSecondary}}>
@@ -311,7 +311,7 @@ export default function BookingScreen() {
                       </View>
                     </View>
 
-                    {booking.status === 'rejected' && booking.rejectionReason && (
+                    {booking.status === 'rejected' && !!booking.rejectionReason && (
                       <View className='rounded-xl p-3 mb-4' style={{backgroundColor: Colors.errorLight, borderWidth: 1, borderColor: Colors.error + '20'}}>
                         <Text className='text-[10px] font-bold mb-1 tracking-wider' style={{color: Colors.error}}>REJECTION REASON</Text>
                         <Text className='text-xs font-medium leading-relaxed' style={{color: Colors.error}}>

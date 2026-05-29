@@ -4,7 +4,7 @@
     "slug": "mobileapp",
     "version": "1.2.0",
     "orientation": "portrait",
-    "icon": "./assets/images/Logo.png",
+    "icon": "./assets/images/icon.png",
     "scheme": "asaantaqreeb",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -26,7 +26,7 @@
       ],
       "adaptiveIcon": {
         "backgroundColor": "#ECFEFF",
-        "foregroundImage": "./assets/images/Logo.png"
+        "foregroundImage": "./assets/images/icon.png"
       },
       "package": "com.asaantaqreeb",
       "googleServicesFile": "./google-services.json"
@@ -34,7 +34,7 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/Logo.png"
+      "favicon": "./assets/images/icon.png"
     },
     "plugins": [
       "expo-router",
@@ -42,7 +42,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/Logo.png",
+          "image": "./assets/images/logo.png",
           "resizeMode": "contain",
           "backgroundColor": "#F8FAFC",
           "dark": {

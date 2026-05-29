@@ -1,6 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { PartyPopper } from 'lucide-react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { Colors, Shadows } from '@/app/_constants/theme';
 
 interface AppLogoProps {
@@ -10,33 +9,46 @@ interface AppLogoProps {
 }
 
 export default function AppLogo({ size = 'medium', showText = true, light = false }: AppLogoProps) {
-  const iconSize = size === 'small' ? 24 : size === 'medium' ? 40 : 60;
-  const boxSize = size === 'small' ? 48 : size === 'medium' ? 80 : 120;
+  const boxSize = size === 'small' ? 48 : size === 'medium' ? 100 : 200;
   const fontSize = size === 'small' ? 'text-lg' : size === 'medium' ? 'text-3xl' : 'text-5xl';
+  const borderRadius = boxSize * 0.22; // Proportional rounded corners (similar to squircle iOS icons)
   
+  // Use icon.png for small size (where big logo doesn't fit), and logo.png for medium/large sizes
+  const logoSource = size === 'small'
+    ? require('@/assets/images/icon.png')
+    : require('@/assets/images/logo.png');
+
   return (
     <View className="items-center justify-center">
       <View 
         style={[
-          styles.logoBox, 
-          Shadows.large,
+          styles.logoShadow,
           { 
             width: boxSize, 
-            height: boxSize, 
-            borderRadius: boxSize * 0.3,
-            backgroundColor: light ? Colors.white : Colors.vendor 
+            height: boxSize,
+            borderRadius: borderRadius,
           }
         ]}
       >
         <View 
-            style={styles.innerBox}
-            className="items-center justify-center"
+          style={[
+            styles.logoBox, 
+            { 
+              width: boxSize, 
+              height: boxSize,
+              borderRadius: borderRadius,
+            }
+          ]}
         >
-            <PartyPopper 
-                size={iconSize} 
-                color={light ? Colors.vendor : Colors.primary} 
-                strokeWidth={2.5}
-            />
+          <Image 
+            source={logoSource}
+            style={{ 
+              width: boxSize, 
+              height: boxSize,
+              borderRadius: borderRadius,
+            }}
+            resizeMode="cover"
+          />
         </View>
       </View>
       
@@ -61,13 +73,14 @@ export default function AppLogo({ size = 'medium', showText = true, light = fals
 }
 
 const styles = StyleSheet.create({
+  logoShadow: {
+    ...Shadows.medium,
+    backgroundColor: 'transparent',
+  },
   logoBox: {
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+    backgroundColor: Colors.white,
   },
-  innerBox: {
-    width: '100%',
-    height: '100%',
-  }
 });

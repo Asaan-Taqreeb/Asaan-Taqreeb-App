@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, Calendar, Clock, MapPin, CheckCircle, XCircle, HourglassIcon, Info } from 'lucide-react-native';
@@ -9,6 +9,7 @@ import RatingModal from './RatingModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Star } from 'lucide-react-native';
 import { useUser } from '@/app/_context/UserContext';
+import { createReview } from '@/app/_utils/reviewsApi';
 
 export default function BookingHistoryScreen() {
   const router = useRouter();
@@ -46,16 +47,19 @@ export default function BookingHistoryScreen() {
   const onRatingSubmit = async (rating: number, comment: string) => {
     if (!selectedBooking) return;
     
-    const newRated = {
-      ...ratedBookings,
-      [selectedBooking.id]: { rating, comment }
-    };
-    
-    setRatedBookings(newRated);
     try {
+      await createReview(String(selectedBooking.id), rating, comment);
+      const newRated = {
+        ...ratedBookings,
+        [selectedBooking.id]: { rating, comment }
+      };
+      
+      setRatedBookings(newRated);
       await AsyncStorage.setItem('client_rated_bookings', JSON.stringify(newRated));
-    } catch (error) {
-      console.log('Failed to save rating:', error);
+      Alert.alert('Success', 'Your review has been submitted successfully.');
+    } catch (error: any) {
+      console.error('Failed to submit review:', error);
+      Alert.alert('Error', error.message || 'Failed to submit review. Please try again.');
     }
   };
 
@@ -225,7 +229,7 @@ export default function BookingHistoryScreen() {
                 activeOpacity={0.7}
                 onPress={() => router.push({
                     pathname: '/screens/client/Component/BookingDetailScreen',
-                    params: { booking: JSON.stringify(booking) }
+                    params: { booking: encodeURIComponent(JSON.stringify(booking)) }
                 })}
                 >
                 {/* Header */}
