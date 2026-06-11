@@ -199,7 +199,7 @@ export default function PlannerScreen() {
                 </View>
             </View>
 
-            <ScrollView className='flex-1' showsVerticalScrollIndicator={false} contentContainerStyle={{padding: 20}}>
+            <ScrollView className='flex-1' showsVerticalScrollIndicator={false} contentContainerStyle={{paddingHorizontal: 20, paddingTop: 20, paddingBottom: 110}}>
                 {/* Budget Overview Card */}
                 <View className='rounded-3xl p-5 mb-6' style={[{backgroundColor: Colors.white}, Shadows.medium]}>
                     <View className='flex-row justify-between items-center mb-4'>

@@ -2,7 +2,7 @@ import { Alert, FlatList, Image, Pressable, StyleSheet, Text, View } from 'react
 import React, { useCallback, useState } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { MapPin, Star, Users, Heart } from 'lucide-react-native'
+import { MapPin, Star, Users, Heart, ArrowLeft } from 'lucide-react-native'
 import { router } from 'expo-router'
 import { Colors, Shadows, Spacing, getCategoryColor } from '@/app/_constants/theme'
 import { ServiceListItem, getConciseAddress } from '@/app/_utils/servicesApi'
@@ -55,9 +55,14 @@ export default function FavoritesScreen() {
 
     return (
         <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}>
-            <View className='px-5 py-5' style={{borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.white}}>
-                <Text className='text-xl font-bold' style={{color: Colors.textPrimary}}>My Favorites</Text>
-                <Text className='text-xs font-medium mt-0.5' style={{color: Colors.textSecondary}}>Saved vendors and services</Text>
+            <View className='px-5 py-4 flex-row items-center gap-3' style={{borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.white}}>
+                <Pressable onPress={() => router.back()} className="p-1.5 rounded-full active:bg-gray-100">
+                    <ArrowLeft size={20} color={Colors.textPrimary} />
+                </Pressable>
+                <View>
+                    <Text className='text-xl font-bold' style={{color: Colors.textPrimary}}>My Favorites</Text>
+                    <Text className='text-xs font-medium mt-0.5' style={{color: Colors.textSecondary}}>Saved vendors and services</Text>
+                </View>
             </View>
 
             <View className='flex-1'>

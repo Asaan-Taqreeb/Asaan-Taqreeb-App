@@ -15,14 +15,13 @@ const sizeMap = {
 
 const generateColorFromHash = (str: string): string => {
   const colors = [
-    '#06B6D4', // cyan (primary)
-    '#DB2777', // pink
-    '#D97706', // amber
-    '#059669', // emerald
-    '#2563EB', // blue
-    '#7C3AED', // violet
-    '#4338CA', // indigo
-    '#0891B2', // cyan
+    '#0F172A', // Deep Navy (primary)
+    '#D4AF37', // Champagne Gold
+    '#14B8A6', // Teal
+    '#4F46E5', // Royal Indigo
+    '#D97706', // Warm Amber
+    '#1E293B', // Dark Slate
+    '#DB2777', // Bridal Pink
   ]
 
   if (!str) return colors[0]

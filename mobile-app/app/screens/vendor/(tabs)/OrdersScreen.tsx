@@ -123,7 +123,7 @@ export default function OrdersScreen() {
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: 20, paddingBottom: 32 }}
+        contentContainerStyle={{ paddingTop: 20, paddingBottom: 110 }}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}

@@ -161,7 +161,7 @@ export default function VendorMessagesScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.vendor} />
         }
-        contentContainerStyle={chats.length === 0 ? { flex: 1 } : {}}
+        contentContainerStyle={chats.length === 0 ? { flex: 1 } : { paddingBottom: 110 }}
         ListEmptyComponent={
           !isLoading ? (
             <View className="flex-1 items-center justify-center px-10 py-20">

@@ -131,6 +131,7 @@ export default function MessagesScreen() {
       <ScrollView
         className='flex-1'
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{paddingBottom: 110}}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
         }

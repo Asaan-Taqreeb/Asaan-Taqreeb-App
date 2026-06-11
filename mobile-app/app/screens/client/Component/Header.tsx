@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View, Alert } from 'react-native'
 import { useState } from 'react'
 import useLocation from './hooks/useLocation'
 import Icon from "@expo/vector-icons/FontAwesome6"
@@ -8,6 +8,7 @@ import { Colors } from '@/app/_constants/theme'
 import { useUser } from '@/app/_context/UserContext'
 import Avatar from '@/app/_components/Avatar'
 import { useLanguage } from '@/app/_context/LanguageContext'
+import { Heart } from 'lucide-react-native'
 
 import NotificationBell from '@/app/_components/NotificationBell'
 import AppLogo from './AppLogo'
@@ -26,6 +27,14 @@ const Header = () => {
       pathname: "/screens/client/Component/VendorListView",
       params: normalized ? { query: normalized } : undefined
     })
+  }
+
+  const handleOpenFavorites = () => {
+    if (user?.isGuest) {
+      Alert.alert('Guest Mode', 'Sign in to access favorites.')
+      return
+    }
+    router.push("/screens/client/(tabs)/FavoritesScreen")
   }
 
   return (
@@ -51,6 +60,13 @@ const Header = () => {
           </View>
         </View>
         <View className='flex-row justify-center items-center gap-2 mr-1'>
+          <Pressable 
+            className="p-2 rounded-xl active:bg-gray-100" 
+            style={{ backgroundColor: Colors.white }}
+            onPress={handleOpenFavorites}
+          >
+            <Heart size={20} color={Colors.textPrimary} />
+          </Pressable>
           <NotificationBell userId={user?.id} userRole='client' />
           <Pressable className='active:opacity-70 ml-2' onPress={() => router.push("/screens/client/Component/ProfileView")}>
             <Avatar name={user?.name || 'U'} size='md' />

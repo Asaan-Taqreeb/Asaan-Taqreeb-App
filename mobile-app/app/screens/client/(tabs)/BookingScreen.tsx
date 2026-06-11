@@ -1,10 +1,10 @@
-import { ScrollView, StyleSheet, Text, View, Pressable, TextInput } from 'react-native'
+import { ScrollView, StyleSheet, Text, View, Pressable, TextInput, Alert, RefreshControl } from 'react-native'
 import { useEffect, useState, useCallback } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { Clock, MapPin, Users, Calendar, CheckCircle, XCircle, AlertCircle, Star } from 'lucide-react-native'
-import { ClientBookingItem, getMyBookings } from '@/app/_utils/bookingsApi'
+import { ClientBookingItem, getMyBookings, cancelBooking } from '@/app/_utils/bookingsApi'
 import { createReview } from '@/app/_utils/reviewsApi'
 import { useUser } from '@/app/_context/UserContext'
 import { useLanguage } from '@/app/_context/LanguageContext'
@@ -28,7 +28,7 @@ export default function BookingScreen() {
   const [comment, setComment] = useState('')
   const [isSubmittingReview, setIsSubmittingReview] = useState(false)
 
-    const loadBookings = useCallback(async () => {
+    const loadBookings = useCallback(async (forceRefresh = false) => {
       if (user?.isGuest) {
         setBookings([])
         setIsLoading(false)
@@ -38,7 +38,7 @@ export default function BookingScreen() {
       try {
         setIsLoading(true)
         setError(null)
-        const response = await getMyBookings()
+        const response = await getMyBookings(forceRefresh)
         setBookings(response)
       } catch (apiError: any) {
         setError(apiError?.message || t('loadingBookings'))
@@ -124,6 +124,36 @@ export default function BookingScreen() {
     }
   }
 
+  const handleCancelBooking = (bookingId: string | number) => {
+    Alert.alert(
+      "Cancel Booking Request",
+      "Are you sure you want to cancel this booking request? This will retract your reservation request to the vendor.",
+      [
+        { text: "No", style: "cancel" },
+        { 
+          text: "Yes, Cancel", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setIsLoading(true)
+              const success = await cancelBooking(bookingId)
+              if (success) {
+                Alert.alert("Cancelled", "Your booking request has been successfully cancelled.")
+                await loadBookings(true)
+              } else {
+                Alert.alert("Error", "Failed to cancel booking request. Please try again.")
+              }
+            } catch (err: any) {
+              Alert.alert("Error", err.message || "Failed to cancel booking request.")
+            } finally {
+              setIsLoading(false)
+            }
+          }
+        }
+      ]
+    )
+  }
+
   
 
   const filters = [
@@ -186,7 +216,18 @@ export default function BookingScreen() {
         </>
       )}
 
-      <ScrollView className='flex-1' showsVerticalScrollIndicator={false} contentContainerStyle={{paddingVertical: 16}}>
+      <ScrollView 
+        className='flex-1' 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={{paddingTop: 16, paddingBottom: 110}}
+        refreshControl={
+          <RefreshControl 
+            refreshing={isLoading} 
+            onRefresh={() => loadBookings(true)} 
+            colors={[Colors.primary]} 
+          />
+        }
+      >
         {user?.isGuest && (
           <View className='px-5 mb-4'>
             <View className='rounded-2xl p-5' style={{backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, ...Shadows.small}}>
@@ -335,12 +376,29 @@ export default function BookingScreen() {
                         </Pressable>
                       )}
 
-                      {(booking.status === 'pending' || booking.status === 'confirmed' || booking.status === 'completed') && (
+                      {booking.status === 'pending' && (
+                        <View className="gap-2">
+                          <View className='py-3 px-4 rounded-xl items-center justify-center' style={{backgroundColor: Colors.lightGray}}>
+                            <Text className='text-xs font-bold' style={{color: Colors.textSecondary}}>
+                              Waiting for Vendor
+                            </Text>
+                          </View>
+                          <Pressable 
+                            className='py-3.5 rounded-xl active:opacity-80 border'
+                            style={{borderColor: Colors.error, backgroundColor: Colors.white}}
+                            onPress={() => handleCancelBooking(booking.id)}
+                          >
+                            <Text className='text-center font-bold text-xs' style={{color: Colors.error}}>
+                              Cancel Booking Request
+                            </Text>
+                          </Pressable>
+                        </View>
+                      )}
+
+                      {(booking.status === 'confirmed' || booking.status === 'completed') && (
                         <View className='py-3 px-4 rounded-xl items-center justify-center' style={{backgroundColor: Colors.lightGray}}>
                           <Text className='text-xs font-bold' style={{color: Colors.textSecondary}}>
-                            {booking.status === 'pending' 
-                              ? 'Waiting for Vendor' 
-                              : booking.status === 'confirmed' ? 'Booking Confirmed' : 'Booking Completed'}
+                            {booking.status === 'confirmed' ? 'Booking Confirmed' : 'Booking Completed'}
                           </Text>
                         </View>
                       )}

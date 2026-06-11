@@ -1,70 +1,72 @@
 // Theme Constants for Asaan Taqreeb
-// Professional color palette — Primary (Electric Cyan), Vendor (Midnight Slate), Accent (Electric Blue)
+// Luxury Event Planner — Deep Navy, Champagne Gold, Teal Accent
 
 export const Colors = {
-  // Brand Colors (Modern Luxe)
-  primary: '#06B6D4',      // Electric Cyan
-  primaryLight: '#22D3EE',
-  primaryDark: '#0891B2',
-  primaryMuted: '#ECFEFF',
+  // ─── Brand Colors ───────────────────────────────────────────────
+  primary: '#0F172A',       // Deep Navy  — buttons, nav bar, headers
+  primaryLight: '#1E293B',  // Navy Shade — hover, pressed states
+  primaryDark: '#020617',   // Deep Midnight — extra emphasis
+  primaryMuted: '#E8EBF0',  // Icy Navy Tint — chip backgrounds
 
-  // Secondary / Vendor (Midnight Slate)
-  vendor: '#0F172A',
+  // ─── Secondary / Vendor (Champagne Gold) ────────────────────────
+  vendor: '#0F172A',        // Deep Navy  (vendor portal primary)
   vendorLight: '#1E293B',
-  vendorAccent: '#334155',
+  vendorAccent: '#D4AF37',  // Champagne Gold — vendor highlights
 
-  // Accent (Warm Gold)
-  accent: '#2563EB',
-  accentLight: '#60A5FA',
-  accentMuted: '#EFF6FF',
+  // ─── Accent (Champagne Gold) ────────────────────────────────────
+  accent: '#D4AF37',        // Champagne Gold — CTAs, premium badges
+  accentLight: '#EDD87A',   // Lighter Gold
+  accentMuted: '#FBF5DC',   // Pale Gold Tint
 
-  // Background Colors
-  background: '#F8FAFC',   // Cloud White
+  // ─── Teal Accent ─────────────────────────────────────────────────
+  teal: '#14B8A6',          // Available status, success, interactive
+  tealLight: '#CCFBF1',     // Soft Teal background
+
+  // ─── Background Colors ───────────────────────────────────────────
+  background: '#F8FAFC',   // Soft White — main app background
   white: '#FFFFFF',
   lightGray: '#F1F5F9',
 
-  // Text Colors
-  textPrimary: '#0F172A',
-  textSecondary: '#475569',
-  textTertiary: '#94A3B8',
+  // ─── Text Colors ─────────────────────────────────────────────────
+  textPrimary: '#0F172A',    // Deep Navy  — headlines
+  textSecondary: '#1E293B',  // Dark Gray  — body text
+  textTertiary: '#64748B',   // Medium Gray — captions, placeholders
   textLight: '#F8FAFC',
 
-  // Status Colors
-  success: '#14B8A6',      // Teal Mint
+  // ─── Status Colors ────────────────────────────────────────────────
+  success: '#14B8A6',        // Teal  → Available
   successLight: '#CCFBF1',
-  warning: '#F59E0B',
-  warningLight: '#FEF3C7',
-  error: '#EF4444',
+  warning: '#D4AF37',        // Gold  → Pending
+  warningLight: '#FBF5DC',
+  error: '#EF4444',          // Red   → Booked / Cancelled
   errorLight: '#FEE2E2',
-  info: '#2563EB',
-  infoLight: '#DBEAFE',
+  info: '#14B8A6',           // Teal  → info notifications
+  infoLight: '#CCFBF1',
 
-  // Category Colors
-  banquet: '#0F172A',
-  catering: '#06B6D4',
-  photo: '#2563EB',
-  parlor: '#14B8A6',
+  // ─── Category Colors ─────────────────────────────────────────────
+  banquet: '#0F172A',        // Deep Navy
+  catering: '#D97706',       // Warm Amber
+  photo: '#4F46E5',          // Royal Indigo
+  parlor: '#DB2777',         // Bridal Pink
 
-  // Rating
-  rating: '#F59E0B',
+  // ─── Rating ──────────────────────────────────────────────────────
+  rating: '#D4AF37',         // Gold star rating
 
-  // Border Colors
+  // ─── Border & Shadow ─────────────────────────────────────────────
   border: '#E2E8F0',
   borderDark: '#94A3B8',
-
-  // Shadow Colors
   shadow: '#0F172A',
 
-  // Overlay
-  overlay: 'rgba(15, 23, 42, 0.5)',
+  // ─── Overlay ─────────────────────────────────────────────────────
+  overlay: 'rgba(15, 23, 42, 0.55)',
   overlayLight: 'rgba(15, 23, 42, 0.25)',
 }
 
-// Urban Luxe Gradients
+// Luxury Gradients
 export const Gradients = {
-  luxury: ['#0F172A', '#2563EB'],
-  cyan: ['#06B6D4', '#22D3EE'],
-  blue: ['#2563EB', '#60A5FA'],
+  luxury: ['#0F172A', '#D4AF37'],   // Navy → Champagne Gold (hero gradients)
+  gold: ['#D4AF37', '#EDD87A'],     // Gold shimmer
+  teal: ['#14B8A6', '#0F172A'],     // Teal → Navy (success / CTA)
 }
 
 // Category color helper
@@ -73,7 +75,7 @@ export const getCategoryColor = (category?: string | null): string => {
   switch(category.toLowerCase()) {
     case 'banquet': return Colors.banquet
     case 'catering': return Colors.catering
-    case 'photo': 
+    case 'photo':
     case 'photographer':
     case 'photography': return Colors.photo
     case 'parlor':
@@ -86,7 +88,7 @@ export default function ThemeRouteStub() {
   return null
 }
 
-// Spacing system (following 8pt grid system)
+// Spacing system (8pt grid)
 export const Spacing = {
   xs: 4,
   sm: 8,
@@ -115,7 +117,12 @@ export const Typography = {
     semibold: '600' as const,
     bold: '700' as const,
     extrabold: '800' as const,
-  }
+  },
+  // Font families (load via expo-google-fonts or @expo-google-fonts)
+  fonts: {
+    heading: 'Poppins',
+    body: 'Inter',
+  },
 }
 
 // Border Radius

@@ -1,13 +1,13 @@
 import { Alert, View, StyleSheet, ScrollView, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { Bot } from "lucide-react-native";
+import { MessageSquare } from "lucide-react-native";
 import Header from "../Component/Header";
 import CategoriesView from "../Component/CategoriesView";
 import FeaturedVendors from "../Component/FeaturedVendors";
 import { Colors, Shadows } from "@/app/_constants/theme";
 import { useUser } from "@/app/_context/UserContext";
-import { useLanguage } from '@/app/_context/LanguageContext'
+import { useLanguage } from '@/app/_context/LanguageContext';
 
 export default function ClientHomeScreen() {
     const insets = useSafeAreaInsets()
@@ -16,7 +16,7 @@ export default function ClientHomeScreen() {
 
     const handleOpenAIChat = () => {
       if (user?.isGuest) {
-        Alert.alert('Guest Mode', t('signInToUseChat'))
+        Alert.alert('Guest Mode', t('signInToUseChat') || 'Sign in to use the Event Concierge.')
         return
       }
 
@@ -26,7 +26,7 @@ export default function ClientHomeScreen() {
   return (
     <View style={[styles.container, {paddingTop: insets.top}]}>
       <Header />
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
         <CategoriesView />
         <FeaturedVendors />
       </ScrollView>
@@ -37,7 +37,7 @@ export default function ClientHomeScreen() {
         style={[{backgroundColor: Colors.primary}, Shadows.large]}
         onPress={handleOpenAIChat}
       >
-        <Bot color={Colors.white} size={28} />
+        <MessageSquare color={Colors.white} size={28} />
       </Pressable>
     </View>
   )

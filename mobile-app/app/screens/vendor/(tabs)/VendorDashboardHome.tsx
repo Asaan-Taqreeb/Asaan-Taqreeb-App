@@ -121,7 +121,7 @@ export default function VendorDashboardHome() {
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 32 }}
+        contentContainerStyle={{ paddingBottom: 110 }}
       >
         {/* Revenue Card */}
         <View className="px-5 mt-6">

@@ -1,5 +1,6 @@
 import { BOOKING_ENDPOINTS } from '@/app/_constants/apiEndpoints'
 import { apiFetchJson } from '@/app/_utils/apiClient'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 const toNumber = (value: unknown, fallback = 0) => {
   const parsed = Number(value)
@@ -16,14 +17,14 @@ const mapStatus = (status: unknown): 'pending' | 'approved' | 'rejected' | 'conf
   if (normalized === 'APPROVED' || normalized === 'ACCEPTED') return 'approved'
   if (normalized === 'PAID' || normalized === 'CONFIRMED') return 'confirmed'
   if (normalized === 'DONE' || normalized === 'COMPLETED') return 'completed'
-  if (normalized === 'REJECTED') return 'rejected'
+  if (normalized === 'REJECTED' || normalized === 'CANCELLED') return 'rejected'
   if (normalized === 'PENDING') return 'pending'
 
   return 'pending'
 }
 
 export type ClientBookingItem = {
-  id: number
+  id: string | number
   category: string
   vendorName: string
   vendorLocation: string
@@ -139,6 +140,60 @@ const mapCategoryToBackend = (category: string | undefined) => {
   return category
 }
 
+const mapSingleBookingToUi = (item: any, index = Date.now()): ClientBookingItem => {
+  const eventDate = String(firstDefined(item?.eventDate, item?.date, item?.bookingDate, new Date().toISOString().slice(0, 10)))
+  const bookingDate = String(firstDefined(item?.createdAt, item?.bookingDate, eventDate))
+  const price = toNumber(firstDefined(item?.pricing?.totalAmount, item?.totalAmount, item?.price, item?.amount), 0)
+  const fromTime = firstDefined(item?.timeSlot?.from, item?.time?.from)
+  const toTime = firstDefined(item?.timeSlot?.to, item?.time?.to)
+  const displayTime = fromTime && toTime
+    ? `${fromTime} - ${toTime}`
+    : String(firstDefined(item?.eventTime, item?.time, 'Not provided'))
+
+  return {
+    id: item?._id || item?.id || index,
+    category: String(firstDefined(item?.category, item?.service?.category, item?.serviceType, 'service')),
+    vendorName: String(firstDefined(item?.vendorName, item?.vendor?.name, item?.service?.name, 'Vendor')),
+    vendorLocation: String(firstDefined(item?.vendorLocation, item?.vendor?.location, item?.service?.basicInfo?.location, item?.service?.location, '')),
+    packageName: String(firstDefined(item?.selectedPackage?.name, item?.packageName, item?.package?.name, item?.servicePackageName, 'Package')),
+    date: eventDate,
+    time: displayTime,
+    guestCount: firstDefined(toNumber(item?.guestCount, NaN), undefined),
+    location: firstDefined(item?.location, item?.eventLocation),
+    price,
+    advancePayment: toNumber(firstDefined(item?.pricing?.advanceAmount, item?.advancePayment, item?.advanceAmount), Math.round(price * 0.5)),
+    status: mapStatus(item?.status),
+    rejectionReason: firstDefined(item?.rejectionReason, item?.reason),
+    bookingDate,
+  }
+}
+
+const mapSingleVendorBookingToUi = (item: any, index = Date.now()): VendorOrderItem => {
+  const eventDate = String(firstDefined(item?.eventDate, item?.date, new Date().toISOString().slice(0, 10)))
+  const day = new Date(eventDate).toLocaleDateString('en-US', { weekday: 'long' })
+  const normalizedStatus = String(firstDefined(item?.status, 'PENDING')).toUpperCase()
+  const fromTime = firstDefined(item?.timeSlot?.from, item?.time?.from)
+  const toTime = firstDefined(item?.timeSlot?.to, item?.time?.to)
+  const displayTime = fromTime && toTime
+    ? `${fromTime} - ${toTime}`
+    : String(firstDefined(item?.eventTime, item?.time, 'Not provided'))
+
+  return {
+    id: String(firstDefined(item?.id, item?._id, String(index))),
+    clientId: String(firstDefined(item?.client?._id, item?.client?.id, item?.user?._id, item?.user?.id, '')),
+    customerName: String(firstDefined(item?.clientName, item?.client?.name, item?.user?.name, 'Client')),
+    customerPhoto: String(firstDefined(item?.clientPhoto, item?.client?.avatar, 'https://i.pravatar.cc/150?img=12')),
+    serviceType: String(firstDefined(item?.serviceType, item?.category, item?.service?.category, 'Service')),
+    packageName: String(firstDefined(item?.selectedPackage?.name, item?.packageName, item?.package?.name, 'Package')),
+    totalAmount: toNumber(firstDefined(item?.pricing?.totalAmount, item?.totalAmount, item?.price, item?.amount), 0),
+    eventDate,
+    eventDay: day,
+    eventTime: displayTime,
+    guestCount: toNumber(firstDefined(item?.guestCount, 0), 0),
+    status: normalizedStatus === 'APPROVED' ? 'accepted' : normalizedStatus === 'REJECTED' ? 'rejected' : 'pending',
+  }
+}
+
 export const createBooking = async (payload: CreateBookingPayload) => {
   const selectedAddons = Array.isArray(payload?.selectedAddons)
     ? payload.selectedAddons
@@ -162,7 +217,7 @@ export const createBooking = async (payload: CreateBookingPayload) => {
     advancePayment: payload.advancePayment,
   }
 
-  return apiFetchJson<any>(
+  const result = await apiFetchJson<any>(
     BOOKING_ENDPOINTS.createBooking,
     {
       method: 'POST',
@@ -174,91 +229,134 @@ export const createBooking = async (payload: CreateBookingPayload) => {
     },
     'Failed to create booking.'
   )
+
+  // Cache the newly created booking immediately
+  if (result) {
+    try {
+      const rawBooking = result.data ?? result
+      const newBookingItem = mapSingleBookingToUi(rawBooking)
+      
+      const cachedStr = await AsyncStorage.getItem('cached_my_bookings')
+      let cached: ClientBookingItem[] = cachedStr ? JSON.parse(cachedStr) : []
+      
+      // Deduplicate and prepend
+      cached = [newBookingItem, ...cached.filter((b) => b.id !== newBookingItem.id)]
+      await AsyncStorage.setItem('cached_my_bookings', JSON.stringify(cached))
+    } catch (e) {
+      console.warn('Failed to add new booking to cache:', e)
+    }
+  }
+
+  return result
 }
 
-export const getMyBookings = async (): Promise<ClientBookingItem[]> => {
-  const response = await apiFetchJson<any[]>(
-    BOOKING_ENDPOINTS.myBookings,
-    { method: 'GET', auth: true },
-    'Failed to load your bookings.'
-  )
-
-  const raw = Array.isArray(response)
-    ? response
-    : Array.isArray((response as any)?.bookings)
-      ? (response as any).bookings
-      : []
-
-  return raw.map((item: any, index: number) => {
-    const eventDate = String(firstDefined(item?.eventDate, item?.date, item?.bookingDate, new Date().toISOString().slice(0, 10)))
-    const bookingDate = String(firstDefined(item?.createdAt, item?.bookingDate, eventDate))
-    const price = toNumber(firstDefined(item?.pricing?.totalAmount, item?.totalAmount, item?.price, item?.amount), 0)
-    const fromTime = firstDefined(item?.timeSlot?.from, item?.time?.from)
-    const toTime = firstDefined(item?.timeSlot?.to, item?.time?.to)
-    const displayTime = fromTime && toTime
-      ? `${fromTime} - ${toTime}`
-      : String(firstDefined(item?.eventTime, item?.time, 'Not provided'))
-
-    return {
-      id: toNumber(firstDefined(item?.id, item?._id, index + 1), index + 1),
-      category: String(firstDefined(item?.category, item?.service?.category, item?.serviceType, 'service')),
-      vendorName: String(firstDefined(item?.vendorName, item?.vendor?.name, item?.service?.name, 'Vendor')),
-      vendorLocation: String(firstDefined(item?.vendorLocation, item?.vendor?.location, item?.service?.basicInfo?.location, item?.service?.location, '')),
-      packageName: String(firstDefined(item?.selectedPackage?.name, item?.packageName, item?.package?.name, item?.servicePackageName, 'Package')),
-      date: eventDate,
-      time: displayTime,
-      guestCount: firstDefined(toNumber(item?.guestCount, NaN), undefined),
-      location: firstDefined(item?.location, item?.eventLocation),
-      price,
-      advancePayment: toNumber(firstDefined(item?.pricing?.advanceAmount, item?.advancePayment, item?.advanceAmount), Math.round(price * 0.5)),
-      status: mapStatus(item?.status),
-      rejectionReason: firstDefined(item?.rejectionReason, item?.reason),
-      bookingDate,
+export const getMyBookings = async (forceRefresh = false): Promise<ClientBookingItem[]> => {
+  // Load cached bookings first for 0ms load speed
+  let cachedBookings: ClientBookingItem[] = []
+  if (!forceRefresh) {
+    try {
+      const cachedStr = await AsyncStorage.getItem('cached_my_bookings')
+      if (cachedStr) {
+        const parsed = JSON.parse(cachedStr)
+        // Invalidate old legacy numeric IDs (e.g. 1, 2)
+        const hasLegacyIds = parsed.some((b: any) => typeof b.id === 'number' || (!isNaN(Number(b.id)) && String(b.id).length < 5))
+        if (!hasLegacyIds) {
+          cachedBookings = parsed
+        } else {
+          await AsyncStorage.removeItem('cached_my_bookings')
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load bookings cache:', e)
     }
-  })
+  }
+
+  const fetchPromise = (async () => {
+    try {
+      const response = await apiFetchJson<any[]>(
+        BOOKING_ENDPOINTS.myBookings,
+        { method: 'GET', auth: true },
+        'Failed to load your bookings.'
+      )
+
+      const raw = Array.isArray(response)
+        ? response
+        : Array.isArray((response as any)?.bookings)
+          ? (response as any).bookings
+          : []
+
+      const uiBookings = raw.map((item: any, index: number) => mapSingleBookingToUi(item, index + 1))
+      
+      // Update cache with fresh data
+      await AsyncStorage.setItem('cached_my_bookings', JSON.stringify(uiBookings))
+      return uiBookings
+    } catch (error) {
+      console.error('Background bookings fetch failed:', error)
+      throw error
+    }
+  })()
+
+  if (cachedBookings.length > 0) {
+    // Return cache immediately, allow fetch to run in the background
+    fetchPromise.catch(() => {})
+    return cachedBookings
+  }
+
+  return fetchPromise
 }
 
-export const getVendorBookings = async (): Promise<VendorOrderItem[]> => {
-  const response = await apiFetchJson<any[]>(
-    BOOKING_ENDPOINTS.vendorBookings,
-    { method: 'GET', auth: true },
-    'Failed to load vendor bookings.'
-  )
-
-  const raw = Array.isArray(response)
-    ? response
-    : Array.isArray((response as any)?.bookings)
-      ? (response as any).bookings
-      : []
-
-  return raw.map((item: any, index: number) => {
-    const eventDate = String(firstDefined(item?.eventDate, item?.date, new Date().toISOString().slice(0, 10)))
-    const day = new Date(eventDate).toLocaleDateString('en-US', { weekday: 'long' })
-    const normalizedStatus = String(firstDefined(item?.status, 'PENDING')).toUpperCase()
-    const fromTime = firstDefined(item?.timeSlot?.from, item?.time?.from)
-    const toTime = firstDefined(item?.timeSlot?.to, item?.time?.to)
-    const displayTime = fromTime && toTime
-      ? `${fromTime} - ${toTime}`
-      : String(firstDefined(item?.eventTime, item?.time, 'Not provided'))
-
-    return {
-      id: String(firstDefined(item?.id, item?._id, index + 1)),
-      clientId: String(firstDefined(item?.client?._id, item?.client?.id, item?.user?._id, item?.user?.id, '')),
-      customerName: String(firstDefined(item?.clientName, item?.client?.name, item?.user?.name, 'Client')),
-      customerPhoto: String(firstDefined(item?.clientPhoto, item?.client?.avatar, 'https://i.pravatar.cc/150?img=12')),
-      serviceType: String(firstDefined(item?.serviceType, item?.category, item?.service?.category, 'Service')),
-      packageName: String(firstDefined(item?.selectedPackage?.name, item?.packageName, item?.package?.name, 'Package')),
-      totalAmount: toNumber(firstDefined(item?.pricing?.totalAmount, item?.totalAmount, item?.price, item?.amount), 0),
-      eventDate,
-      eventDay: day,
-      eventTime: displayTime,
-      guestCount: toNumber(firstDefined(item?.guestCount, 0), 0),
-      status: normalizedStatus === 'APPROVED' ? 'accepted' : normalizedStatus === 'REJECTED' ? 'rejected' : 'pending',
-      specialRequests: firstDefined(item?.specialRequests, item?.notes, item?.message),
-      orderDate: firstDefined(item?.createdAt, item?.bookingDate, new Date().toISOString()),
-      optionalItems: item?.selectedAddons || [],
+export const getVendorBookings = async (forceRefresh = false): Promise<VendorOrderItem[]> => {
+  // Load cached vendor bookings first
+  let cachedOrders: VendorOrderItem[] = []
+  if (!forceRefresh) {
+    try {
+      const cachedStr = await AsyncStorage.getItem('cached_vendor_bookings')
+      if (cachedStr) {
+        const parsed = JSON.parse(cachedStr)
+        // Invalidate legacy IDs
+        const hasLegacyIds = parsed.some((b: any) => typeof b.id === 'number' || (!isNaN(Number(b.id)) && String(b.id).length < 5))
+        if (!hasLegacyIds) {
+          cachedOrders = parsed
+        } else {
+          await AsyncStorage.removeItem('cached_vendor_bookings')
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load vendor bookings cache:', e)
     }
-  })
+  }
+
+  const fetchPromise = (async () => {
+    try {
+      const response = await apiFetchJson<any[]>(
+        BOOKING_ENDPOINTS.vendorBookings,
+        { method: 'GET', auth: true },
+        'Failed to load vendor bookings.'
+      )
+
+      const raw = Array.isArray(response)
+        ? response
+        : Array.isArray((response as any)?.bookings)
+          ? (response as any).bookings
+          : []
+
+      const uiOrders = raw.map((item: any, index: number) => mapSingleVendorBookingToUi(item, index + 1))
+      
+      // Update cache
+      await AsyncStorage.setItem('cached_vendor_bookings', JSON.stringify(uiOrders))
+      return uiOrders
+    } catch (error) {
+      console.error('Background vendor bookings fetch failed:', error)
+      throw error
+    }
+  })()
+
+  if (cachedOrders.length > 0) {
+    fetchPromise.catch(() => {})
+    return cachedOrders
+  }
+
+  return fetchPromise
 }
 
 export const updateBookingStatus = async (bookingId: string | number, status: 'accepted' | 'rejected', rejectionReason?: string) => {
@@ -270,7 +368,7 @@ export const updateBookingStatus = async (bookingId: string | number, status: 'a
     body.rejectionReason = rejectionReason
   }
 
-  return apiFetchJson<any>(
+  const response = await apiFetchJson<any>(
     BOOKING_ENDPOINTS.updateBookingStatus(bookingId),
     {
       method: 'PATCH',
@@ -282,10 +380,24 @@ export const updateBookingStatus = async (bookingId: string | number, status: 'a
     },
     `Failed to update booking status.`
   )
+
+  // Update local cache state for vendor bookings
+  try {
+    const cachedStr = await AsyncStorage.getItem('cached_vendor_bookings')
+    if (cachedStr) {
+      const cached: VendorOrderItem[] = JSON.parse(cachedStr)
+      const updated = cached.map((b) => (b.id === String(bookingId) ? { ...b, status } : b))
+      await AsyncStorage.setItem('cached_vendor_bookings', JSON.stringify(updated))
+    }
+  } catch (e) {
+    console.warn('Failed to update vendor booking cache:', e)
+  }
+
+  return response
 }
 
 export const cancelBooking = async (bookingId: string | number) => {
-  return apiFetchJson<any>(
+  const response = await apiFetchJson<any>(
     BOOKING_ENDPOINTS.cancelBooking(bookingId),
     {
       method: 'PATCH',
@@ -296,9 +408,22 @@ export const cancelBooking = async (bookingId: string | number) => {
     },
     `Failed to cancel booking.`
   )
+
+  // Update local cache state for client bookings
+  try {
+    const cachedStr = await AsyncStorage.getItem('cached_my_bookings')
+    if (cachedStr) {
+      const cached: ClientBookingItem[] = JSON.parse(cachedStr)
+      const updated = cached.map((b) => (b.id === Number(bookingId) ? { ...b, status: 'rejected' as const } : b))
+      await AsyncStorage.setItem('cached_my_bookings', JSON.stringify(updated))
+    }
+  } catch (e) {
+    console.warn('Failed to update booking cache after cancellation:', e)
+  }
+
+  return response
 }
 
 export default function BookingsApiStub() {
   return null;
 }
-

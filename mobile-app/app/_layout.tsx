@@ -18,7 +18,7 @@ export default function RootLayout() {
       <LanguageProvider>
         <SocketProvider>
           <NotificationInitializer />
-          <StatusBar style="dark" backgroundColor="#ffffff" />
+          <StatusBar style="dark" backgroundColor="#F8FAFC" />
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
           </Stack>

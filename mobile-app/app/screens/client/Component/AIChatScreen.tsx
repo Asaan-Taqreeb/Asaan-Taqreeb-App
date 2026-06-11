@@ -1,5 +1,5 @@
 import { router } from 'expo-router'
-import { ArrowLeft, Send, Bot, Sparkles, Trash2 } from 'lucide-react-native'
+import { ArrowLeft, Send, Sparkles, Trash2, MessageSquare } from 'lucide-react-native'
 import { useState, useRef, useEffect } from 'react'
 import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -11,7 +11,7 @@ import { getAllServices } from '@/app/_utils/servicesApi'
 import { useUser } from '@/app/_context/UserContext'
 
 const AI_CHAT_ID = 'ai-assistant'
-const AI_CHAT_NAME = 'AI Assistant'
+const AI_CHAT_NAME = 'Event Concierge'
 
 export default function AIChatScreen() {
     const insets = useSafeAreaInsets()
@@ -56,7 +56,7 @@ export default function AIChatScreen() {
             // Initial welcome message
             const welcomeMessage: Message = {
                 id: Date.now(),
-                text: "👋 Hi! I'm your **Asaan Taqreeb** AI assistant. I can help you plan your perfect event! Ask me about vendors, packages, pricing, or any questions you have.",
+                text: "Welcome to **Asaan Taqreeb**! I am your Event Concierge. I can help you find suitable vendors, compare package options, check pricing estimates, and organize your planning timeline. What kind of event are we planning today?",
                 sender: 'ai',
                 timestamp: new Date()
             }
@@ -73,7 +73,7 @@ export default function AIChatScreen() {
     const handleDeleteChat = () => {
         Alert.alert(
             "Delete Conversation",
-            "Are you sure you want to clear your conversation history with the AI Assistant?",
+            "Are you sure you want to clear your conversation history with the Event Concierge?",
             [
                 { text: "Cancel", style: "cancel" },
                 { 
@@ -84,7 +84,7 @@ export default function AIChatScreen() {
                         // Reset to welcome message
                         const welcomeMsg: Message = {
                             id: Date.now(),
-                            text: "Conversation cleared. How can I help you start over?",
+                            text: "Conversation cleared. What event details can I help you check now?",
                             sender: 'ai',
                             timestamp: new Date()
                         }
@@ -211,10 +211,10 @@ export default function AIChatScreen() {
         return (
             <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}>
                 <View className='flex-1 justify-center items-center px-6'>
-                    <Bot color={Colors.primary} size={44} />
-                    <Text className='text-2xl font-extrabold text-center mt-4' style={{color: Colors.textPrimary}}>AI chat is for signed-in users</Text>
+                    <MessageSquare color={Colors.primary} size={44} />
+                    <Text className='text-xl font-extrabold text-center mt-4' style={{color: Colors.textPrimary}}>Event Concierge is for signed-in users</Text>
                     <Text className='text-sm font-medium text-center mt-3' style={{color: Colors.textSecondary}}>
-                        Sign in to ask the assistant about vendors, pricing, and planning help.
+                        Sign in to get personalized vendor recommendations, pricing estimates, and premium planning assistance.
                     </Text>
                     <Pressable
                         className='mt-6 px-6 py-4 rounded-2xl active:opacity-85'
@@ -233,7 +233,7 @@ export default function AIChatScreen() {
             <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}>
                 <View className='flex-1 justify-center items-center'>
                     <ActivityIndicator color={Colors.primary} />
-                    <Text className="mt-4 font-medium" style={{color: Colors.textSecondary}}>Waking up AI Assistant...</Text>
+                    <Text className="mt-4 font-medium" style={{color: Colors.textSecondary}}>Connecting to Event Concierge...</Text>
                 </View>
             </View>
         )
@@ -255,14 +255,14 @@ export default function AIChatScreen() {
                     <ArrowLeft color={Colors.primary} size={22} />
                 </Pressable>
                 <View className='flex-row items-center gap-3 flex-1'>
-                    <View className='rounded-xl p-2' style={{backgroundColor: Colors.primary + '15'}}>
-                        <Bot color={Colors.primary} size={24} />
+                    <View className='rounded-xl p-2.5' style={{backgroundColor: Colors.primary + '12'}}>
+                        <MessageSquare color={Colors.primary} size={22} />
                     </View>
                     <View>
-                        <Text className='text-lg font-bold' style={{color: Colors.textPrimary}}>AI Partner</Text>
+                        <Text className='text-base font-extrabold' style={{color: Colors.textPrimary}}>Event Concierge</Text>
                         <View className="flex-row items-center gap-1">
-                            <View className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                            <Text className='text-[10px] font-bold uppercase tracking-wider' style={{color: Colors.textSecondary}}>Online</Text>
+                            <View className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            <Text className='text-[10px] font-bold text-slate-400 uppercase tracking-widest'>Ready to assist</Text>
                         </View>
                     </View>
                 </View>
@@ -311,7 +311,6 @@ export default function AIChatScreen() {
                             {renderMessageText(msg.text, msg.sender === 'user')}
                         </View>
                         <View className="flex-row items-center mt-1.5 px-1">
-                            {msg.sender === 'ai' && <Sparkles size={10} color={Colors.primary} className="mr-1" />}
                             <Text className='text-[10px] font-bold' style={{color: Colors.textTertiary}}>
                                 {formatTime(msg.timestamp)}
                             </Text>
@@ -323,7 +322,7 @@ export default function AIChatScreen() {
                     <View className='items-start mb-6'>
                         <View className='px-5 py-4 rounded-2xl bg-white border border-gray-100 flex-row items-center gap-3' style={{borderBottomLeftRadius: 4}}>
                             <ActivityIndicator size="small" color={Colors.primary} />
-                            <Text className="text-xs font-bold text-gray-400 uppercase tracking-widest">Thinking...</Text>
+                            <Text className="text-xs font-bold text-slate-400 uppercase tracking-widest">Assistant is typing...</Text>
                         </View>
                     </View>
                 )}
@@ -353,8 +352,8 @@ export default function AIChatScreen() {
                         <Send color={Colors.white} size={20} />
                     </Pressable>
                 </View>
-                <Text className="text-[9px] text-center mt-3 font-bold text-gray-300 uppercase tracking-widest">
-                    AI can make mistakes. Verify important info.
+                <Text className="text-[10px] text-center mt-3 font-semibold text-slate-400">
+                    Always confirm rates and availability directly with vendors.
                 </Text>
             </View>
         </KeyboardAvoidingView>

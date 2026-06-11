@@ -1,6 +1,6 @@
 import { AUTH_ENDPOINTS, VENDOR_ENDPOINTS } from '@/app/_constants/apiEndpoints'
 import { apiFetchJson, apiFetch, parseJsonSafe, getMessageFromPayload } from '@/app/_utils/apiClient'
-import { getAccessToken } from '@/app/_utils/authStorage'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 export const getConciseAddress = (address: string) => {
   if (!address || address === 'Location not set') return address;
@@ -271,8 +271,28 @@ export const mapServiceToUi = (service: any): ServiceListItem => {
     ),
     packages,
     optionalServices,
-    createdAt: firstDefined(service?.createdAt, service?.created_at),
-    updatedAt: firstDefined(service?.updatedAt, service?.updated_at),
+  }
+}
+
+// Helper: Add or update service in list caches
+const addServiceToCache = async (rawService: any) => {
+  try {
+    const uiService = mapServiceToUi(rawService)
+    
+    // Update cached_all_services
+    const cachedAllStr = await AsyncStorage.getItem('cached_all_services')
+    let cachedAll: ServiceListItem[] = cachedAllStr ? JSON.parse(cachedAllStr) : []
+    cachedAll = [uiService, ...cachedAll.filter(s => s.id !== uiService.id && s.serviceId !== uiService.serviceId)]
+    await AsyncStorage.setItem('cached_all_services', JSON.stringify(cachedAll))
+
+    // Update category-specific cache
+    const category = uiService.category
+    const cachedCatStr = await AsyncStorage.getItem(`cached_services_${category}`)
+    let cachedCat: ServiceListItem[] = cachedCatStr ? JSON.parse(cachedCatStr) : []
+    cachedCat = [uiService, ...cachedCat.filter(s => s.id !== uiService.id && s.serviceId !== uiService.serviceId)]
+    await AsyncStorage.setItem(`cached_services_${category}`, JSON.stringify(cachedCat))
+  } catch (e) {
+    console.warn('Failed to add service to cache:', e)
   }
 }
 
@@ -293,46 +313,103 @@ export const getVendorServices = async (): Promise<ServiceListItem[]> => {
 }
 
 export const getServiceByCategory = async (category: string): Promise<ServiceListItem[]> => {
-  const noCacheUrl = `${VENDOR_ENDPOINTS.allServices}${VENDOR_ENDPOINTS.allServices.includes('?') ? '&' : '?'}_t=${Date.now()}`
+  // Load cached category data first
+  let cachedData: ServiceListItem[] = []
+  try {
+    const cachedStr = await AsyncStorage.getItem(`cached_services_${category}`)
+    if (cachedStr) {
+      cachedData = JSON.parse(cachedStr)
+    }
+  } catch (e) {
+    console.warn(`Failed to load category ${category} cache:`, e)
+  }
 
-  const response = await apiFetchJson<any[]>(
-    noCacheUrl,
-    {
-      method: 'GET',
-      auth: false,
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        Pragma: 'no-cache',
-        Expires: '0',
-      },
-    },
-    'Failed to load services.'
-  )
+  const fetchPromise = (async () => {
+    try {
+      const noCacheUrl = `${VENDOR_ENDPOINTS.allServices}${VENDOR_ENDPOINTS.allServices.includes('?') ? '&' : '?'}_t=${Date.now()}`
+      const response = await apiFetchJson<any[]>(
+        noCacheUrl,
+        {
+          method: 'GET',
+          auth: false,
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            Pragma: 'no-cache',
+            Expires: '0',
+          },
+        },
+        'Failed to load services.'
+      )
 
-  const rawServices = extractServicesArray(response)
-  return rawServices.filter(s => toCategoryKey(firstDefined(s?.category, s?.serviceType, s?.type)) === category).map(mapServiceToUi)
+      const rawServices = extractServicesArray(response)
+      const uiServices = rawServices
+        .filter(s => toCategoryKey(firstDefined(s?.category, s?.serviceType, s?.type)) === category)
+        .map(mapServiceToUi)
+      
+      // Update cache
+      await AsyncStorage.setItem(`cached_services_${category}`, JSON.stringify(uiServices))
+      return uiServices
+    } catch (error) {
+      console.error('Background category fetch failed:', error)
+      throw error
+    }
+  })()
+
+  if (cachedData.length > 0) {
+    fetchPromise.catch(() => {})
+    return cachedData
+  }
+
+  return fetchPromise
 }
 
 export const getAllServices = async (): Promise<ServiceListItem[]> => {
-  const noCacheUrl = `${VENDOR_ENDPOINTS.allServices}${VENDOR_ENDPOINTS.allServices.includes('?') ? '&' : '?'}_t=${Date.now()}`
+  // Load cached all services first
+  let cachedData: ServiceListItem[] = []
+  try {
+    const cachedStr = await AsyncStorage.getItem('cached_all_services')
+    if (cachedStr) {
+      cachedData = JSON.parse(cachedStr)
+    }
+  } catch (e) {
+    console.warn('Failed to load services cache:', e)
+  }
 
-  const response = await apiFetchJson<any[]>(
-    noCacheUrl,
-    {
-      method: 'GET',
-      auth: false,
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        Pragma: 'no-cache',
-        Expires: '0',
-      },
-    },
-    'Failed to load services.'
-  )
+  const fetchPromise = (async () => {
+    try {
+      const noCacheUrl = `${VENDOR_ENDPOINTS.allServices}${VENDOR_ENDPOINTS.allServices.includes('?') ? '&' : '?'}_t=${Date.now()}`
+      const response = await apiFetchJson<any[]>(
+        noCacheUrl,
+        {
+          method: 'GET',
+          auth: false,
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            Pragma: 'no-cache',
+            Expires: '0',
+          },
+        },
+        'Failed to load services.'
+      )
 
-  const rawServices = dedupeLatestServiceSnapshots(extractServicesArray(response))
+      const rawServices = dedupeLatestServiceSnapshots(extractServicesArray(response))
+      const uiServices = rawServices.map(mapServiceToUi)
+      
+      // Update cache
+      await AsyncStorage.setItem('cached_all_services', JSON.stringify(uiServices))
+      return uiServices
+    } catch (error) {
+      console.error('Background fetch failed:', error)
+      throw error
+    }
+  })()
 
-  return rawServices.map(mapServiceToUi)
+  if (cachedData.length > 0) {
+    fetchPromise.catch(() => {})
+    return cachedData
+  }
+
+  return fetchPromise
 }
 
 export const createVendorService = async (payload: Record<string, any>) => {
@@ -385,7 +462,6 @@ export const createVendorService = async (payload: Record<string, any>) => {
     ) {
       throw error
     }
-    // If pre-check fails due to network issue, proceed and let backend decide.
   }
 
   const name = String(firstDefined(payload?.name, payload?.placeName, payload?.title, '')).trim()
@@ -395,7 +471,6 @@ export const createVendorService = async (payload: Record<string, any>) => {
   const latitude = toFiniteNumberOrUndefined(payload?.latitude)
   const longitude = toFiniteNumberOrUndefined(payload?.longitude)
 
-  // Normalize packages: backend uses `name` not `packageName`
   const rawPackages = Array.isArray(payload?.packages) ? payload.packages : []
   const normalizedPackages = rawPackages
     .map((pkg: any) => {
@@ -440,7 +515,6 @@ export const createVendorService = async (payload: Record<string, any>) => {
     packages: normalizedPackages,
   }
 
-  // BANQUET_HALL: capacity
   if (category === 'BANQUET_HALL') {
     const minGuests = toNumber(firstDefined(payload?.minGuests, payload?.capacity?.minGuests), NaN)
     const maxGuests = toNumber(firstDefined(payload?.maxGuests, payload?.capacity?.maxGuests), NaN)
@@ -457,7 +531,7 @@ export const createVendorService = async (payload: Record<string, any>) => {
       .map((s: any) => ({ name: String(s.name), price: toNumber(s.price, 0) }))
   }
 
-  return apiFetchJson<any>(
+  const createdService = await apiFetchJson<any>(
     VENDOR_ENDPOINTS.createService,
     {
       method: 'POST',
@@ -467,6 +541,14 @@ export const createVendorService = async (payload: Record<string, any>) => {
     },
     'Failed to create service.'
   )
+
+  // Cache the newly created service immediately
+  if (createdService) {
+    const rawData = createdService.data ?? createdService
+    await addServiceToCache(rawData)
+  }
+
+  return createdService
 }
 
 export const getMyVendorServices = async (): Promise<ServiceListItem[]> => {
@@ -557,11 +639,21 @@ export const uploadServiceImages = async (serviceId: string | number, imageUris:
     throw new Error(getMessageFromPayload(data, 'Failed to upload images.'))
   }
 
+  // Reload and update cache when images are uploaded
+  try {
+    const updatedService = await getServiceById(serviceId)
+    if (updatedService) {
+      await addServiceToCache(updatedService)
+    }
+  } catch (e) {
+    console.warn('Failed to update service cache after image upload:', e)
+  }
+
   return data?.data ?? data
 }
 
 export const deleteServiceImage = async (serviceId: string | number, imageUrl: string) => {
-  return apiFetchJson<any>(
+  const result = await apiFetchJson<any>(
     VENDOR_ENDPOINTS.deleteServiceImage(serviceId),
     {
       method: 'DELETE',
@@ -573,6 +665,18 @@ export const deleteServiceImage = async (serviceId: string | number, imageUrl: s
     },
     'Failed to delete image.'
   )
+
+  // Update cache
+  try {
+    const updatedService = await getServiceById(serviceId)
+    if (updatedService) {
+      await addServiceToCache(updatedService)
+    }
+  } catch (e) {
+    console.warn('Failed to update service cache after image deletion:', e)
+  }
+
+  return result
 }
 
 export const updateVendorService = async (serviceId: string | number, payload: Record<string, any>) => {
@@ -611,7 +715,7 @@ export const updateVendorService = async (serviceId: string | number, payload: R
       .map((s: any) => ({ name: String(s.name), price: toNumber(s.price, 0) }))
   }
 
-  return apiFetchJson<any>(
+  const result = await apiFetchJson<any>(
     VENDOR_ENDPOINTS.updateService(serviceId),
     {
       method: 'PUT',
@@ -623,10 +727,18 @@ export const updateVendorService = async (serviceId: string | number, payload: R
     },
     'Failed to update service.'
   )
+
+  // Update cache immediately
+  if (result) {
+    const rawData = result.data ?? result
+    await addServiceToCache(rawData)
+  }
+
+  return result
 }
 
 export const deleteVendorService = async (serviceId: string | number) => {
-  return apiFetchJson<any>(
+  const result = await apiFetchJson<any>(
     VENDOR_ENDPOINTS.deleteService(serviceId),
     {
       method: 'DELETE',
@@ -634,6 +746,21 @@ export const deleteVendorService = async (serviceId: string | number) => {
     },
     'Failed to delete service.'
   )
+
+  // Remove from cache immediately
+  try {
+    const sId = String(serviceId)
+    const cachedAllStr = await AsyncStorage.getItem('cached_all_services')
+    if (cachedAllStr) {
+      const cachedAll: ServiceListItem[] = JSON.parse(cachedAllStr)
+      const filteredAll = cachedAll.filter((s) => s.id !== sId && s.serviceId !== sId)
+      await AsyncStorage.setItem('cached_all_services', JSON.stringify(filteredAll))
+    }
+  } catch (e) {
+    console.warn('Failed to remove service from cache:', e)
+  }
+
+  return result
 }
 
 export const getServiceById = async (serviceId: string | number): Promise<ServiceListItem | null> => {
@@ -650,7 +777,6 @@ export const getServiceById = async (serviceId: string | number): Promise<Servic
   }
 }
 
-// Helper imports needed for image upload
 export default function ServicesApiRouteStub() {
   return null
 }
