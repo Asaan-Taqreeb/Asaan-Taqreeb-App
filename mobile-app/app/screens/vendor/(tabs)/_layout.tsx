@@ -90,16 +90,16 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 20,
     right: 20,
-    borderRadius: 36,
-    backgroundColor: '#0F172A',
+    borderRadius: 24,
+    backgroundColor: '#1E293B',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.15)',
+    borderColor: 'rgba(212, 175, 55, 0.2)',
     shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
     shadowRadius: 20,
     elevation: 8,
   },
@@ -112,9 +112,10 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 52,
     height: 52,
-    borderRadius: 20,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
   indicator: {
     position: 'absolute',
@@ -146,7 +147,15 @@ export default function VendorTabLayout() {
   return (
     <Tabs
       tabBar={(props) => <VendorTabBarComponent {...props} />}
-      screenOptions={{ headerShown: false }}
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          position: 'absolute',
+          backgroundColor: 'transparent',
+          borderTopWidth: 0,
+          elevation: 0,
+        }
+      }}
     >
       <Tabs.Screen name="VendorDashboardHome" options={{ title: 'Home' }} />
       <Tabs.Screen name="OrdersScreen" options={{ title: 'Orders' }} />

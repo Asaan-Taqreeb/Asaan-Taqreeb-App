@@ -140,9 +140,10 @@ export default function BookingHistoryScreen() {
     return (
       <TouchableOpacity
         onPress={() => setSelectedFilter(value)}
-        className="px-4 py-2 rounded-full mr-2"
+        className="px-4 py-2.5 mr-2"
         style={{
-          backgroundColor: isActive ? Colors.primary : '#F3F4F6',
+          backgroundColor: isActive ? Colors.primaryLight : '#F3F4F6',
+          borderRadius: 12,
         }}
       >
         <Text

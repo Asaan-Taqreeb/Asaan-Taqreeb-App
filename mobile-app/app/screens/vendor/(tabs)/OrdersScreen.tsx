@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Filter, RotateCw } from 'lucide-react-native';
 import { Colors } from '@/app/_constants/theme';
@@ -16,12 +17,12 @@ export default function OrdersScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const loadOrders = async (isRefresh = false) => {
+  const loadOrders = useCallback(async (isRefresh = false) => {
     try {
       if (isRefresh) setIsRefreshing(true)
       else setIsLoading(true)
       setError(null)
-      const response = await getVendorBookings()
+      const response = await getVendorBookings(isRefresh)
       setOrders(response)
     } catch (apiError: any) {
       setError(apiError?.message || 'Failed to load orders')
@@ -29,11 +30,13 @@ export default function OrdersScreen() {
       if (isRefresh) setIsRefreshing(false)
       else setIsLoading(false)
     }
-  }
-
-  useEffect(() => {
-    loadOrders()
   }, [])
+
+  useFocusEffect(
+    useCallback(() => {
+      loadOrders()
+    }, [loadOrders])
+  )
 
   const getFilteredOrders = () => {
     if (selectedFilter === 'all') {
@@ -53,11 +56,12 @@ export default function OrdersScreen() {
     return (
       <TouchableOpacity
         onPress={() => setSelectedFilter(value)}
-        className="px-4 py-2 rounded-full mr-2"
+        className="px-4 py-2.5 mr-2"
         style={{
-          backgroundColor: isActive ? Colors.vendor : Colors.white,
+          backgroundColor: isActive ? Colors.primaryLight : Colors.white,
           borderWidth: 1,
-          borderColor: isActive ? Colors.vendor : Colors.border
+          borderColor: isActive ? Colors.primaryLight : Colors.border,
+          borderRadius: 12,
         }}
       >
         <Text

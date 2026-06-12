@@ -193,12 +193,12 @@ export default function BookingScreen() {
                 <Pressable
                   key={filter.id}
                   style={{
-                    backgroundColor: selectedFilter === filter.id ? Colors.primary : Colors.white,
+                    backgroundColor: selectedFilter === filter.id ? Colors.primaryLight : Colors.white,
                     borderWidth: 1,
-                    borderColor: selectedFilter === filter.id ? Colors.primary : Colors.border,
-                    borderRadius: 4,
-                    paddingHorizontal: 14,
-                    paddingVertical: 7,
+                    borderColor: selectedFilter === filter.id ? Colors.primaryLight : Colors.border,
+                    borderRadius: 12,
+                    paddingHorizontal: 16,
+                    paddingVertical: 10,
                     marginRight: 8,
                   }}
                   onPress={() => setSelectedFilter(filter.id as any)}

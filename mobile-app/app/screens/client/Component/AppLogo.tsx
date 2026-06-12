@@ -61,7 +61,7 @@ export default function AppLogo({ size = 'medium', showText = true, light = fals
             Asaan<Text style={{ color: Colors.primary }}>Taqreeb</Text>
           </Text>
           <Text 
-            className="text-[10px] font-bold uppercase tracking-[4px] -mt-1 opacity-40"
+            className="text-[10px] font-bold uppercase tracking-[4px] mt-1.5 opacity-40"
             style={{ color: light ? Colors.white : Colors.textSecondary }}
           >
             Premium Events
