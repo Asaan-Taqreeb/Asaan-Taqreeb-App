@@ -9,6 +9,7 @@ import { useSocket } from '@/app/_context/SocketContext'
 import Avatar from '@/app/_components/Avatar'
 import { useUser } from '@/app/_context/UserContext'
 import { Shadows } from '@/app/_constants/theme'
+import ClientTabHeader from '../Component/ClientTabHeader'
 
 export default function MessagesScreen() {
   const insets = useSafeAreaInsets()
@@ -112,110 +113,106 @@ export default function MessagesScreen() {
 
   return (
     <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}>
-      {user?.isGuest && (
-        <View className='px-5 py-5' style={{borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.white}}>
-          <Text className='text-xl font-bold' style={{color: Colors.textPrimary}}>Messages locked in guest mode</Text>
-          <Text className='text-xs font-medium mt-0.5' style={{color: Colors.textSecondary}}>Sign in to chat with vendors.</Text>
-        </View>
-      )}
+      <ClientTabHeader 
+        title="Messages" 
+        subtitle={user?.isGuest ? "Sign in to chat with vendors" : `${chats.length} active conversation${chats.length !== 1 ? 's' : ''}`} 
+      />
 
-      <View className='px-5 py-5 flex-row justify-between items-center' style={{borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.white}}>
-        <View>
-          <Text className='text-xl font-bold' style={{color: Colors.textPrimary}}>Messages</Text>
-          <Text className='text-xs font-medium mt-0.5' style={{color: Colors.textSecondary}}>
-            {chats.length} active conversation{chats.length !== 1 ? 's' : ''}
+      {user?.isGuest ? (
+        <View className='flex-1 items-center justify-center p-6 gap-2'>
+          <View className='w-20 h-20 rounded-full items-center justify-center mb-4' style={{backgroundColor: Colors.lightGray}}>
+            <MessageCircle size={36} color={Colors.accent} />
+          </View>
+          <Text className='text-xl font-bold text-center' style={{color: Colors.textPrimary}}>Messages Locked</Text>
+          <Text className='text-sm font-medium text-center text-slate-500 max-w-[280px] leading-relaxed mb-6'>
+            Sign in to chat with event vendors, finalize package details, and coordinate reservations.
           </Text>
+          <Pressable
+            className='py-3.5 px-10 rounded-xl active:opacity-85'
+            style={{backgroundColor: Colors.primary}}
+            onPress={() => router.push('/screens/client/Component/LoginScreen')}
+          >
+            <Text className='text-center font-bold text-sm' style={{color: Colors.white}}>Sign In</Text>
+          </Pressable>
         </View>
-      </View>
-
-      <ScrollView
-        className='flex-1'
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{paddingBottom: 110}}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
-        }
-      >
-        {user?.isGuest && (
-          <View className='px-5 pt-4'>
-            <View className='rounded-2xl p-5' style={{backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, ...Shadows.small}}>
-              <Text className='text-lg font-bold text-center' style={{color: Colors.textPrimary}}>Chat is disabled for guests</Text>
-              <Text className='text-sm font-medium text-center mt-2' style={{color: Colors.textSecondary}}>
-                Sign in to view conversations and message vendors.
+      ) : (
+        <ScrollView
+          className='flex-1'
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{paddingBottom: 110}}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
+          }
+        >
+          {isLoading && (
+            <View className='px-5 pt-4'>
+              <Text className='text-sm font-semibold' style={{color: Colors.textTertiary}}>Loading messages...</Text>
+            </View>
+          )}
+          {!isLoading && chats.length === 0 ? (
+            <View className='flex-1 justify-center items-center py-32 px-8'>
+              <View className='w-20 h-20 rounded-full items-center justify-center mb-4' style={{backgroundColor: Colors.lightGray}}>
+                <MessageCircle size={32} color={Colors.textTertiary} />
+              </View>
+              <Text className='text-lg font-bold text-center' style={{color: Colors.textSecondary}}>No Messages Yet</Text>
+              <Text className='text-sm font-medium mt-2 text-center' style={{color: Colors.textTertiary}}>
+                Start chatting with vendors to plan your event
               </Text>
-              <Pressable
-                className='mt-4 py-3 rounded-xl active:opacity-85'
-                style={{backgroundColor: Colors.primary}}
-                onPress={() => router.push('/screens/client/Component/LoginScreen')}
-              >
-                <Text className='text-center font-bold text-sm' style={{color: Colors.white}}>Sign In</Text>
-              </Pressable>
             </View>
-          </View>
-        )}
-        {!isLoading && chats.length === 0 ? (
-          <View className='flex-1 justify-center items-center py-32 px-8'>
-            <View className='w-20 h-20 rounded-full items-center justify-center mb-4' style={{backgroundColor: Colors.lightGray}}>
-              <MessageCircle size={32} color={Colors.textTertiary} />
-            </View>
-            <Text className='text-lg font-bold text-center' style={{color: Colors.textSecondary}}>No Messages Yet</Text>
-            <Text className='text-sm font-medium mt-2 text-center' style={{color: Colors.textTertiary}}>
-              Start chatting with vendors to plan your event
-            </Text>
-          </View>
-        ) : (
-          <View>
-            {chats.map((chat) => (
-                <Pressable
-                  key={chat.chatId}
-                  className='flex-row items-center gap-4 px-5 py-5 active:bg-gray-50'
-                  style={{borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.white}}
-                  onPress={() => openChat(chat)}
-                >
-                  <Avatar
-                    name={chat.otherUser.name}
-                    size='md'
-                  />
-
-                  <View className='flex-1'>
-                    <View className='flex-row items-center justify-between mb-1'>
-                      <Text className='text-base font-bold flex-1' style={{color: Colors.textPrimary}} numberOfLines={1}>
-                        {chat.otherUser.name}
-                      </Text>
-                      <Text className='text-xs font-medium ml-2' style={{color: Colors.textTertiary}}>
-                        {formatTime(chat.lastMessage.createdAt)}
-                      </Text>
-                    </View>
-                    
-                    <View className='flex-row items-center justify-between'>
-                      <Text className='text-sm font-medium flex-1 mr-2' style={{color: Colors.textSecondary}} numberOfLines={1}>
-                        {chat.lastMessage.text}
-                      </Text>
-                      
-                      {chat.unreadCount > 0 && (
-                        <View className='bg-primary rounded-full px-2 py-0.5 mr-2'>
-                          <Text className='text-white text-[10px] font-bold'>{chat.unreadCount}</Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-
+          ) : (
+            <View>
+              {chats.map((chat) => (
                   <Pressable
-                    className='p-2 rounded-full active:opacity-70'
-                    style={{backgroundColor: Colors.lightGray}}
-                    onPress={(e) => {
-                      e.stopPropagation()
-                      handleDeleteChat(chat.chatId, chat.otherUser.name)
-                    }}
+                    key={chat.chatId}
+                    className='flex-row items-center gap-4 px-5 py-5 active:bg-gray-50'
+                    style={{borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.white}}
+                    onPress={() => openChat(chat)}
                   >
-                    <Trash2 size={16} color={Colors.error} />
+                    <Avatar
+                      name={chat.otherUser.name}
+                      size='md'
+                    />
+
+                    <View className='flex-1'>
+                      <View className='flex-row items-center justify-between mb-1'>
+                        <Text className='text-base font-bold flex-1' style={{color: Colors.textPrimary}} numberOfLines={1}>
+                          {chat.otherUser.name}
+                        </Text>
+                        <Text className='text-xs font-medium ml-2' style={{color: Colors.textTertiary}}>
+                          {formatTime(chat.lastMessage.createdAt)}
+                        </Text>
+                      </View>
+                      
+                      <View className='flex-row items-center justify-between'>
+                        <Text className='text-sm font-medium flex-1 mr-2' style={{color: Colors.textSecondary}} numberOfLines={1}>
+                          {chat.lastMessage.text}
+                        </Text>
+                        
+                        {chat.unreadCount > 0 && (
+                          <View className='bg-primary rounded-full px-2 py-0.5 mr-2'>
+                            <Text className='text-white text-[10px] font-bold'>{chat.unreadCount}</Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+
+                    <Pressable
+                      className='p-2 rounded-full active:opacity-70'
+                      style={{backgroundColor: Colors.lightGray}}
+                      onPress={(e) => {
+                        e.stopPropagation()
+                        handleDeleteChat(chat.chatId, chat.otherUser.name)
+                      }}
+                    >
+                      <Trash2 size={16} color={Colors.error} />
+                    </Pressable>
                   </Pressable>
-                </Pressable>
-              )
-            )}
-          </View>
-        )}
-      </ScrollView>
+                )
+              )}
+            </View>
+          )}
+        </ScrollView>
+      )}
     </View>
   )
 }

@@ -7,6 +7,7 @@ import { router } from 'expo-router'
 import { Colors, Shadows, Spacing } from '@/app/_constants/theme'
 import { getPlanner, updatePlannerDetails, addPlannerTask, updatePlannerTask, deletePlannerTask, PlannerData, PlannerTask } from '@/app/_utils/plannerApi'
 import { useUser } from '@/app/_context/UserContext'
+import ClientTabHeader from '../Component/ClientTabHeader'
 
 export default function PlannerScreen() {
     const insets = useSafeAreaInsets()
@@ -140,16 +141,17 @@ export default function PlannerScreen() {
     if (user?.isGuest) {
         return (
             <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}>
-                <View className='px-5 py-5' style={{borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.white}}>
-                    <Text className='text-xl font-bold' style={{color: Colors.textPrimary}}>Event Planner</Text>
-                </View>
-                <View className='flex-1 items-center justify-center p-5'>
-                    <Text className='text-lg font-bold text-center' style={{color: Colors.textPrimary}}>Sign In Required</Text>
-                    <Text className='text-sm font-medium text-center mt-2' style={{color: Colors.textSecondary}}>
-                        Sign in to use the Event & Budget Planner.
+                <ClientTabHeader title="Event Planner" subtitle="Manage your event budget & tasks" />
+                <View className='flex-1 items-center justify-center p-6 gap-2'>
+                    <View className='w-20 h-20 rounded-full items-center justify-center mb-4' style={{backgroundColor: Colors.lightGray}}>
+                        <Calculator size={36} color={Colors.accent} />
+                    </View>
+                    <Text className='text-xl font-bold text-center' style={{color: Colors.textPrimary}}>Planner Locked</Text>
+                    <Text className='text-sm font-medium text-center text-slate-500 max-w-[280px] leading-relaxed mb-6'>
+                        Sign in to access your budget calculator, checklist tasks, and expense tracker.
                     </Text>
                     <Pressable
-                        className='mt-4 py-3 px-8 rounded-xl active:opacity-85'
+                        className='py-3.5 px-10 rounded-xl active:opacity-85'
                         style={{backgroundColor: Colors.primary}}
                         onPress={() => router.push('/screens/client/Component/LoginScreen')}
                     >
@@ -163,11 +165,9 @@ export default function PlannerScreen() {
     if (loading) {
         return (
             <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}>
-                 <View className='px-5 py-5' style={{borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.white}}>
-                    <Text className='text-xl font-bold' style={{color: Colors.textPrimary}}>Event Planner</Text>
-                </View>
-                <View className='p-5'>
-                    <Text>Loading planner...</Text>
+                <ClientTabHeader title="Event Planner" subtitle="Manage your event budget & tasks" />
+                <View className='flex-1 justify-center items-center p-5'>
+                    <Text className='text-sm font-semibold' style={{color: Colors.textTertiary}}>Loading planner...</Text>
                 </View>
             </View>
         )
@@ -192,12 +192,7 @@ export default function PlannerScreen() {
 
     return (
         <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}>
-            <View className='px-5 py-5 flex-row justify-between items-center' style={{borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.white}}>
-                <View>
-                    <Text className='text-xl font-bold' style={{color: Colors.textPrimary}}>Event Planner</Text>
-                    <Text className='text-xs font-medium mt-0.5' style={{color: Colors.textSecondary}}>Manage your event budget & tasks</Text>
-                </View>
-            </View>
+            <ClientTabHeader title="Event Planner" subtitle="Manage your event budget & tasks" />
 
             <ScrollView className='flex-1' showsVerticalScrollIndicator={false} contentContainerStyle={{paddingHorizontal: 20, paddingTop: 20, paddingBottom: 110}}>
                 {/* Budget Overview Card */}

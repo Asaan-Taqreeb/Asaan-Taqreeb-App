@@ -114,6 +114,7 @@ const LoginScreen = ({
             const data = await loginUser({
                 email: email.trim().toLowerCase(),
                 password,
+                role: userRole,
             })
 
             console.log('Login response received:', data)
@@ -172,6 +173,7 @@ const LoginScreen = ({
             const data = await loginUser({
                 email: email.trim().toLowerCase(),
                 password,
+                role: userRole,
             })
 
             let authenticatedRole = extractRoleFromAuthPayload(data)

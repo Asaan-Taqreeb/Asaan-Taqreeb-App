@@ -9,6 +9,7 @@ import { createReview } from '@/app/_utils/reviewsApi'
 import { useUser } from '@/app/_context/UserContext'
 import { useLanguage } from '@/app/_context/LanguageContext'
 import { Colors, Shadows, getCategoryColor } from '@/app/_constants/theme'
+import ClientTabHeader from '../Component/ClientTabHeader'
 
 type BookingStatus = 'pending' | 'approved' | 'rejected' | 'confirmed' | 'completed'
 
@@ -165,12 +166,22 @@ export default function BookingScreen() {
 
   return (
     <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}>
+      <ClientTabHeader 
+        title={t('myBookingsTitle') || 'My Bookings'} 
+        subtitle={t('trackBookings') || 'Track and manage your event bookings'} 
+      />
+
       {user?.isGuest ? (
-        <View className='px-5 py-5' style={{borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.white}}>
-          <Text className='text-xl font-bold' style={{color: Colors.textPrimary}}>{t('bookingsLocked')}</Text>
-          <Text className='text-xs font-medium mt-0.5' style={{color: Colors.textSecondary}}>{t('signInToViewBookings')}</Text>
+        <View className='flex-1 items-center justify-center p-6 gap-2'>
+          <View className='w-20 h-20 rounded-full items-center justify-center mb-4' style={{backgroundColor: Colors.lightGray}}>
+            <Calendar size={36} color={Colors.accent} />
+          </View>
+          <Text className='text-xl font-bold text-center' style={{color: Colors.textPrimary}}>{t('bookingsLocked') || 'Bookings Locked'}</Text>
+          <Text className='text-sm font-medium text-center text-slate-500 max-w-[280px] leading-relaxed mb-6'>
+            {t('bookingHistoryAfterSignIn') || 'Sign in to view your bookings and track reservations.'}
+          </Text>
           <Pressable
-            className='mt-4 py-3 rounded-xl active:opacity-85'
+            className='py-3.5 px-10 rounded-xl active:opacity-85'
             style={{backgroundColor: Colors.primary}}
             onPress={() => router.push('/screens/client/Component/LoginScreen')}
           >
@@ -179,11 +190,6 @@ export default function BookingScreen() {
         </View>
       ) : (
         <>
-          <View className='px-5 py-5' style={{borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.white}}>
-            <Text className='text-xl font-bold' style={{color: Colors.textPrimary}}>{t('myBookingsTitle')}</Text>
-            <Text className='text-xs font-medium mt-0.5' style={{color: Colors.textSecondary}}>{t('trackBookings')}</Text>
-          </View>
-
           <View className='px-5 py-3' style={{borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.white}}>
             <ScrollView 
               horizontal 
@@ -213,31 +219,19 @@ export default function BookingScreen() {
               ))}
             </ScrollView>
           </View>
-        </>
-      )}
 
-      <ScrollView 
-        className='flex-1' 
-        showsVerticalScrollIndicator={false} 
-        contentContainerStyle={{paddingTop: 16, paddingBottom: 110}}
-        refreshControl={
-          <RefreshControl 
-            refreshing={isLoading} 
-            onRefresh={() => loadBookings(true)} 
-            colors={[Colors.primary]} 
-          />
-        }
-      >
-        {user?.isGuest && (
-          <View className='px-5 mb-4'>
-            <View className='rounded-2xl p-5' style={{backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, ...Shadows.small}}>
-              <Text className='text-lg font-bold text-center' style={{color: Colors.textPrimary}}>{t('youAreGuest')}</Text>
-              <Text className='text-sm font-medium text-center mt-2' style={{color: Colors.textSecondary}}>
-                {t('bookingHistoryAfterSignIn')}
-              </Text>
-            </View>
-          </View>
-        )}
+          <ScrollView 
+            className='flex-1' 
+            showsVerticalScrollIndicator={false} 
+            contentContainerStyle={{paddingTop: 16, paddingBottom: 110}}
+            refreshControl={
+              <RefreshControl 
+                refreshing={isLoading} 
+                onRefresh={() => loadBookings(true)} 
+                colors={[Colors.primary]} 
+              />
+            }
+          >
         {isLoading && (
           <View className='px-5'>
             <Text className='text-sm font-medium' style={{color: Colors.textSecondary}}>{t('loadingBookings')}</Text>
@@ -429,6 +423,8 @@ export default function BookingScreen() {
           </View>
         )}
       </ScrollView>
+    </>
+  )}
 
       {/* Review Modal */}
       {reviewModalVisible && (

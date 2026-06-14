@@ -93,11 +93,58 @@ const SignupScreen = ({
                 }
             } as any)
 
-        } catch (error) {
-
+        } catch (error: any) {
             console.error('Signup error details:', error)
-            const errorMessage = error instanceof Error ? error.message : 'Network error. Please check your connection.'
-            Alert.alert('Registration Failed', errorMessage)
+            
+            if (error?.code === 'CLIENT_ACCOUNT_EXISTS') {
+                Alert.alert(
+                    t('existingAccountTitle') || 'Existing Account Found',
+                    error.message,
+                    [
+                        {
+                            text: t('yesActivate') || 'Yes, Activate',
+                            onPress: async () => {
+                                setLoading(true)
+                                try {
+                                    console.log('Activating vendor account for existing client...', email.trim().toLowerCase())
+                                    const result = await registerUser({
+                                        name: name.trim(),
+                                        email: email.trim().toLowerCase(),
+                                        password,
+                                        role: userRole,
+                                        phone: phone.trim(),
+                                        activateVendor: true
+                                    })
+                                    
+                                    console.log('Vendor account activated successfully:', result)
+                                    Alert.alert(
+                                        'Success',
+                                        t('vendorActivatedSuccess') || 'Vendor dashboard activated! Please log in with your credentials.',
+                                        [
+                                            {
+                                                text: 'OK',
+                                                onPress: () => router.push(redirectLoginRoute as any)
+                                            }
+                                        ]
+                                    )
+                                } catch (activationError: any) {
+                                    console.error('Activation failed:', activationError)
+                                    Alert.alert('Activation Failed', activationError.message || 'Could not activate account.')
+                                } finally {
+                                    setLoading(false)
+                                }
+                            }
+                        },
+                        {
+                            text: t('cancel') || 'Cancel',
+                            style: 'cancel'
+                        }
+                    ]
+                )
+            } else {
+                const errorMessage = error instanceof Error ? error.message : 'Network error. Please check your connection.'
+                Alert.alert('Registration Failed', errorMessage)
+            }
         } finally {
             setLoading(false)
         }

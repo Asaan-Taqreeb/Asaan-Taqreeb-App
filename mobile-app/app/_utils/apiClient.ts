@@ -24,6 +24,20 @@ export class SessionExpiredError extends Error {
   }
 }
 
+export class ApiError extends Error {
+  status: number
+  code?: string
+  data?: any
+
+  constructor(message: string, status: number, code?: string, data?: any) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+    this.code = code
+    this.data = data
+  }
+}
+
 const DEFAULT_TIMEOUT = 90000 // 90 seconds (mobile-safe default)
 
 const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeout: number = DEFAULT_TIMEOUT): Promise<Response> => {
@@ -107,6 +121,40 @@ const getMessageFromPayload = (payload: any, fallback: string) => {
   return fallback
 }
 
+const decodeJwtPayload = (token: string): any => {
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return null
+    let base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    while (base64.length % 4) {
+      base64 += '='
+    }
+    
+    let decodedStr = ''
+    if (typeof atob === 'function') {
+      decodedStr = atob(base64)
+    } else {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+      let buffer = ''
+      for (let i = 0; i < base64.length; i++) {
+        if (base64[i] === '=') break
+        const charIdx = chars.indexOf(base64[i])
+        if (charIdx !== -1) {
+          buffer += charIdx.toString(2).padStart(6, '0')
+        }
+      }
+      for (let i = 0; i < buffer.length; i += 8) {
+        if (i + 8 > buffer.length) break
+        decodedStr += String.fromCharCode(parseInt(buffer.slice(i, i + 8), 2))
+      }
+    }
+    return JSON.parse(decodedStr)
+  } catch (e) {
+    console.error('Failed to decode JWT payload:', e)
+    return null
+  }
+}
+
 let refreshPromise: Promise<string | null> | null = null
 
 const refreshAccessToken = async (): Promise<string | null> => {
@@ -120,12 +168,19 @@ const refreshAccessToken = async (): Promise<string | null> => {
       return null
     }
 
+    const accessToken = await getAccessToken()
+    let currentRole: string | null = null
+    if (accessToken) {
+      const payload = decodeJwtPayload(accessToken)
+      currentRole = payload?.role || null
+    }
+
     const response = await fetch(AUTH_ENDPOINTS.refresh, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ refreshToken }),
+      body: JSON.stringify({ refreshToken, role: currentRole }),
     })
 
     if (!response.ok) {
@@ -231,7 +286,9 @@ export const apiFetchJson = async <T>(url: string, options: ApiFetchOptions = {}
       statusText: response.statusText,
       data: JSON.stringify(data, null, 2)
     })
-    throw new Error(getMessageFromPayload(data, fallbackError))
+    const message = getMessageFromPayload(data, fallbackError)
+    const code = data?.code
+    throw new ApiError(message, response.status, code, data)
   }
 
   return (data?.data ?? data) as T

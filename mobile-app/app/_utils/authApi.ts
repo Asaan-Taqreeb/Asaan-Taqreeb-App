@@ -5,6 +5,7 @@ import { apiFetch, apiFetchJson } from '@/app/_utils/apiClient'
 type LoginParams = {
   email: string
   password: string
+  role?: 'client' | 'vendor'
 }
 
 type SignupParams = {
@@ -13,6 +14,7 @@ type SignupParams = {
   password: string
   role: 'client' | 'vendor'
   phone?: string
+  activateVendor?: boolean
 }
 
 
