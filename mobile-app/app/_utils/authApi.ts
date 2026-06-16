@@ -15,6 +15,7 @@ type SignupParams = {
   role: 'client' | 'vendor'
   phone?: string
   activateVendor?: boolean
+  activateClient?: boolean
 }
 
 

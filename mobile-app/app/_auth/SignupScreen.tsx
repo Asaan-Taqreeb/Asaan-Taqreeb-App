@@ -96,7 +96,8 @@ const SignupScreen = ({
         } catch (error: any) {
             console.error('Signup error details:', error)
             
-            if (error?.code === 'CLIENT_ACCOUNT_EXISTS') {
+            if (error?.code === 'CLIENT_ACCOUNT_EXISTS' || error?.code === 'VENDOR_ACCOUNT_EXISTS') {
+                const isVendorSignup = userRole === 'vendor'
                 Alert.alert(
                     t('existingAccountTitle') || 'Existing Account Found',
                     error.message,
@@ -106,20 +107,23 @@ const SignupScreen = ({
                             onPress: async () => {
                                 setLoading(true)
                                 try {
-                                    console.log('Activating vendor account for existing client...', email.trim().toLowerCase())
+                                    console.log(`Activating ${userRole} account for existing user...`, email.trim().toLowerCase())
                                     const result = await registerUser({
                                         name: name.trim(),
                                         email: email.trim().toLowerCase(),
                                         password,
                                         role: userRole,
                                         phone: phone.trim(),
-                                        activateVendor: true
+                                        activateVendor: isVendorSignup,
+                                        activateClient: !isVendorSignup
                                     })
                                     
-                                    console.log('Vendor account activated successfully:', result)
+                                    console.log(`${userRole} account activated successfully:`, result)
                                     Alert.alert(
                                         'Success',
-                                        t('vendorActivatedSuccess') || 'Vendor dashboard activated! Please log in with your credentials.',
+                                        isVendorSignup 
+                                            ? (t('vendorActivatedSuccess') || 'Vendor dashboard activated! Please log in with your credentials.')
+                                            : (t('clientActivatedSuccess') || 'Client account activated! Please log in with your credentials.'),
                                         [
                                             {
                                                 text: 'OK',
