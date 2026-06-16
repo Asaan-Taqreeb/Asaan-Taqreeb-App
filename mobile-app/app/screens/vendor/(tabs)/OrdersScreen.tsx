@@ -7,10 +7,12 @@ import { Filter, RotateCw } from 'lucide-react-native';
 import { Colors } from '@/app/_constants/theme';
 import OrderCard from '../Component/OrderCard';
 import { getVendorBookings, VendorOrderItem } from '@/app/_utils/bookingsApi';
+import { useLanguage } from '@/app/_context/LanguageContext';
 
 export default function OrdersScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
   const [selectedFilter, setSelectedFilter] = useState('all'); // all, pending, accepted, rejected
   const [orders, setOrders] = useState<VendorOrderItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -79,14 +81,14 @@ export default function OrdersScreen() {
   return (
     <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: Colors.background }}>
       {/* Header */}
-      <View className="bg-white px-6 py-6" style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
+      <View className="bg-white px-5 py-6" style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
         <View className="flex-row justify-between items-center">
           <View>
-            <Text className="text-xl font-bold" style={{ color: Colors.textPrimary }}>
-              Manage Orders
+            <Text className="text-xl font-black tracking-tight" style={{ color: Colors.textPrimary }}>
+              {t('manageOrders') || 'Manage Orders'}
             </Text>
-            <Text className="text-xs font-medium mt-0.5" style={{ color: Colors.textSecondary }}>
-              Track and update your event bookings
+            <Text className="text-[10px] font-bold uppercase tracking-widest mt-0.5" style={{ color: Colors.textSecondary }}>
+              {t('trackAndManageOrders') || 'Track and update your event bookings'}
             </Text>
           </View>
           <TouchableOpacity

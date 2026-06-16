@@ -8,9 +8,11 @@ import { useSocket } from '@/app/_context/SocketContext';
 import { router, useFocusEffect } from 'expo-router';
 import { Alert } from 'react-native';
 import Avatar from '@/app/_components/Avatar';
+import { useLanguage } from '@/app/_context/LanguageContext';
 
 export default function VendorMessagesScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
   const [chats, setChats] = useState<ChatOverview[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -145,12 +147,12 @@ export default function VendorMessagesScreen() {
 
   return (
     <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: Colors.background }}>
-      <View className="bg-white px-6 py-6" style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
-        <Text className="text-xl font-bold" style={{ color: Colors.textPrimary }}>
-          Customer Chats
+      <View className="bg-white px-5 py-6" style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
+        <Text className="text-xl font-black tracking-tight" style={{ color: Colors.textPrimary }}>
+          {t('customerChats') || 'Customer Chats'}
         </Text>
-        <Text className="text-xs font-medium mt-0.5" style={{ color: Colors.textSecondary }}>
-          {chats.length} active conversation{chats.length !== 1 ? 's' : ''}
+        <Text className="text-[10px] font-bold uppercase tracking-widest mt-0.5" style={{ color: Colors.textSecondary }}>
+          {chats.length} {t('activeConversations') || 'active conversation'}{chats.length !== 1 ? 's' : ''}
         </Text>
       </View>
 

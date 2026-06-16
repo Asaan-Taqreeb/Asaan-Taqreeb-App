@@ -27,11 +27,13 @@ import { Colors, Shadows } from '@/app/_constants/theme';
 import { useUser } from '@/app/_context/UserContext';
 import Avatar from '@/app/_components/Avatar';
 import { logoutUser, deleteUserAccount } from '@/app/_utils/authApi';
+import { useLanguage } from '@/app/_context/LanguageContext';
 
 export default function VendorProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, setUser } = useUser();
+  const { t } = useLanguage();
 
   const handleLogout = async () => {
     try {
@@ -107,11 +109,11 @@ export default function VendorProfileScreen() {
       >
         {/* Header */}
         <View className="bg-white px-5 py-6" style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
-          <Text className="text-xl font-bold mb-0.5" style={{ color: Colors.textPrimary }}>
-            Business Settings
+          <Text className="text-xl font-black tracking-tight" style={{ color: Colors.textPrimary }}>
+            {t('businessSettings') || 'Business Settings'}
           </Text>
-          <Text className="text-xs font-medium" style={{ color: Colors.textSecondary }}>
-            Manage your partner account
+          <Text className="text-[10px] font-bold uppercase tracking-widest mt-0.5" style={{ color: Colors.textSecondary }}>
+            {t('managePartnerAccount') || 'Manage your partner account'}
           </Text>
         </View>
 
