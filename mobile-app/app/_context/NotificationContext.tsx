@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getNotifications, getUnreadNotificationCount, markNotificationAsRead, clearAllNotifications } from '../_utils/notificationService';
 import type { Notification } from '../_utils/notificationService';
+import { getUserChats } from '../_utils/messagesApi';
 
 export const useNotifications = (enabled: boolean = true) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -106,6 +107,42 @@ export const useUnreadNotificationCount = (enabled: boolean = true) => {
   }, [enabled]);
 
   return unreadCount;
+};
+
+/**
+ * Hook for single unread chat message count
+ */
+export const useUnreadMessageCount = (enabled: boolean = true) => {
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const fetchCount = async () => {
+    try {
+      const chats = await getUserChats();
+      const count = chats.reduce((sum, chat) => sum + (chat.unreadCount || 0), 0);
+      setUnreadMessageCount(count);
+    } catch (error) {
+      console.error('Failed to fetch unread message count:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    // Fetch immediately
+    fetchCount();
+
+    // Poll every 10 seconds
+    pollIntervalRef.current = setInterval(fetchCount, 10000);
+
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, [enabled]);
+
+  return unreadMessageCount;
 };
 
 export default function NotificationContextStub() {

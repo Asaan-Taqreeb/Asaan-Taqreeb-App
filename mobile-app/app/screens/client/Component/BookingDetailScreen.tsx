@@ -218,6 +218,24 @@ export default function BookingDetailScreen() {
             <CreditCard size={16} color={Colors.vendor} />
             <Text className="text-xs font-bold ml-2" style={{ color: Colors.vendor }}>Payment is coordinated directly in chat by the vendor</Text>
           </View>
+
+          {/* Payment breakdown */}
+          {(booking.status === 'approved' || booking.status === 'confirmed' || booking.status === 'completed') && (
+            <>
+              <View className="h-px bg-gray-100 my-4" />
+              <Text className="text-xs font-semibold text-gray-400 mb-3 tracking-wider uppercase">Payment Status</Text>
+              <View className="flex-row justify-between mb-2">
+                <Text className="text-sm text-gray-500 font-medium">Paid So Far (Token)</Text>
+                <Text className="text-sm font-bold text-emerald-600">PKR {Number(booking.paidAmount || 0).toLocaleString()}</Text>
+              </View>
+              <View className="flex-row justify-between">
+                <Text className="text-sm text-gray-500 font-medium">Remaining Balance</Text>
+                <Text className="text-sm font-bold text-amber-600">
+                  PKR {Math.max(0, (booking.price + 500) - Number(booking.paidAmount || 0)).toLocaleString()}
+                </Text>
+              </View>
+            </>
+          )}
         </View>
 
         {/* Special Requests */}

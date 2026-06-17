@@ -12,6 +12,7 @@ import NotificationBell from '@/app/_components/NotificationBell'
 import { useUser } from '@/app/_context/UserContext';
 import { useLanguage } from '@/app/_context/LanguageContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import VendorHeader from '../Component/VendorHeader';
 
 export default function VendorDashboardHome() {
   const router = useRouter();
@@ -60,14 +61,17 @@ export default function VendorDashboardHome() {
 
   const stats = React.useMemo(() => {
     const totalOrders = orders.length
-    const acceptedOrders = orders.filter((order) => order.status === 'accepted').length
+    const acceptedOrders = orders.filter((order) => order.status === 'accepted' || order.status === 'confirmed').length
     const rejectedOrders = orders.filter((order) => order.status === 'rejected').length
     const pendingOrders = orders.filter((order) => order.status === 'pending').length
     const totalRevenue = orders
-      .filter((order) => order.status === 'accepted')
-      .reduce((sum, order) => sum + Number(order.totalAmount || 0), 0)
+      .filter((order) => order.status === 'accepted' || order.status === 'confirmed')
+      .reduce((sum, order) => sum + Number(order.paidAmount || 0), 0)
+    const pendingRevenue = orders
+      .filter((order) => order.status === 'accepted' || order.status === 'confirmed')
+      .reduce((sum, order) => sum + Math.max(0, Number(order.totalAmount || 0) - Number(order.paidAmount || 0)), 0)
 
-    return { totalOrders, acceptedOrders, rejectedOrders, pendingOrders, totalRevenue }
+    return { totalOrders, acceptedOrders, rejectedOrders, pendingOrders, totalRevenue, pendingRevenue }
   }, [orders])
 
   const recentOrders = React.useMemo(() => sortedOrders.filter(order => order.status === 'pending').slice(0, 3), [sortedOrders])
@@ -104,19 +108,7 @@ export default function VendorDashboardHome() {
   return (
     <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: Colors.background }}>
       {/* Header */}
-      <View className="bg-white px-5 py-6" style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
-        <View className="flex-row justify-between items-center">
-          <View>
-            <Text className="text-xl font-black tracking-tight" style={{ color: Colors.textPrimary }}>
-              {t('dashboard')}
-            </Text>
-            <Text className="text-[10px] font-bold uppercase tracking-widest mt-0.5" style={{ color: Colors.textSecondary }}>
-              {t('vendorControlPanel')}
-            </Text>
-          </View>
-          <NotificationBell userId={user?.id} userRole='vendor' />
-        </View>
-      </View>
+      <VendorHeader title={t('dashboard')} subtitle={t('vendorControlPanel')} />
 
       <ScrollView
         className="flex-1"
@@ -139,7 +131,7 @@ export default function VendorDashboardHome() {
                 <DollarSign size={16} color="#FFFFFF" />
               </View>
               <Text className="text-white/60 text-[10px] font-black uppercase tracking-[2px] ml-1">
-                {t('totalRevenue')}
+                Received Earnings
               </Text>
             </View>
             <View className="flex-row items-baseline mt-3">
@@ -152,6 +144,19 @@ export default function VendorDashboardHome() {
                 {stats.totalRevenue.toLocaleString()}
               </Text>
             </View>
+
+            {/* Paid vs Pending Breakdown */}
+            <View className="flex-row justify-between mt-5 pt-5" style={{ borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' }}>
+              <View>
+                <Text className="text-white/50 text-[9px] font-black uppercase tracking-[1px]">Received so far</Text>
+                <Text className="text-white text-sm font-bold mt-0.5">PKR {stats.totalRevenue.toLocaleString()}</Text>
+              </View>
+              <View className="items-end">
+                <Text className="text-white/50 text-[9px] font-black uppercase tracking-[1px]">Pending Collect</Text>
+                <Text className="text-white text-sm font-bold mt-0.5" style={{ color: '#FCD34D' }}>PKR {stats.pendingRevenue.toLocaleString()}</Text>
+              </View>
+            </View>
+
             <View className="mt-5 pt-5 flex-row justify-between items-center" style={{borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', borderStyle: 'solid'}}>
               <Text className="text-white/70 text-xs font-bold">
                 {stats.acceptedOrders} {t('confirmedBookings')}

@@ -23,7 +23,7 @@ import {
   Plus,
 } from 'lucide-react-native';
 import { Colors, Shadows } from '@/app/_constants/theme';
-import { updateBookingStatus } from '@/app/_utils/bookingsApi';
+import { updateBookingStatus, recordRemainingPayment } from '@/app/_utils/bookingsApi';
 import { useUser } from '@/app/_context/UserContext';
 import { useNotifications } from '@/app/_context/NotificationContext';
 
@@ -45,6 +45,9 @@ export default function OrderDetailScreen() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectInput, setShowRejectInput] = useState(false);
+  const [showApproveInput, setShowApproveInput] = useState(false);
+  const [paidAmountInput, setPaidAmountInput] = useState('');
+  const [orderPaidAmount, setOrderPaidAmount] = useState(order?.paidAmount || 0);
 
   if (!order) {
     return (
@@ -55,9 +58,27 @@ export default function OrderDetailScreen() {
   }
 
   const handleApprove = () => {
+    if (!showApproveInput) {
+      setShowApproveInput(true);
+      setShowRejectInput(false);
+      setPaidAmountInput(String(order.advancePayment || ''));
+      return;
+    }
+
+    const enteredAmount = Number(paidAmountInput);
+    if (isNaN(enteredAmount) || enteredAmount < 0) {
+      Alert.alert('Invalid Amount', 'Please enter a valid amount.');
+      return;
+    }
+
+    if (enteredAmount > order.totalAmount) {
+      Alert.alert('Invalid Amount', 'Advance payment cannot exceed total amount.');
+      return;
+    }
+
     Alert.alert(
       'Approve Order',
-      'Are you sure you want to accept this order?',
+      `Accept this order and record payment of PKR ${enteredAmount.toLocaleString()} received so far?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -66,9 +87,11 @@ export default function OrderDetailScreen() {
           onPress: async () => {
             try {
               setIsUpdating(true)
-              await updateBookingStatus(order.id, 'accepted')
+              await updateBookingStatus(order.id, 'accepted', undefined, enteredAmount)
               setOrderStatus('accepted')
-              Alert.alert('Success', 'Order has been approved!')
+              setOrderPaidAmount(enteredAmount)
+              setShowApproveInput(false)
+              Alert.alert('Success', 'Order has been approved and payment recorded!')
             } catch (error: any) {
               Alert.alert('Error', error?.message || 'Failed to approve order')
             } finally {
@@ -76,6 +99,33 @@ export default function OrderDetailScreen() {
             }
           },
         },
+      ]
+    );
+  };
+
+  const handleReceiveRemainingPayment = () => {
+    Alert.alert(
+      'Mark Remaining as Paid',
+      `Are you sure you have received the remaining balance of PKR ${(order.totalAmount - orderPaidAmount).toLocaleString()}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Yes, Received',
+          style: 'default',
+          onPress: async () => {
+            try {
+              setIsUpdating(true);
+              await recordRemainingPayment(order.id);
+              setOrderStatus('confirmed');
+              setOrderPaidAmount(order.totalAmount);
+              Alert.alert('Success', 'Remaining payment recorded successfully!');
+            } catch (error: any) {
+              Alert.alert('Error', error?.message || 'Failed to update payment status');
+            } finally {
+              setIsUpdating(false);
+            }
+          }
+        }
       ]
     );
   };
@@ -136,6 +186,8 @@ export default function OrderDetailScreen() {
     switch (orderStatus) {
       case 'accepted':
         return '#10B981';
+      case 'confirmed':
+        return '#059669';
       case 'rejected':
         return '#EF4444';
       case 'pending':
@@ -148,7 +200,9 @@ export default function OrderDetailScreen() {
   const getStatusText = () => {
     switch (orderStatus) {
       case 'accepted':
-        return 'Accepted';
+        return 'Approved (Deposit Paid)';
+      case 'confirmed':
+        return 'Confirmed (Fully Paid)';
       case 'rejected':
         return 'Rejected';
       case 'pending':
@@ -226,11 +280,16 @@ export default function OrderDetailScreen() {
                 {order.customerName}
               </Text>
               <Text className="text-sm text-gray-500 mt-1">
-                Ordered on {new Date(order.orderDate).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric'
-                })}
+                Ordered on {(() => {
+                  const d = order.orderDate ? new Date(order.orderDate) : new Date(order.eventDate || Date.now());
+                  return isNaN(d.getTime()) 
+                    ? 'Recent' 
+                    : d.toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                      });
+                })()}
               </Text>
             </View>
           </View>
@@ -368,6 +427,36 @@ export default function OrderDetailScreen() {
             This is the service value. The token is confirmed separately in chat.
           </Text>
         </View>
+
+        {/* Payment Progress */}
+        {(orderStatus === 'accepted' || orderStatus === 'confirmed') && (
+          <View className="bg-white mx-5 mt-4 rounded-2xl p-4" style={Shadows.small}>
+            <Text className="text-xs font-semibold text-gray-400 mb-3 tracking-wider">
+              PAYMENT STATUS
+            </Text>
+            <View className="flex-row justify-between mb-2">
+              <Text className="text-sm text-gray-600">Total Price</Text>
+              <Text className="text-sm font-bold" style={{ color: Colors.textPrimary }}>
+                PKR {order.totalAmount?.toLocaleString()}
+              </Text>
+            </View>
+            <View className="flex-row justify-between mb-2">
+              <Text className="text-sm text-gray-600">Paid So Far (Token)</Text>
+              <Text className="text-sm font-bold text-emerald-600">
+                PKR {orderPaidAmount.toLocaleString()}
+              </Text>
+            </View>
+            <View className="h-px bg-gray-100 my-2" />
+            <View className="flex-row justify-between">
+              <Text className="text-sm font-bold" style={{ color: Colors.textPrimary }}>
+                Remaining Balance
+              </Text>
+              <Text className="text-sm font-bold" style={{ color: orderStatus === 'confirmed' ? Colors.success : Colors.warning }}>
+                PKR {(order.totalAmount - orderPaidAmount).toLocaleString()}
+              </Text>
+            </View>
+          </View>
+        )}
       </ScrollView>
 
       {/* Action Buttons - Fixed at bottom */}
@@ -376,6 +465,29 @@ export default function OrderDetailScreen() {
           className="absolute bottom-0 left-0 right-0 bg-white px-5 border-t border-gray-200"
           style={[Shadows.medium, { paddingTop: 16, paddingBottom: Math.max(insets.bottom, 16) }]}
         >
+          {showApproveInput && (
+            <View className="mb-4">
+              <Text className="text-sm font-semibold mb-2" style={{ color: Colors.textPrimary }}>
+                Token / Advance Amount Paid (PKR)
+              </Text>
+              <View className="bg-gray-50 rounded-xl p-3 border border-gray-200">
+                <TextInput
+                  placeholder="Enter token amount received..."
+                  value={paidAmountInput}
+                  onChangeText={setPaidAmountInput}
+                  keyboardType="numeric"
+                  style={{ height: 40 }}
+                />
+              </View>
+              <TouchableOpacity 
+                onPress={() => setShowApproveInput(false)}
+                className="mt-2 self-end"
+              >
+                <Text className="text-xs font-bold" style={{ color: Colors.textTertiary }}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           {showRejectInput && (
             <View className="mb-4">
               <Text className="text-sm font-semibold mb-2" style={{ color: Colors.textPrimary }}>
@@ -453,15 +565,35 @@ export default function OrderDetailScreen() {
           className="absolute bottom-0 left-0 right-0 bg-white px-5 border-t border-gray-200"
           style={[Shadows.medium, { paddingTop: 16, paddingBottom: Math.max(insets.bottom, 16) }]}
         >
+          {orderStatus === 'accepted' && (
+            <TouchableOpacity
+              onPress={handleReceiveRemainingPayment}
+              disabled={isUpdating}
+              className="rounded-2xl py-4 items-center justify-center bg-emerald-500 mb-3"
+              activeOpacity={0.8}
+              style={[Shadows.small, isUpdating && { opacity: 0.5 }]}
+            >
+              <View className="flex-row items-center">
+                <CheckCircle size={20} color="#FFFFFF" />
+                <Text className="text-white text-base font-semibold ml-2">
+                  {isUpdating ? 'Updating...' : 'Mark Balance as Received'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity
             onPress={handleChat}
-            className="rounded-2xl py-4 items-center justify-center"
+            className="rounded-2xl py-4 items-center justify-center border-2"
             activeOpacity={0.8}
-            style={{ backgroundColor: Colors.vendor }}
+            style={{ 
+              borderColor: Colors.vendor, 
+              backgroundColor: orderStatus === 'accepted' ? '#FFFFFF' : Colors.vendor 
+            }}
           >
             <View className="flex-row items-center">
-              <MessageCircle size={20} color="#FFFFFF" />
-              <Text className="text-white text-base font-semibold ml-2">
+              <MessageCircle size={20} color={orderStatus === 'accepted' ? Colors.vendor : '#FFFFFF'} />
+              <Text className="text-base font-semibold ml-2" style={{ color: orderStatus === 'accepted' ? Colors.vendor : '#FFFFFF' }}>
                 Chat with Customer
               </Text>
             </View>

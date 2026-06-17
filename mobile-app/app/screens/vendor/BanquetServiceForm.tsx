@@ -8,6 +8,8 @@ import { createVendorService, updateVendorService, getServiceById } from '@/app/
 import ImageUploader from "@/app/screens/vendor/Component/ImageUploader";
 import LocationPicker from "@/app/_components/LocationPicker";
 import { uploadMultipleToCloudinary, isCloudinaryConfigured } from '@/app/_utils/cloudinaryUpload';
+import { useUser } from "@/app/_context/UserContext";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Package {
   id: string;
@@ -18,6 +20,7 @@ interface Package {
 
 export default function BanquetServiceForm() {
   const insets = useSafeAreaInsets();
+  const { user } = useUser();
   const { serviceId, edit } = useLocalSearchParams<{ serviceId: string; edit: string }>();
   const isEditMode = edit === 'true' && !!serviceId;
   
@@ -36,6 +39,13 @@ export default function BanquetServiceForm() {
   const [minGuests, setMinGuests] = useState("");
   const [maxGuests, setMaxGuests] = useState("");
   
+  // Slots
+  const [slots, setSlots] = useState<{ id: string; label: string; from: string; to: string }[]>([
+    { id: "1", label: "Morning", from: "10:00 AM", to: "01:00 PM" },
+    { id: "2", label: "Afternoon", from: "03:00 PM", to: "07:00 PM" },
+    { id: "3", label: "Evening", from: "09:00 PM", to: "12:00 AM" }
+  ]);
+  
   // Packages
   const [packages, setPackages] = useState<Package[]>([
     { id: "1", packageName: "", price: "", items: [""] }
@@ -51,6 +61,23 @@ export default function BanquetServiceForm() {
       loadServiceData();
     }
   }, [serviceId]);
+
+  useEffect(() => {
+    if (user?.id) {
+      loadSlots();
+    }
+  }, [user?.id]);
+
+  const loadSlots = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('vendor_slots_' + user?.id);
+      if (saved) {
+        setSlots(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.log('Failed to load slots:', error);
+    }
+  };
 
   const loadServiceData = async () => {
     try {
@@ -184,6 +211,15 @@ export default function BanquetServiceForm() {
       }
     }
 
+    // Validate slots
+    for (const slot of slots) {
+      if (!slot.label.trim() || !slot.from.trim() || !slot.to.trim()) {
+        Alert.alert("Error", "Please complete all time slot details or remove empty slots");
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
     const payload = {
       placeName,
       location,
@@ -210,6 +246,9 @@ export default function BanquetServiceForm() {
     try {
       if (isEditMode) {
         await updateVendorService(serviceId!, payload);
+        if (user?.id) {
+          await AsyncStorage.setItem('vendor_slots_' + user.id, JSON.stringify(slots));
+        }
         Alert.alert("Success", "Service updated successfully.", [
           { text: "OK", onPress: () => router.replace('/screens/vendor/Component/ManageServicesScreen') }
         ]);
@@ -219,6 +258,10 @@ export default function BanquetServiceForm() {
           serviceType: 'banquet',
           ...payload,
         });
+
+        if (user?.id) {
+          await AsyncStorage.setItem('vendor_slots_' + user.id, JSON.stringify(slots));
+        }
 
         // Upload images to Cloudinary for new service
         const newServiceId = result?._id || result?.id || result?.data?._id || result?.data?.id;
@@ -436,6 +479,73 @@ export default function BanquetServiceForm() {
                     )}
                   </View>
                 ))}
+              </View>
+            ))}
+          </View>
+
+          {/* Time Slots Section */}
+          <View className='rounded-2xl p-5 mb-4' style={[{backgroundColor: Colors.white}, Shadows.medium]}>
+            <View className='flex-row justify-between items-center mb-4'>
+              <View>
+                <Text className='text-lg font-extrabold' style={{color: Colors.textPrimary}}>Time Slots</Text>
+                <Text className='text-xs font-medium mt-1' style={{color: Colors.textSecondary}}>Define the shifts available for booking</Text>
+              </View>
+              <Pressable 
+                className='flex-row items-center gap-2 px-4 py-2 rounded-lg active:opacity-70'
+                style={{backgroundColor: Colors.banquet}}
+                onPress={() => setSlots([...slots, { id: Date.now().toString(), label: '', from: '10:00 AM', to: '01:00 PM' }])}
+              >
+                <Plus size={18} color={Colors.white} />
+                <Text className='text-sm font-bold' style={{color: Colors.white}}>Add Slot</Text>
+              </Pressable>
+            </View>
+
+            {slots.map((slot, index) => (
+              <View key={slot.id} className='mb-4 p-4 rounded-xl' style={{backgroundColor: Colors.background, borderWidth: 1, borderColor: Colors.border}}>
+                <View className='flex-row justify-between items-center mb-2'>
+                  <Text className='text-sm font-bold' style={{color: Colors.textPrimary}}>Slot #{index + 1}</Text>
+                  {slots.length > 1 && (
+                    <Pressable 
+                      onPress={() => setSlots(slots.filter(s => s.id !== slot.id))} 
+                      className='p-2 rounded-lg active:opacity-70' 
+                      style={{backgroundColor: '#ff000020'}}
+                    >
+                      <Trash2 size={16} color="#ff0000" />
+                    </Pressable>
+                  )}
+                </View>
+
+                <Text className='text-xs font-semibold mb-1' style={{color: Colors.textSecondary}}>Slot Name *</Text>
+                <TextInput
+                  style={[styles.input, {borderColor: Colors.border, color: Colors.textPrimary, marginBottom: 8}]}
+                  placeholder="e.g. Afternoon Session"
+                  placeholderTextColor={Colors.textTertiary}
+                  value={slot.label}
+                  onChangeText={(text) => setSlots(slots.map(s => s.id === slot.id ? { ...s, label: text } : s))}
+                />
+
+                <View className='flex-row gap-3'>
+                  <View className='flex-1'>
+                    <Text className='text-xs font-semibold mb-1' style={{color: Colors.textSecondary}}>From *</Text>
+                    <TextInput
+                      style={[styles.input, {borderColor: Colors.border, color: Colors.textPrimary}]}
+                      placeholder="10:00 AM"
+                      placeholderTextColor={Colors.textTertiary}
+                      value={slot.from}
+                      onChangeText={(text) => setSlots(slots.map(s => s.id === slot.id ? { ...s, from: text } : s))}
+                    />
+                  </View>
+                  <View className='flex-1'>
+                    <Text className='text-xs font-semibold mb-1' style={{color: Colors.textSecondary}}>To *</Text>
+                    <TextInput
+                      style={[styles.input, {borderColor: Colors.border, color: Colors.textPrimary}]}
+                      placeholder="01:00 PM"
+                      placeholderTextColor={Colors.textTertiary}
+                      value={slot.to}
+                      onChangeText={(text) => setSlots(slots.map(s => s.id === slot.id ? { ...s, to: text } : s))}
+                    />
+                  </View>
+                </View>
               </View>
             ))}
           </View>

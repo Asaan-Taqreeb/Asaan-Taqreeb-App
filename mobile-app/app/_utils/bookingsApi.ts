@@ -38,6 +38,7 @@ export type ClientBookingItem = {
   status: 'pending' | 'approved' | 'rejected' | 'confirmed' | 'completed'
   rejectionReason?: string
   bookingDate: string
+  paidAmount: number
 }
 
 export type VendorOrderItem = {
@@ -52,7 +53,11 @@ export type VendorOrderItem = {
   eventDay: string
   eventTime: string
   guestCount: number
-  status: 'pending' | 'accepted' | 'rejected'
+  status: 'pending' | 'accepted' | 'rejected' | 'confirmed'
+  orderDate?: string
+  specialRequests?: string
+  optionalItems?: { name: string; price: number }[]
+  paidAmount: number
 }
 
 export type CreateBookingPayload = {
@@ -165,6 +170,7 @@ const mapSingleBookingToUi = (item: any, index = Date.now()): ClientBookingItem 
     status: mapStatus(item?.status),
     rejectionReason: firstDefined(item?.rejectionReason, item?.reason),
     bookingDate,
+    paidAmount: toNumber(firstDefined(item?.paidAmount, item?.pricing?.paidAmount, 0), 0),
   }
 }
 
@@ -177,6 +183,13 @@ const mapSingleVendorBookingToUi = (item: any, index = Date.now()): VendorOrderI
   const displayTime = fromTime && toTime
     ? `${fromTime} - ${toTime}`
     : String(firstDefined(item?.eventTime, item?.time, 'Not provided'))
+  const orderDate = String(firstDefined(item?.createdAt, item?.bookingDate, item?.eventDate, new Date().toISOString()))
+  const optionalItems = Array.isArray(item?.optionalAddons)
+    ? item.optionalAddons.map((addon: any) => ({
+        name: String(addon?.name || ''),
+        price: toNumber(addon?.price, 0)
+      }))
+    : []
 
   return {
     id: String(firstDefined(item?.id, item?._id, String(index))),
@@ -190,7 +203,11 @@ const mapSingleVendorBookingToUi = (item: any, index = Date.now()): VendorOrderI
     eventDay: day,
     eventTime: displayTime,
     guestCount: toNumber(firstDefined(item?.guestCount, 0), 0),
-    status: normalizedStatus === 'APPROVED' ? 'accepted' : normalizedStatus === 'REJECTED' ? 'rejected' : 'pending',
+    status: normalizedStatus === 'APPROVED' ? 'accepted' : normalizedStatus === 'CONFIRMED' ? 'confirmed' : normalizedStatus === 'REJECTED' ? 'rejected' : 'pending',
+    orderDate,
+    specialRequests: item?.specialRequests || undefined,
+    optionalItems,
+    paidAmount: toNumber(firstDefined(item?.paidAmount, item?.pricing?.paidAmount, 0), 0),
   }
 }
 
@@ -359,13 +376,22 @@ export const getVendorBookings = async (forceRefresh = false): Promise<VendorOrd
   return fetchPromise
 }
 
-export const updateBookingStatus = async (bookingId: string | number, status: 'accepted' | 'rejected', rejectionReason?: string) => {
+export const updateBookingStatus = async (
+  bookingId: string | number,
+  status: 'accepted' | 'rejected',
+  rejectionReason?: string,
+  paidAmount?: number
+) => {
   const body: any = {
     status: status === 'accepted' ? 'APPROVED' : 'REJECTED',
   }
   
   if (status === 'rejected' && rejectionReason) {
     body.rejectionReason = rejectionReason
+  }
+
+  if (status === 'accepted' && paidAmount !== undefined) {
+    body.paidAmount = paidAmount
   }
 
   const response = await apiFetchJson<any>(
@@ -386,7 +412,7 @@ export const updateBookingStatus = async (bookingId: string | number, status: 'a
     const cachedStr = await AsyncStorage.getItem('cached_vendor_bookings')
     if (cachedStr) {
       const cached: VendorOrderItem[] = JSON.parse(cachedStr)
-      const updated = cached.map((b) => (b.id === String(bookingId) ? { ...b, status } : b))
+      const updated = cached.map((b) => (b.id === String(bookingId) ? { ...b, status, paidAmount: paidAmount !== undefined ? paidAmount : b.paidAmount } : b))
       await AsyncStorage.setItem('cached_vendor_bookings', JSON.stringify(updated))
     }
   } catch (e) {
@@ -419,6 +445,36 @@ export const cancelBooking = async (bookingId: string | number) => {
     }
   } catch (e) {
     console.warn('Failed to update booking cache after cancellation:', e)
+  }
+
+  return response
+}
+
+export const recordRemainingPayment = async (bookingId: string | number) => {
+  const response = await apiFetchJson<any>(
+    BOOKING_ENDPOINTS.recordRemainingPayment(bookingId),
+    {
+      method: 'PATCH',
+      auth: true,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    },
+    `Failed to record final payment.`
+  )
+
+  // Update local cache state for vendor bookings
+  try {
+    const cachedStr = await AsyncStorage.getItem('cached_vendor_bookings')
+    if (cachedStr) {
+      const cached: VendorOrderItem[] = JSON.parse(cachedStr)
+      const updated = cached.map((b) =>
+        b.id === String(bookingId) ? { ...b, status: 'confirmed' as const, paidAmount: b.totalAmount } : b
+      )
+      await AsyncStorage.setItem('cached_vendor_bookings', JSON.stringify(updated))
+    }
+  } catch (e) {
+    console.warn('Failed to update vendor booking cache:', e)
   }
 
   return response

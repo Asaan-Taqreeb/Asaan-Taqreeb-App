@@ -224,11 +224,15 @@ const LoginScreen = ({
                         style={styles.input}
                         mode='outlined'
                         outlineColor='#ddd'
-                        activeOutlineColor='#4F46E5'
+                        activeOutlineColor={Colors.primary}
+                        selectionColor='#000000'
+                        cursorColor='#000000'
+                        caretHidden={false}
+                        theme={{ colors: { primary: Colors.primary } }}
                         left={<TextInput.Icon icon="email" />}
                         value={email}
                         onChangeText={setEmail}
-                        keyboardType='email-address'
+                        inputMode='email'
                         autoCapitalize='none'
                         autoCorrect={false}
                         editable={!loading}
@@ -240,6 +244,8 @@ const LoginScreen = ({
                         mode='outlined'
                         outlineColor='#ddd'
                         activeOutlineColor={Colors.primary}
+                        selectionColor={Colors.primary}
+                        cursorColor={Colors.primary}
                         secureTextEntry={!showPassword}
                         left={<TextInput.Icon icon="lock" />}
                         right={<TextInput.Icon icon={showPassword ? "eye-off" : "eye"} onPress={() => setShowPassword(!showPassword)} />}

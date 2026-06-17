@@ -2,7 +2,7 @@ import { Tabs } from 'expo-router'
 import { Alert, View, TouchableOpacity, StyleSheet, Text } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors } from '@/app/_constants/theme'
-import { useUnreadNotificationCount } from '@/app/_context/NotificationContext'
+import { useUnreadNotificationCount, useUnreadMessageCount } from '@/app/_context/NotificationContext'
 import { useUser } from '@/app/_context/UserContext'
 import { Home, NotebookPen, Calendar, MessageSquare, Heart } from 'lucide-react-native'
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
@@ -10,6 +10,7 @@ import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
 function ClientTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets()
   const unreadCount = useUnreadNotificationCount()
+  const unreadMessagesCount = useUnreadMessageCount()
   const { user } = useUser()
   const isGuest = Boolean(user?.isGuest)
 
@@ -78,7 +79,7 @@ function ClientTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
       {visibleRoutes.map((route) => {
         const globalIndex = state.routes.findIndex((r) => r.key === route.key)
         const focused = state.index === globalIndex
-        const showBadge = route.name === 'MessagesScreen' && unreadCount > 0
+        const showBadge = route.name === 'MessagesScreen' && unreadMessagesCount > 0
 
         return (
           <TouchableOpacity
@@ -93,9 +94,6 @@ function ClientTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               style={[
                 styles.iconWrap,
                 {
-                  backgroundColor: showHighlight(route.name, focused)
-                    ? 'rgba(212, 175, 55, 0.18)'
-                    : 'transparent',
                   opacity: isGuestRestricted(route.name) ? 0.45 : 1,
                 },
               ]}
@@ -107,7 +105,7 @@ function ClientTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               {showBadge && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
-                    {unreadCount > 9 ? '9+' : unreadCount}
+                    {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
                   </Text>
                 </View>
               )}
@@ -125,17 +123,17 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     borderRadius: 24,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.white,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.2)',
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 8,
+    borderColor: 'rgba(15, 23, 42, 0.08)',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.16,
+    shadowRadius: 18,
+    elevation: 12,
   },
   tabItem: {
     flex: 1,
@@ -153,10 +151,10 @@ const styles = StyleSheet.create({
   },
   indicator: {
     position: 'absolute',
-    bottom: 5,
-    width: 16,
-    height: 3,
-    borderRadius: 1.5,
+    bottom: 2,
+    width: 28,
+    height: 4,
+    borderRadius: 2,
   },
   badge: {
     position: 'absolute',

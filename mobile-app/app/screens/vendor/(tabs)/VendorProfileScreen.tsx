@@ -28,6 +28,7 @@ import { useUser } from '@/app/_context/UserContext';
 import Avatar from '@/app/_components/Avatar';
 import { logoutUser, deleteUserAccount } from '@/app/_utils/authApi';
 import { useLanguage } from '@/app/_context/LanguageContext';
+import VendorHeader from '../Component/VendorHeader';
 
 export default function VendorProfileScreen() {
   const router = useRouter();
@@ -103,19 +104,13 @@ export default function VendorProfileScreen() {
 
   return (
     <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: Colors.background }}>
+      {/* Header */}
+      <VendorHeader title={t('businessSettings') || 'Business Settings'} subtitle={t('managePartnerAccount') || 'Manage your partner account'} />
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 110 }}
       >
-        {/* Header */}
-        <View className="bg-white px-5 py-6" style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
-          <Text className="text-xl font-black tracking-tight" style={{ color: Colors.textPrimary }}>
-            {t('businessSettings') || 'Business Settings'}
-          </Text>
-          <Text className="text-[10px] font-bold uppercase tracking-widest mt-0.5" style={{ color: Colors.textSecondary }}>
-            {t('managePartnerAccount') || 'Manage your partner account'}
-          </Text>
-        </View>
 
         {/* Profile Card */}
         <View className="px-5 mt-6">

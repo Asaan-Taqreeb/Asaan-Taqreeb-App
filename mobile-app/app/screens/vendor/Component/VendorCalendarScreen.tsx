@@ -801,7 +801,7 @@ export default function VendorCalendarScreen() {
                       </Text>
                     </View>
                     
-                    {booking.guests && (
+                    {!!booking.guests && (
                       <View className='flex-row items-center gap-2'>
                         <Users size={16} color={Colors.vendor} />
                         <Text className='text-sm font-medium' style={{color: Colors.textSecondary}}>
@@ -810,7 +810,7 @@ export default function VendorCalendarScreen() {
                       </View>
                     )}
                     
-                    {booking.location && (
+                    {!!booking.location && (
                       <View className='flex-row items-start gap-2'>
                         <MapPin size={16} color={Colors.vendor} className='mt-0.5' />
                         <Text className='text-sm font-medium flex-1' style={{color: Colors.textSecondary}}>

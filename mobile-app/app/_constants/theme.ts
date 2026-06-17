@@ -158,4 +158,25 @@ export const Shadows = {
     shadowRadius: 10,
     elevation: 5,
   },
-}
+};
+
+export const lightColors = {
+  ...Colors,
+  surface: '#FFFFFF',
+  background: '#F8FAFC',
+  textPrimary: '#0F172A',
+  textSecondary: '#1E293B',
+  textTertiary: '#64748B',
+  border: '#E2E8F0',
+};
+
+export const darkColors = {
+  ...Colors,
+  surface: '#1E293B',
+  background: '#0F172A',
+  textPrimary: '#F8FAFC',
+  textSecondary: '#E2E8F0',
+  textTertiary: '#94A3B8',
+  border: '#334155',
+};
+

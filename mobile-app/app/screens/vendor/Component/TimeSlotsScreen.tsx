@@ -8,14 +8,15 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, Plus, Trash2, Save, Clock } from 'lucide-react-native';
+import { ArrowLeft, Plus, Trash2, Save } from 'lucide-react-native';
 import { Colors, Shadows } from '@/app/_constants/theme';
 import { useUser } from '@/app/_context/UserContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getMyVendorServices } from '@/app/_utils/servicesApi';
 
 export interface TimeSlot {
   id: string;
@@ -31,6 +32,9 @@ export default function TimeSlotsScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useUser();
   const [slots, setSlots] = useState<TimeSlot[]>([]);
+  const [category, setCategory] = useState<'banquet' | 'photo' | 'parlor' | 'catering' | null>(null);
+  const [operatingHours, setOperatingHours] = useState({ from: '09:00 AM', to: '09:00 PM' });
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -41,36 +45,61 @@ export default function TimeSlotsScreen() {
 
   const loadSlots = async () => {
     try {
-      const saved = await AsyncStorage.getItem(STORAGE_KEY_PREFIX + user?.id);
-      if (saved) {
-        setSlots(JSON.parse(saved));
+      setIsLoading(true);
+      
+      // Load vendor service to determine category
+      const services = await getMyVendorServices();
+      const vendorCat = services && services.length > 0 ? services[0].category : 'banquet';
+      setCategory(vendorCat);
+
+      if (vendorCat === 'banquet') {
+        const saved = await AsyncStorage.getItem(STORAGE_KEY_PREFIX + user?.id);
+        if (saved) {
+          setSlots(JSON.parse(saved));
+        } else {
+          // Default slots for banquets if none exist
+          setSlots([
+            { id: '1', label: 'Morning', from: '10:00 AM', to: '01:00 PM' },
+            { id: '2', label: 'Afternoon', from: '03:00 PM', to: '07:00 PM' },
+            { id: '3', label: 'Evening', from: '09:00 PM', to: '12:00 AM' },
+          ]);
+        }
       } else {
-        // Default slots for banquets if none exist
-        setSlots([
-          { id: '1', label: 'Morning', from: '10:00 AM', to: '01:00 PM' },
-          { id: '2', label: 'Afternoon', from: '03:00 PM', to: '07:00 PM' },
-          { id: '3', label: 'Evening', from: '09:00 PM', to: '12:00 AM' },
-        ]);
+        // Service categories (photo, parlor, catering)
+        const savedHours = await AsyncStorage.getItem('vendor_operating_hours_' + user?.id);
+        if (savedHours) {
+          setOperatingHours(JSON.parse(savedHours));
+        }
       }
     } catch (error) {
-      console.log('Failed to load slots:', error);
+      console.log('Failed to load slots/category:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const saveSlots = async () => {
     if (!user?.id) return;
-    
-    // Simple validation
-    for (const slot of slots) {
-      if (!slot.label.trim() || !slot.from.trim() || !slot.to.trim()) {
-        Alert.alert('Error', 'Please fill in all fields for all slots.');
-        return;
-      }
-    }
 
     try {
       setIsSaving(true);
-      await AsyncStorage.setItem(STORAGE_KEY_PREFIX + user.id, JSON.stringify(slots));
+      if (category === 'banquet') {
+        // Simple validation for banquet slots
+        for (const slot of slots) {
+          if (!slot.label.trim() || !slot.from.trim() || !slot.to.trim()) {
+            Alert.alert('Error', 'Please fill in all fields for all slots.');
+            return;
+          }
+        }
+        await AsyncStorage.setItem(STORAGE_KEY_PREFIX + user.id, JSON.stringify(slots));
+      } else {
+        // Simple validation for operating hours
+        if (!operatingHours.from.trim() || !operatingHours.to.trim()) {
+          Alert.alert('Error', 'Please fill in operating hours.');
+          return;
+        }
+        await AsyncStorage.setItem('vendor_operating_hours_' + user.id, JSON.stringify(operatingHours));
+      }
       Alert.alert('Success', 'Time slots updated successfully!');
       router.back();
     } catch (error) {
@@ -100,6 +129,7 @@ export default function TimeSlotsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.background, paddingTop: insets.top }}>
+      {/* Header */}
       <View className="px-5 py-4 flex-row items-center justify-between border-b border-gray-100 bg-white">
         <TouchableOpacity
           onPress={() => router.back()}
@@ -113,91 +143,143 @@ export default function TimeSlotsScreen() {
         <View className="w-10" />
       </View>
 
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-      >
-        <ScrollView 
-          className="flex-1 px-5 pt-6"
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 40 }}
+      {isLoading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={Colors.vendor} />
+          <Text className="mt-3 font-semibold text-sm" style={{ color: Colors.textSecondary }}>
+            Loading Operating Times...
+          </Text>
+        </View>
+      ) : (
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
-          <View className="mb-6">
-            <Text className="text-lg font-bold mb-1" style={{ color: Colors.textPrimary }}>
-              Manage Your Time Slots
-            </Text>
-            <Text className="text-sm font-medium" style={{ color: Colors.textSecondary }}>
-              Define the time slots available for booking. Clients will see these options when booking your services.
-            </Text>
-          </View>
-
-          {slots.map((slot, index) => (
-            <View 
-              key={slot.id} 
-              className="bg-white rounded-3xl p-5 mb-5" 
-              style={Shadows.medium}
-            >
-              <View className="flex-row justify-between items-center mb-4">
-                <Text className="text-sm font-bold uppercase tracking-widest" style={{ color: Colors.vendor }}>
-                  Slot #{index + 1}
-                </Text>
-                <TouchableOpacity onPress={() => removeSlot(slot.id)} className="p-2">
-                  <Trash2 size={18} color={Colors.error} />
-                </TouchableOpacity>
-              </View>
-
-              <View className="mb-4">
-                <Text className="text-xs font-bold text-gray-400 mb-2">SLOT NAME (E.G. MORNING, DINNER)</Text>
-                <TextInput
-                  value={slot.label}
-                  onChangeText={(text) => updateSlot(slot.id, { label: text })}
-                  placeholder="e.g. Afternoon Session"
-                  className="bg-gray-50 rounded-xl px-4 py-3 text-base"
-                  style={{ color: Colors.textPrimary }}
-                />
-              </View>
-
-              <View className="flex-row gap-4">
-                <View className="flex-1">
-                  <Text className="text-xs font-bold text-gray-400 mb-2">FROM</Text>
-                  <TextInput
-                    value={slot.from}
-                    onChangeText={(text) => updateSlot(slot.id, { from: text })}
-                    placeholder="09:00 AM"
-                    className="bg-gray-50 rounded-xl px-4 py-3 text-base"
-                    style={{ color: Colors.textPrimary }}
-                  />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-xs font-bold text-gray-400 mb-2">TO</Text>
-                  <TextInput
-                    value={slot.to}
-                    onChangeText={(text) => updateSlot(slot.id, { to: text })}
-                    placeholder="05:00 PM"
-                    className="bg-gray-50 rounded-xl px-4 py-3 text-base"
-                    style={{ color: Colors.textPrimary }}
-                  />
-                </View>
-              </View>
-            </View>
-          ))}
-
-          <TouchableOpacity
-            onPress={addSlot}
-            className="flex-row items-center justify-center py-4 rounded-2xl border-2 border-dashed mb-10"
-            style={{ borderColor: Colors.vendor }}
+          <ScrollView 
+            className="flex-1 px-5 pt-6"
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 40 }}
           >
-            <Plus size={20} color={Colors.vendor} />
-            <Text className="ml-2 font-bold" style={{ color: Colors.vendor }}>Add New Slot</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </KeyboardAvoidingView>
+            {category === 'banquet' ? (
+              // ─── Venues & Halls: Pre-Defined Slots ────────────────────────────────
+              <>
+                <View className="mb-6">
+                  <Text className="text-lg font-bold mb-1" style={{ color: Colors.textPrimary }}>
+                    Manage Your Time Slots
+                  </Text>
+                  <Text className="text-sm font-medium" style={{ color: Colors.textSecondary }}>
+                    Define the time slots available for booking. Clients will see these options when booking your services.
+                  </Text>
+                </View>
 
+                {slots.map((slot, index) => (
+                  <View 
+                    key={slot.id} 
+                    className="bg-white rounded-3xl p-5 mb-5" 
+                    style={Shadows.medium}
+                  >
+                    <View className="flex-row justify-between items-center mb-4">
+                      <Text className="text-sm font-bold uppercase tracking-widest" style={{ color: Colors.vendor }}>
+                        Slot #{index + 1}
+                      </Text>
+                      <TouchableOpacity onPress={() => removeSlot(slot.id)} className="p-2">
+                        <Trash2 size={18} color={Colors.error} />
+                      </TouchableOpacity>
+                    </View>
+
+                    <View className="mb-4">
+                      <Text className="text-xs font-bold text-gray-400 mb-2">SLOT NAME (E.G. MORNING, DINNER)</Text>
+                      <TextInput
+                        value={slot.label}
+                        onChangeText={(text) => updateSlot(slot.id, { label: text })}
+                        placeholder="e.g. Afternoon Session"
+                        className="bg-gray-50 rounded-xl px-4 py-3 text-base"
+                        style={{ color: Colors.textPrimary }}
+                      />
+                    </View>
+
+                    <View className="flex-row gap-4">
+                      <View className="flex-1">
+                        <Text className="text-xs font-bold text-gray-400 mb-2">FROM</Text>
+                        <TextInput
+                          value={slot.from}
+                          onChangeText={(text) => updateSlot(slot.id, { from: text })}
+                          placeholder="10:00 AM"
+                          className="bg-gray-50 rounded-xl px-4 py-3 text-base"
+                          style={{ color: Colors.textPrimary }}
+                        />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-xs font-bold text-gray-400 mb-2">TO</Text>
+                        <TextInput
+                          value={slot.to}
+                          onChangeText={(text) => updateSlot(slot.id, { to: text })}
+                          placeholder="01:00 PM"
+                          className="bg-gray-50 rounded-xl px-4 py-3 text-base"
+                          style={{ color: Colors.textPrimary }}
+                        />
+                      </View>
+                    </View>
+                  </View>
+                ))}
+
+                <TouchableOpacity
+                  onPress={addSlot}
+                  className="flex-row items-center justify-center py-4 rounded-2xl border-2 border-dashed mb-10"
+                  style={{ borderColor: Colors.vendor }}
+                >
+                  <Plus size={20} color={Colors.vendor} />
+                  <Text className="ml-2 font-bold" style={{ color: Colors.vendor }}>Add New Slot</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              // ─── Services (Photographers/Makeup Artists/Caterers): Operating Hours ───
+              <>
+                <View className="mb-6">
+                  <Text className="text-lg font-bold mb-1" style={{ color: Colors.textPrimary }}>
+                    Manage Operating Hours
+                  </Text>
+                  <Text className="text-sm font-medium" style={{ color: Colors.textSecondary }}>
+                    Define your daily working hours range. Clients will select an hourly start-time slot within this range.
+                  </Text>
+                </View>
+
+                <View className="bg-white rounded-3xl p-6 mb-5" style={Shadows.medium}>
+                  <View className="flex-row gap-4">
+                    <View className="flex-1">
+                      <Text className="text-xs font-bold text-gray-400 mb-2">OPERATING FROM</Text>
+                      <TextInput
+                        value={operatingHours.from}
+                        onChangeText={(text) => setOperatingHours(prev => ({ ...prev, from: text }))}
+                        placeholder="09:00 AM"
+                        className="bg-gray-50 rounded-xl px-4 py-3 text-base"
+                        style={{ color: Colors.textPrimary }}
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-xs font-bold text-gray-400 mb-2">OPERATING TO</Text>
+                      <TextInput
+                        value={operatingHours.to}
+                        onChangeText={(text) => setOperatingHours(prev => ({ ...prev, to: text }))}
+                        placeholder="09:00 PM"
+                        className="bg-gray-50 rounded-xl px-4 py-3 text-base"
+                        style={{ color: Colors.textPrimary }}
+                      />
+                    </View>
+                  </View>
+                </View>
+              </>
+            )}
+          </ScrollView>
+        </KeyboardAvoidingView>
+      )}
+
+      {/* Save Button */}
       <View className="px-5 pb-8 pt-4 bg-white border-t border-gray-100">
         <TouchableOpacity
           onPress={saveSlots}
-          disabled={isSaving}
+          disabled={isSaving || isLoading}
           className="rounded-2xl py-4 flex-row items-center justify-center"
           style={{ backgroundColor: Colors.vendor }}
         >

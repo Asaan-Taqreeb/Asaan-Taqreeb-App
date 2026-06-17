@@ -8,6 +8,7 @@ import { Colors } from '@/app/_constants/theme';
 import OrderCard from '../Component/OrderCard';
 import { getVendorBookings, VendorOrderItem } from '@/app/_utils/bookingsApi';
 import { useLanguage } from '@/app/_context/LanguageContext';
+import VendorHeader from '../Component/VendorHeader';
 
 export default function OrdersScreen() {
   const router = useRouter();
@@ -81,30 +82,14 @@ export default function OrdersScreen() {
   return (
     <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: Colors.background }}>
       {/* Header */}
-      <View className="bg-white px-5 py-6" style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
-        <View className="flex-row justify-between items-center">
-          <View>
-            <Text className="text-xl font-black tracking-tight" style={{ color: Colors.textPrimary }}>
-              {t('manageOrders') || 'Manage Orders'}
-            </Text>
-            <Text className="text-[10px] font-bold uppercase tracking-widest mt-0.5" style={{ color: Colors.textSecondary }}>
-              {t('trackAndManageOrders') || 'Track and update your event bookings'}
-            </Text>
-          </View>
-          <TouchableOpacity
-            className="w-10 h-10 rounded-full items-center justify-center"
-            style={{ backgroundColor: Colors.lightGray }}
-          >
-            <Filter size={18} color={Colors.textPrimary} />
-          </TouchableOpacity>
-        </View>
+      <VendorHeader title={t('manageOrders') || 'Manage Orders'} subtitle={t('trackAndManageOrders') || 'Track and update your event bookings'} />
 
-        {/* Filter Tabs */}
+      {/* Filter Tabs Row */}
+      <View className="bg-white py-3 flex-row items-center px-4" style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          className="mt-6"
-          contentContainerStyle={{ paddingRight: 24 }}
+          className="flex-1 mr-2"
         >
           <FilterButton label="All" value="all" count={orders.length} />
           <FilterButton
@@ -123,6 +108,12 @@ export default function OrdersScreen() {
             count={orders.filter((order) => order.status === 'rejected').length}
           />
         </ScrollView>
+        <TouchableOpacity
+          className="w-10 h-10 rounded-xl items-center justify-center border border-slate-100"
+          style={{ backgroundColor: Colors.white }}
+        >
+          <Filter size={18} color={Colors.textPrimary} />
+        </TouchableOpacity>
       </View>
 
       {/* Orders List */}

@@ -60,6 +60,7 @@ export const BOOKING_ENDPOINTS = {
   myBookings: withApiPrefix('/bookings/me'),
   vendorBookings: withApiPrefix('/bookings/vendor/me'),
   updateBookingStatus: (bookingId: string | number) => withApiPrefix(`/bookings/${bookingId}/status`),
+  recordRemainingPayment: (bookingId: string | number) => withApiPrefix(`/bookings/${bookingId}/record-payment`),
   cancelBooking: (bookingId: string | number) => withApiPrefix(`/bookings/${bookingId}/cancel`),
 }
 

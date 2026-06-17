@@ -94,6 +94,12 @@ const english: Record<string, string> = {
   photoShoot: 'Photo Shoot',
   parlor: 'Parlor',
   searchPlaceholder: 'Search venues, catering, parlors...',
+  manageOrders: 'Manage Orders',
+  trackAndManageOrders: 'Track and update your event bookings',
+  customerChats: 'Customer Chats',
+  activeConversations: 'active conversations',
+  businessSettings: 'Business Settings',
+  managePartnerAccount: 'Manage your partner account',
 }
 
 const urdu: Record<string, string> = {
@@ -172,6 +178,12 @@ const urdu: Record<string, string> = {
   photoShoot: 'فوٹو شوٹ',
   parlor: 'پارلر',
   searchPlaceholder: 'وینڈیوز، کیٹرنگ، پارلرز تلاش کریں...',
+  manageOrders: 'آرڈرز کا انتظام کریں',
+  trackAndManageOrders: 'اپنے ایونٹ کی بکنگز کو ٹریک اور منظم کریں',
+  customerChats: 'گاہکوں کے ساتھ چیٹس',
+  activeConversations: 'فعال گفتگو',
+  businessSettings: 'کاروباری سیٹنگز',
+  managePartnerAccount: 'اپنے پارٹنر اکاؤنٹ کا انتظام کریں',
 }
 
 const punjabi: Record<string, string> = {

@@ -2,19 +2,20 @@ import { Tabs } from 'expo-router'
 import { View, TouchableOpacity, StyleSheet, Text } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors } from '@/app/_constants/theme'
-import { useUnreadNotificationCount } from '@/app/_context/NotificationContext'
+import { useUnreadNotificationCount, useUnreadMessageCount } from '@/app/_context/NotificationContext'
 import { Home, ShoppingBasket, MessageCircle, User } from 'lucide-react-native'
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
 
 function VendorTabBarComponent({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets()
   const unreadCount = useUnreadNotificationCount()
+  const unreadMessagesCount = useUnreadMessageCount()
 
   const CAPSULE_HEIGHT = 72
   const bottomOffset = insets.bottom > 0 ? insets.bottom + 8 : 16
 
   const getIcon = (routeName: string, focused: boolean) => {
-    const color = focused ? '#D4AF37' : '#94A3B8'
+    const color = focused ? Colors.accent : '#94A3B8'
     switch (routeName) {
       case 'VendorDashboardHome':
         return <Home color={color} size={22} strokeWidth={2.2} />
@@ -49,7 +50,7 @@ function VendorTabBarComponent({ state, descriptors, navigation }: BottomTabBarP
       {state.routes.map((route) => {
         const index = state.routes.indexOf(route)
         const focused = state.index === index
-        const showBadge = route.name === 'VendorMessagesScreen' && unreadCount > 0
+        const showBadge = route.name === 'VendorMessagesScreen' && unreadMessagesCount > 0
 
         return (
           <TouchableOpacity
@@ -60,20 +61,15 @@ function VendorTabBarComponent({ state, descriptors, navigation }: BottomTabBarP
             style={styles.tabItem}
             activeOpacity={0.7}
           >
-            <View
-              style={[
-                styles.iconWrap,
-                { backgroundColor: focused ? 'rgba(212, 175, 55, 0.18)' : 'transparent' },
-              ]}
-            >
+            <View style={styles.iconWrap}>
               {getIcon(route.name, focused)}
               {focused && (
-                <View style={[styles.indicator, { backgroundColor: '#D4AF37' }]} />
+                <View style={[styles.indicator, { backgroundColor: Colors.accent }]} />
               )}
               {showBadge && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
-                    {unreadCount > 9 ? '9+' : unreadCount}
+                    {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
                   </Text>
                 </View>
               )}
@@ -91,17 +87,17 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     borderRadius: 24,
-    backgroundColor: '#1E293B',
+    backgroundColor: Colors.white,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.2)',
+    borderColor: 'rgba(15, 23, 42, 0.08)',
     shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.16,
+    shadowRadius: 18,
+    elevation: 12,
   },
   tabItem: {
     flex: 1,
@@ -119,10 +115,10 @@ const styles = StyleSheet.create({
   },
   indicator: {
     position: 'absolute',
-    bottom: 5,
-    width: 16,
-    height: 3,
-    borderRadius: 1.5,
+    bottom: 2,
+    width: 28,
+    height: 4,
+    borderRadius: 2,
   },
   badge: {
     position: 'absolute',
@@ -131,7 +127,7 @@ const styles = StyleSheet.create({
     minWidth: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#D4AF37',
+    backgroundColor: Colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 3,

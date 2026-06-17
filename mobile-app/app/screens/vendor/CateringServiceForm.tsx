@@ -8,6 +8,8 @@ import { createVendorService, updateVendorService, getServiceById } from '@/app/
 import ImageUploader from "@/app/screens/vendor/Component/ImageUploader";
 import LocationPicker from "@/app/_components/LocationPicker";
 import { uploadMultipleToCloudinary, isCloudinaryConfigured } from '@/app/_utils/cloudinaryUpload';
+import { useUser } from "@/app/_context/UserContext";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Package {
   id: string;
@@ -21,6 +23,7 @@ interface Package {
 
 export default function CateringServiceForm() {
   const insets = useSafeAreaInsets();
+  const { user } = useUser();
   const { serviceId, edit } = useLocalSearchParams<{ serviceId: string; edit: string }>();
   const isEditMode = edit === 'true' && !!serviceId;
   
@@ -35,6 +38,9 @@ export default function CateringServiceForm() {
   const [isInitialLoading, setIsInitialLoading] = useState(isEditMode);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  // Operating Hours
+  const [operatingHours, setOperatingHours] = useState({ from: "09:00 AM", to: "09:00 PM" });
+
   // Packages
   const [packages, setPackages] = useState<Package[]>([
     { 
@@ -58,6 +64,23 @@ export default function CateringServiceForm() {
       loadServiceData();
     }
   }, [serviceId]);
+
+  useEffect(() => {
+    if (user?.id) {
+      loadOperatingHours();
+    }
+  }, [user?.id]);
+
+  const loadOperatingHours = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('vendor_operating_hours_' + user?.id);
+      if (saved) {
+        setOperatingHours(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.log('Failed to load operating hours:', error);
+    }
+  };
 
   const loadServiceData = async () => {
     try {
@@ -198,6 +221,13 @@ export default function CateringServiceForm() {
       }
     }
 
+    // Validate operating hours
+    if (!operatingHours.from.trim() || !operatingHours.to.trim()) {
+      Alert.alert("Error", "Please complete operating hours");
+      setIsSubmitting(false);
+      return;
+    }
+
     const payload = {
       placeName,
       location,
@@ -226,6 +256,9 @@ export default function CateringServiceForm() {
     try {
       if (isEditMode) {
         await updateVendorService(serviceId!, payload);
+        if (user?.id) {
+          await AsyncStorage.setItem('vendor_operating_hours_' + user.id, JSON.stringify(operatingHours));
+        }
         Alert.alert("Success", "Service updated successfully.", [
           { text: "OK", onPress: () => router.replace('/screens/vendor/Component/ManageServicesScreen') }
         ]);
@@ -235,6 +268,10 @@ export default function CateringServiceForm() {
           serviceType: 'catering',
           ...payload,
         });
+
+        if (user?.id) {
+          await AsyncStorage.setItem('vendor_operating_hours_' + user.id, JSON.stringify(operatingHours));
+        }
 
         // Upload images to Cloudinary for new service
         const newServiceId = result?._id || result?.id || result?.data?._id || result?.data?.id;
@@ -510,6 +547,35 @@ export default function CateringServiceForm() {
               ))}
             </View>
           ))}
+        </View>
+
+        {/* Operating Hours Section */}
+        <View className='rounded-2xl p-5 mb-4' style={[{backgroundColor: Colors.white}, Shadows.medium]}>
+          <Text className='text-lg font-extrabold mb-1' style={{color: Colors.textPrimary}}>Operating Hours</Text>
+          <Text className='text-xs font-medium mb-4' style={{color: Colors.textSecondary}}>Define your daily operating hours (e.g. 09:00 AM to 09:00 PM)</Text>
+          
+          <View className='flex-row gap-3'>
+            <View className='flex-1'>
+              <Text className='text-sm font-semibold mb-2' style={{color: Colors.textSecondary}}>Start Time *</Text>
+              <TextInput
+                style={[styles.input, {borderColor: Colors.border, color: Colors.textPrimary}]}
+                placeholder="09:00 AM"
+                placeholderTextColor={Colors.textTertiary}
+                value={operatingHours.from}
+                onChangeText={(text) => setOperatingHours(prev => ({ ...prev, from: text }))}
+              />
+            </View>
+            <View className='flex-1'>
+              <Text className='text-sm font-semibold mb-2' style={{color: Colors.textSecondary}}>End Time *</Text>
+              <TextInput
+                style={[styles.input, {borderColor: Colors.border, color: Colors.textPrimary}]}
+                placeholder="09:00 PM"
+                placeholderTextColor={Colors.textTertiary}
+                value={operatingHours.to}
+                onChangeText={(text) => setOperatingHours(prev => ({ ...prev, to: text }))}
+              />
+            </View>
+          </View>
         </View>
 
         {/* Optional Dishes */}

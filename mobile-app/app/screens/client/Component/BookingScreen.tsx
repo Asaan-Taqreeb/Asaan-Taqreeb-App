@@ -63,6 +63,35 @@ const rangesOverlap = (
     b: { from: number; to: number }
 ) => Math.max(a.from, b.from) < Math.min(a.to, b.to)
 
+const generateHourlyIntervals = (fromStr: string, toStr: string) => {
+    const fromMin = toMinutes(fromStr) ?? (9 * 60);
+    const toMin = toMinutes(toStr) ?? (21 * 60);
+    
+    const intervals = [];
+    // Loop every 60 minutes
+    for (let time = fromMin; time <= toMin - 60; time += 60) {
+        const hour = Math.floor(time / 60) % 24;
+        const min = time % 60;
+        const period = hour >= 12 ? 'PM' : 'AM';
+        const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+        const displayMin = String(min).padStart(2, '0');
+        
+        const label = `${displayHour}:${displayMin} ${period}`;
+        
+        // Let's make it a 3-hour duration slot for booking
+        const endTimeMin = time + 3 * 60;
+        const endHour = Math.floor(endTimeMin / 60) % 24;
+        const endMin = endTimeMin % 60;
+        const endPeriod = endHour >= 12 ? 'PM' : 'AM';
+        const endDisplayHour = endHour % 12 === 0 ? 12 : endHour % 12;
+        const endDisplayMin = String(endMin).padStart(2, '0');
+        
+        const value = `${label} to ${endDisplayHour}:${endDisplayMin} ${endPeriod}`;
+        intervals.push({ label, value });
+    }
+    return intervals;
+}
+
 export default function BookingScreen() {
     const insets = useSafeAreaInsets()
     const params = useLocalSearchParams()
@@ -110,26 +139,37 @@ export default function BookingScreen() {
         { id: 'afternoon', label: 'Afternoon', time: '3 PM to 7 PM' },
         { id: 'evening', label: 'Evening', time: '9 PM to 12 AM' }
     ])
+    const [operatingHours, setOperatingHours] = useState<{ from: string; to: string } | null>(null)
 
     useEffect(() => {
-        const loadVendorSlots = async () => {
+        const loadTimeOptions = async () => {
             if (!vendorAvailabilityId) return;
             try {
-                const saved = await AsyncStorage.getItem('vendor_slots_' + vendorAvailabilityId);
-                if (saved) {
-                    const parsed = JSON.parse(saved);
-                    setSlots(parsed.map((s: any) => ({
-                        id: s.id,
-                        label: s.label,
-                        time: `${s.from} to ${s.to}`
-                    })));
+                if (bookingData.category === 'banquet') {
+                    const saved = await AsyncStorage.getItem('vendor_slots_' + vendorAvailabilityId);
+                    if (saved) {
+                        const parsed = JSON.parse(saved);
+                        setSlots(parsed.map((s: any) => ({
+                            id: s.id,
+                            label: s.label,
+                            time: `${s.from} to ${s.to}`
+                        })));
+                    }
+                } else {
+                    const savedHours = await AsyncStorage.getItem('vendor_operating_hours_' + vendorAvailabilityId);
+                    if (savedHours) {
+                        setOperatingHours(JSON.parse(savedHours));
+                    } else {
+                        // Default operating hours if none configured
+                        setOperatingHours({ from: '09:00 AM', to: '09:00 PM' });
+                    }
                 }
             } catch (error) {
-                console.log('Failed to load custom slots:', error);
+                console.log('Failed to load vendor time options:', error);
             }
         };
-        loadVendorSlots();
-    }, [vendorAvailabilityId]);
+        loadTimeOptions();
+    }, [vendorAvailabilityId, bookingData.category]);
 
     const addons: BookingAddon[] = useMemo(() => {
         const rawOptional: any[] = Array.isArray(bookingData.optionalServices)
@@ -256,9 +296,16 @@ export default function BookingScreen() {
             return parseRange(slot.time)
         }
 
-        if (!customStartHour || !customStartMinute || !customEndHour || !customEndMinute) return null
-        return parseRange(`${customStartHour}:${customStartMinute} ${customStartPeriod} - ${customEndHour}:${customEndMinute} ${customEndPeriod}`)
-    }, [bookingData.category, selectedSlot, customStartHour, customStartMinute, customStartPeriod, customEndHour, customEndMinute, customEndPeriod])
+        if (!selectedSlot) return null
+        return parseRange(selectedSlot)
+    }, [bookingData.category, selectedSlot, slots])
+
+    const intervals = useMemo(() => {
+        if (bookingData.category === 'banquet') return [];
+        const from = operatingHours?.from ?? '09:00 AM';
+        const to = operatingHours?.to ?? '09:00 PM';
+        return generateHourlyIntervals(from, to);
+    }, [operatingHours, bookingData.category]);
 
     const dayStatusMap = useMemo(() => {
         return availabilityDays.reduce<Record<string, { hasBookings: boolean; hasBlocks: boolean; isFullDayBlocked: boolean }>>((acc, day) => {
@@ -334,8 +381,13 @@ export default function BookingScreen() {
     }, [categoryColor, selectedDate, selectedTimeRange, unavailableRangesMap, dayStatusMap])
 
     useEffect(() => {
-        if (selectedDate && selectedSlot && isBanquetSlotBlocked(selectedSlot)) {
-            setSelectedSlot(null)
+        if (selectedDate && selectedSlot) {
+            const blocked = bookingData.category === 'banquet'
+                ? isBanquetSlotBlocked(selectedSlot)
+                : isTimeBlockedOnSelectedDate(selectedSlot);
+            if (blocked) {
+                setSelectedSlot(null)
+            }
         }
     }, [selectedDate, selectedSlot, unavailableRangesMap])
 
@@ -343,10 +395,7 @@ export default function BookingScreen() {
         if (bookingData.category === 'banquet') {
             return selectedSlot ? (slots.find(s => s.id === selectedSlot)?.time ?? '') : ''
         }
-
-        return customStartHour && customStartMinute && customEndHour && customEndMinute
-            ? `${customStartHour}:${customStartMinute} ${customStartPeriod} - ${customEndHour}:${customEndMinute} ${customEndPeriod}`
-            : ''
+        return selectedSlot ?? ''
     }
 
     const isTimeBlockedOnSelectedDate = (timeRange: string) => {
@@ -603,99 +652,60 @@ export default function BookingScreen() {
                     </View>
                 )}
 
-                {/* Others - Custom Time Input */}
+                {/* Others - Hourly Slots Selection */}
                 {bookingData.category !== 'banquet' && (
                     <View className='rounded-2xl p-4' style={[{backgroundColor: Colors.white, borderWidth: 2, borderColor: Colors.border}, Shadows.medium]}>
                         <View className='flex-row items-center gap-2 mb-4'>
                             <Clock size={20} color={categoryColor} />
-                            <Text className='text-base font-bold' style={{color: Colors.textPrimary}}>Custom Time</Text>
+                            <Text className='text-base font-bold' style={{color: Colors.textPrimary}}>Select Start Time</Text>
                         </View>
-                        <View className='flex-row gap-3'>
-                            <View className='flex-1'>
-                                <Text className='text-sm font-bold mb-2' style={{color: Colors.textPrimary}}>From</Text>
-                                <View className='flex-row gap-2'>
-                                    <View className='flex-1'>
-                                        <TextInput
-                                            placeholder='HH'
-                                            value={customStartHour}
-                                            onChangeText={setCustomStartHour}
-                                            className='rounded-xl px-3 py-3 text-sm'
-                                            style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
-                                            placeholderTextColor={Colors.textTertiary}
-                                            keyboardType='number-pad'
-                                            maxLength={2}
-                                        />
-                                    </View>
-                                    <Text className='self-center text-lg font-extrabold' style={{color: Colors.textSecondary}}>:</Text>
-                                    <View className='flex-1'>
-                                        <TextInput
-                                            placeholder='MM'
-                                            value={customStartMinute}
-                                            onChangeText={setCustomStartMinute}
-                                            className='rounded-xl px-3 py-3 text-sm'
-                                            style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
-                                            placeholderTextColor={Colors.textTertiary}
-                                            keyboardType='number-pad'
-                                            maxLength={2}
-                                        />
-                                    </View>
-                                </View>
-                                <View className='flex-row mt-2 gap-2'>
-                                    {(['AM', 'PM'] as const).map((period) => (
+                        {intervals.length === 0 ? (
+                            <Text className='text-sm text-center font-medium my-4' style={{color: Colors.textSecondary}}>
+                                No slots available within operating hours.
+                            </Text>
+                        ) : (
+                            <View style={styles.timeGrid}>
+                                {intervals.map((interval) => {
+                                    const isSelected = selectedSlot === interval.value
+                                    const blocked = isTimeBlockedOnSelectedDate(interval.value)
+
+                                    return (
                                         <Pressable
-                                            key={`start-${period}`}
-                                            onPress={() => setCustomStartPeriod(period)}
-                                            className='flex-1 py-2 rounded-lg active:opacity-80 items-center'
-                                            style={{backgroundColor: customStartPeriod === period ? categoryColor : Colors.lightGray}}
+                                            key={interval.value}
+                                            style={[
+                                                styles.gridItem,
+                                                {
+                                                    borderColor: isSelected ? categoryColor : blocked ? Colors.error : Colors.border,
+                                                    backgroundColor: isSelected ? `${categoryColor}15` : blocked ? '#fee2e2' : Colors.white,
+                                                    opacity: blocked ? 0.6 : 1,
+                                                }
+                                            ]}
+                                            onPress={() => {
+                                                if (blocked) return
+                                                setSelectedSlot(interval.value)
+                                            }}
+                                            disabled={blocked}
                                         >
-                                            <Text className='text-xs font-extrabold' style={{color: customStartPeriod === period ? Colors.white : Colors.textPrimary}}>{period}</Text>
+                                            <Text 
+                                                style={[
+                                                    styles.gridItemText,
+                                                    {
+                                                        color: isSelected ? categoryColor : blocked ? Colors.error : Colors.textPrimary,
+                                                        fontWeight: isSelected ? '800' : '600',
+                                                    }
+                                                ]}
+                                                numberOfLines={1}
+                                            >
+                                                {interval.label}
+                                            </Text>
                                         </Pressable>
-                                    ))}
-                                </View>
+                                    )
+                                })}
                             </View>
-                            <View className='flex-1'>
-                                <Text className='text-sm font-bold mb-2' style={{color: Colors.textPrimary}}>To</Text>
-                                <View className='flex-row gap-2'>
-                                    <View className='flex-1'>
-                                        <TextInput
-                                            placeholder='HH'
-                                            value={customEndHour}
-                                            onChangeText={setCustomEndHour}
-                                            className='rounded-xl px-3 py-3 text-sm'
-                                            style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
-                                            placeholderTextColor={Colors.textTertiary}
-                                            keyboardType='number-pad'
-                                            maxLength={2}
-                                        />
-                                    </View>
-                                    <Text className='self-center text-lg font-extrabold' style={{color: Colors.textSecondary}}>:</Text>
-                                    <View className='flex-1'>
-                                        <TextInput
-                                            placeholder='MM'
-                                            value={customEndMinute}
-                                            onChangeText={setCustomEndMinute}
-                                            className='rounded-xl px-3 py-3 text-sm'
-                                            style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
-                                            placeholderTextColor={Colors.textTertiary}
-                                            keyboardType='number-pad'
-                                            maxLength={2}
-                                        />
-                                    </View>
-                                </View>
-                                <View className='flex-row mt-2 gap-2'>
-                                    {(['AM', 'PM'] as const).map((period) => (
-                                        <Pressable
-                                            key={`end-${period}`}
-                                            onPress={() => setCustomEndPeriod(period)}
-                                            className='flex-1 py-2 rounded-lg active:opacity-80 items-center'
-                                            style={{backgroundColor: customEndPeriod === period ? categoryColor : Colors.lightGray}}
-                                        >
-                                            <Text className='text-xs font-extrabold' style={{color: customEndPeriod === period ? Colors.white : Colors.textPrimary}}>{period}</Text>
-                                        </Pressable>
-                                    ))}
-                                </View>
-                            </View>
-                        </View>
+                        )}
+                        <Text className='text-xs font-semibold mt-3 text-center' style={{color: Colors.textTertiary}}>
+                            All bookings have a standard 3-hour session duration.
+                        </Text>
                     </View>
                 )}
             </View>
@@ -897,5 +907,22 @@ const styles = StyleSheet.create({
         width: "100%",
         height: "100%",
         backgroundColor: Colors.background
+    },
+    timeGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        justifyContent: 'flex-start',
+    },
+    gridItem: {
+        width: '31%',
+        borderWidth: 2,
+        borderRadius: 12,
+        paddingVertical: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    gridItemText: {
+        fontSize: 13,
     }
 })

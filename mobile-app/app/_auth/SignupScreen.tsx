@@ -189,7 +189,10 @@ const SignupScreen = ({
                         style={styles.input}
                         mode='outlined'
                         outlineColor='#ddd'
-                        activeOutlineColor='#4F46E5'
+                        activeOutlineColor={Colors.primary}
+                        selectionColor={Colors.primary}
+                        cursorColor={Colors.primary}
+                        theme={{ colors: { primary: Colors.primary } }}
                         left={<TextInput.Icon icon="account" />}
                         value={name}
                         onChangeText={setName}
@@ -202,11 +205,15 @@ const SignupScreen = ({
                         style={styles.input}
                         mode='outlined'
                         outlineColor='#ddd'
-                        activeOutlineColor='#4F46E5'
+                        activeOutlineColor={Colors.primary}
+                        selectionColor='#000000'
+                        cursorColor='#000000'
+                        caretHidden={false}
+                        theme={{ colors: { primary: Colors.primary } }}
                         left={<TextInput.Icon icon="email" />}
                         value={email}
                         onChangeText={setEmail}
-                        keyboardType='email-address'
+                        inputMode='email'
                         autoCapitalize='none'
                         autoCorrect={false}
                         editable={!loading}
@@ -217,7 +224,10 @@ const SignupScreen = ({
                         style={styles.input}
                         mode='outlined'
                         outlineColor='#ddd'
-                        activeOutlineColor='#4F46E5'
+                        activeOutlineColor={Colors.primary}
+                        selectionColor={Colors.primary}
+                        cursorColor={Colors.primary}
+                        theme={{ colors: { primary: Colors.primary } }}
                         left={<TextInput.Icon icon="phone" />}
                         value={phone}
                         onChangeText={setPhone}
@@ -230,7 +240,10 @@ const SignupScreen = ({
                         style={styles.input}
                         mode='outlined'
                         outlineColor='#ddd'
-                        activeOutlineColor='#4F46E5'
+                        activeOutlineColor={Colors.primary}
+                        selectionColor={Colors.primary}
+                        cursorColor={Colors.primary}
+                        theme={{ colors: { primary: Colors.primary } }}
                         secureTextEntry={!showPassword}
                         left={<TextInput.Icon icon="lock" />}
                         right={<TextInput.Icon icon={showPassword ? "eye-off" : "eye"} onPress={() => setShowPassword(!showPassword)} />}
@@ -244,7 +257,10 @@ const SignupScreen = ({
                         style={styles.input}
                         mode='outlined'
                         outlineColor='#ddd'
-                        activeOutlineColor='#4F46E5'
+                        activeOutlineColor={Colors.primary}
+                        selectionColor={Colors.primary}
+                        cursorColor={Colors.primary}
+                        theme={{ colors: { primary: Colors.primary } }}
                         secureTextEntry={!showConfirmPassword}
                         left={<TextInput.Icon icon="lock" />}
                         right={<TextInput.Icon icon={showConfirmPassword ? "eye-off" : "eye"} onPress={() => setShowConfirmPassword(!showConfirmPassword)} />}

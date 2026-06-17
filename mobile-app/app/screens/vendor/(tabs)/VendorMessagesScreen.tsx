@@ -9,6 +9,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { Alert } from 'react-native';
 import Avatar from '@/app/_components/Avatar';
 import { useLanguage } from '@/app/_context/LanguageContext';
+import VendorHeader from '../Component/VendorHeader';
 
 export default function VendorMessagesScreen() {
   const insets = useSafeAreaInsets();
@@ -53,7 +54,7 @@ export default function VendorMessagesScreen() {
     useCallback(() => {
       fetchChats();
     }, [fetchChats])
-  );
+  )
 
   useEffect(() => {
     if (!socket) return;
@@ -147,14 +148,11 @@ export default function VendorMessagesScreen() {
 
   return (
     <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: Colors.background }}>
-      <View className="bg-white px-5 py-6" style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
-        <Text className="text-xl font-black tracking-tight" style={{ color: Colors.textPrimary }}>
-          {t('customerChats') || 'Customer Chats'}
-        </Text>
-        <Text className="text-[10px] font-bold uppercase tracking-widest mt-0.5" style={{ color: Colors.textSecondary }}>
-          {chats.length} {t('activeConversations') || 'active conversation'}{chats.length !== 1 ? 's' : ''}
-        </Text>
-      </View>
+      {/* Header */}
+      <VendorHeader 
+        title={t('customerChats') || 'Customer Chats'} 
+        subtitle={`${chats.length} ${t('activeConversations') || 'active conversation'}${chats.length !== 1 ? 's' : ''}`} 
+      />
 
       <FlatList
         data={chats}
