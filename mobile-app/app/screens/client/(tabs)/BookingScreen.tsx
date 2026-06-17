@@ -262,10 +262,16 @@ export default function BookingScreen() {
               const StatusIcon = statusConfig.icon
 
               return (
-                <View 
+                <Pressable 
                   key={booking.id}
                   className='rounded-2xl overflow-hidden'
                   style={[{backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: 4}]}
+                  onPress={() => {
+                    router.push({
+                      pathname: '/screens/client/Component/BookingDetailScreen',
+                      params: { booking: JSON.stringify(booking) }
+                    })
+                  }}
                 >
                   <View 
                     className='px-4 py-3 flex-row items-center gap-2'
@@ -338,6 +344,22 @@ export default function BookingScreen() {
                           PKR {booking.price.toLocaleString()}
                         </Text>
                       </View>
+                      {booking.status !== 'rejected' && (
+                        <>
+                          <View className='flex-row justify-between items-center mb-1.5'>
+                            <Text className='text-xs font-semibold text-emerald-600'>Paid So Far (Token)</Text>
+                            <Text className='text-sm font-bold text-emerald-600'>
+                              PKR {Number(booking.paidAmount || 0).toLocaleString()}
+                            </Text>
+                          </View>
+                          <View className='flex-row justify-between items-center mb-1.5'>
+                            <Text className='text-xs font-semibold text-amber-600'>Remaining Balance</Text>
+                            <Text className='text-sm font-bold text-amber-600'>
+                              PKR {Math.max(0, booking.price - Number(booking.paidAmount || 0)).toLocaleString()}
+                            </Text>
+                          </View>
+                        </>
+                      )}
                       <View className='rounded-xl p-3 mt-2' style={{backgroundColor: Colors.infoLight + '40', borderWidth: 1, borderColor: Colors.info + '15'}}>
                         <Text className='text-xs font-bold mb-1' style={{color: Colors.info}}>TOKEN PAYMENT IN CHAT</Text>
                         <Text className='text-xs font-medium leading-relaxed' style={{color: Colors.textSecondary}}>
@@ -417,7 +439,7 @@ export default function BookingScreen() {
                       Booked on {formatDate(booking.bookingDate)}
                     </Text>
                   </View>
-                </View>
+                </Pressable>
               )
             })}
           </View>
