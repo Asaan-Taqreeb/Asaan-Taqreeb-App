@@ -68,8 +68,8 @@ export default function OrderDetailScreen() {
     }
 
     const enteredAmount = Number(paidAmountInput);
-    if (isNaN(enteredAmount) || enteredAmount < 0) {
-      Alert.alert('Invalid Amount', 'Please enter a valid amount.');
+    if (isNaN(enteredAmount) || enteredAmount <= 0) {
+      Alert.alert('Invalid Amount', 'Please enter a token payment amount greater than 0.');
       return;
     }
 
