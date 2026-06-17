@@ -226,7 +226,7 @@ export const apiFetch = async (url: string, options: ApiFetchOptions = {}) => {
     }
   }
 
-  let response: Response
+  let response: Response | null = null
 
   try {
     response = await fetchWithTimeout(
@@ -253,6 +253,10 @@ export const apiFetch = async (url: string, options: ApiFetchOptions = {}) => {
     }
   }
 
+  if (!response) {
+    throw new Error('No response received from server')
+  }
+
   if (!auth || response.status !== 401) {
     return response
   }
@@ -264,7 +268,7 @@ export const apiFetch = async (url: string, options: ApiFetchOptions = {}) => {
     throw new SessionExpiredError()
   }
 
-  response = await fetchWithTimeout(url, {
+  const refreshedResponse = await fetchWithTimeout(url, {
     ...rest,
     headers: {
       ...finalHeaders,
@@ -272,11 +276,16 @@ export const apiFetch = async (url: string, options: ApiFetchOptions = {}) => {
     },
   }, timeout)
 
-  return response
+  return refreshedResponse
 }
 
 export const apiFetchJson = async <T>(url: string, options: ApiFetchOptions = {}, fallbackError = 'Request failed'): Promise<T> => {
   const response = await apiFetch(url, options)
+  
+  if (!response) {
+    throw new ApiError('No response received from server', 500, 'NO_RESPONSE')
+  }
+
   const data = await parseJsonSafe(response)
 
   if (!response.ok) {
