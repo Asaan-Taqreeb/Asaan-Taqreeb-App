@@ -220,7 +220,7 @@ export default function BookingDetailScreen() {
           </View>
 
           {/* Payment breakdown */}
-          {(booking.status === 'approved' || booking.status === 'confirmed' || booking.status === 'completed') && (
+          {booking.status !== 'rejected' && booking.status !== 'cancelled' && (
             <>
               <View className="h-px bg-gray-100 my-4" />
               <Text className="text-xs font-semibold text-gray-400 mb-3 tracking-wider uppercase">Payment Status</Text>
