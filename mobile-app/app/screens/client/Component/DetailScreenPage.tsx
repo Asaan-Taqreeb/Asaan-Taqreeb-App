@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router'
-import { CircleAlert, Dot, MapPin, Star, Circle, ChevronLeft, ChevronRight, X, ArrowLeft, Plus, MessageCircle, Heart } from 'lucide-react-native'
+import { AlertCircle, Dot, MapPin, Star, Circle, ChevronLeft, ChevronRight, X, ArrowLeft, Plus, MessageCircle, Heart } from 'lucide-react-native'
 import { useState, useEffect } from 'react'
 import { Alert, Dimensions, ScrollView, Modal, TextInput , Image, Pressable, StyleSheet, Text, View, KeyboardAvoidingView, Platform, Linking } from 'react-native'
 import GoogleMapView from '@/app/_components/GoogleMapView'
@@ -359,7 +359,7 @@ export default function DetailScreenPage() {
                         <Text className='text-sm font-bold' style={{color: Colors.rating}}>{vendor.rating}</Text>
                     </View>
                     <View className='flex-row items-center gap-1 px-3 py-2 rounded-lg' style={{backgroundColor: '#dbeafe'}}>
-                        <CircleAlert size={14} color={Colors.info} />
+                        <AlertCircle size={14} color={Colors.info} />
                         <Text className='text-xs font-bold' style={{color: Colors.info}}>50% Refundable</Text>
                     </View>
                 </View>
