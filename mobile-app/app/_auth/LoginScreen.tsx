@@ -38,7 +38,9 @@ const LoginScreen = ({
 
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
-    const [loading, setLoading] = useState(false)
+    const [loginLoading, setLoginLoading] = useState(false)
+    const [restoreLoading, setRestoreLoading] = useState(false)
+    const isAnyLoading = loginLoading || restoreLoading
     const [showPassword, setShowPassword] = useState(false)
 
     const finalizeAuthSession = async (data: any, authenticatedRole: 'client' | 'vendor') => {
@@ -105,7 +107,7 @@ const LoginScreen = ({
             return
         }
 
-        setLoading(true)
+        setLoginLoading(true)
         try {
             await clearAuthTokens()
 
@@ -146,7 +148,7 @@ const LoginScreen = ({
             }
             console.error('Login error:', error)
         } finally {
-            setLoading(false)
+            setLoginLoading(false)
         }
     }
 
@@ -162,7 +164,7 @@ const LoginScreen = ({
             return
         }
 
-        setLoading(true)
+        setRestoreLoading(true)
         try {
             await clearAuthTokens()
             await restoreAccount({
@@ -194,7 +196,7 @@ const LoginScreen = ({
             Alert.alert('Restore Failed', errorMessage)
             console.error('Restore account error:', error)
         } finally {
-            setLoading(false)
+            setRestoreLoading(false)
         }
     }
 
@@ -235,7 +237,7 @@ const LoginScreen = ({
                         inputMode='email'
                         autoCapitalize='none'
                         autoCorrect={false}
-                        editable={!loading}
+                        editable={!isAnyLoading}
                     />
 
                     <TextInput
@@ -251,7 +253,7 @@ const LoginScreen = ({
                         right={<TextInput.Icon icon={showPassword ? "eye-off" : "eye"} onPress={() => setShowPassword(!showPassword)} />}
                         value={password}
                         onChangeText={setPassword}
-                        editable={!loading}
+                        editable={!isAnyLoading}
                     />
 
                     {/* Forgot Password */}
@@ -262,23 +264,23 @@ const LoginScreen = ({
                     {/* Login Button - PROMINENT */}
                     <Pressable
                         onPress={handleLogin}
-                        disabled={loading}
-                        style={{ backgroundColor: loading ? '#9CA3AF' : Colors.primary }}
+                        disabled={isAnyLoading}
+                        style={{ backgroundColor: loginLoading ? '#9CA3AF' : Colors.primary }}
                         className='w-4/5 self-center py-4 rounded-lg'
                     >
                         <Text className='text-center text-white font-semibold text-xl'>
-                            {loading ? 'LOGGING IN...' : 'LOGIN'}
+                            {loginLoading ? 'LOGGING IN...' : 'LOGIN'}
                         </Text>
                     </Pressable>
 
                     <Pressable
                         onPress={handleRestoreAccount}
-                        disabled={loading}
+                        disabled={isAnyLoading}
                         className='w-4/5 self-center py-3 rounded-lg mt-3'
                         style={{ backgroundColor: '#EEF2FF', borderWidth: 1, borderColor: '#C7D2FE' }}
                     >
                         <Text className='text-center font-semibold text-base' style={{ color: Colors.primary }}>
-                            {loading ? 'RESTORING...' : 'RESTORE DELETED ACCOUNT'}
+                            {restoreLoading ? 'RESTORING...' : 'RESTORE DELETED ACCOUNT'}
                         </Text>
                     </Pressable>
                 </View>

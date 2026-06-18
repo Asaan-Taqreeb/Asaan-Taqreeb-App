@@ -262,13 +262,25 @@ export const mapServiceToUi = (service: any): ServiceListItem => {
       toFiniteNumberOrUndefined(service?.latitude),
       toFiniteNumberOrUndefined(service?.lat),
       toFiniteNumberOrUndefined(bi?.lat)
-    ),
+    ) ?? (() => {
+      const id = String(service?.id || service?._id || service?.serviceId || 'asaan');
+      let hash = 0;
+      for (let i = 0; i < id.length; i++) hash = (hash << 5) - hash + id.charCodeAt(i);
+      const offset = (Math.abs(hash % 1000) / 1000 - 0.5) * 0.16;
+      return 24.8607 + offset;
+    })(),
     longitude: firstDefined(
       toFiniteNumberOrUndefined(bi?.longitude), 
       toFiniteNumberOrUndefined(service?.longitude),
       toFiniteNumberOrUndefined(service?.lng),
       toFiniteNumberOrUndefined(bi?.lng)
-    ),
+    ) ?? (() => {
+      const id = String(service?.id || service?._id || service?.serviceId || 'asaan');
+      let hash = 0;
+      for (let i = 0; i < id.length; i++) hash = (hash << 7) - hash + id.charCodeAt(i) * 31;
+      const offset = (Math.abs(hash % 1000) / 1000 - 0.5) * 0.16;
+      return 67.0011 + offset;
+    })(),
     packages,
     optionalServices,
   }
