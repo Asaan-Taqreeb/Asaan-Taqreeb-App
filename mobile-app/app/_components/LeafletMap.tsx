@@ -48,8 +48,8 @@ export default React.forwardRef<LeafletMapMethods, LeafletMapProps>((props, ref)
     <html>
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
         <style>
             body { margin: 0; padding: 0; }
             #map { width: 100vw; height: 100vh; }
@@ -142,7 +142,7 @@ export default React.forwardRef<LeafletMapMethods, LeafletMapProps>((props, ref)
             <WebView
                 ref={webViewRef}
                 originWhitelist={['*']}
-                source={{ html: mapHtml, baseUrl: 'http://localhost' }}
+                source={{ html: mapHtml, baseUrl: 'https://cdnjs.cloudflare.com' }}
                 onMessage={handleMessage}
                 style={styles.map}
                 scrollEnabled={false} // Disable inner scrolling to avoid conflicts
@@ -162,10 +162,14 @@ export default React.forwardRef<LeafletMapMethods, LeafletMapProps>((props, ref)
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        width: '100%',
+        height: '100%',
         overflow: 'hidden',
     },
     map: {
         flex: 1,
+        width: '100%',
+        height: '100%',
     },
     loading: {
         ...StyleSheet.absoluteFillObject,
