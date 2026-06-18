@@ -32,7 +32,7 @@ const VerificationScreen = ({
     const [timer, setTimer] = useState(60)
 
     useEffect(() => {
-        let interval: NodeJS.Timeout
+        let interval: any
         if (timer > 0) {
             interval = setInterval(() => {
                 setTimer((prev) => prev - 1)

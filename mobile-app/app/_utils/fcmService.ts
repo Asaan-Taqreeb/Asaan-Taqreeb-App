@@ -43,7 +43,7 @@ if (!isExpoGo) {
       shouldShowAlert: true,
       shouldPlaySound: true,
       shouldSetBadge: true,
-    }),
+    } as any),
   });
 }
 
@@ -87,13 +87,13 @@ export async function getFCMToken() {
 }
 
 // Listen to FCM token refresh (called when token changes)
-export function onFCMTokenRefresh(callback) {
+export function onFCMTokenRefresh(callback: any) {
   if (Platform.OS !== 'android' || isExpoGo) {
     return () => {};
   }
 
   try {
-    const unsubscribe = messaging().onTokenRefresh(token => {
+    const unsubscribe = messaging().onTokenRefresh((token: any) => {
       console.log('🔄 FCM Token refreshed:', token);
       callback(token);
     });
@@ -112,7 +112,7 @@ export function setupFCMForegroundHandler() {
   }
 
   try {
-    const unsubscribe = messaging().onMessage(async remoteMessage => {
+    const unsubscribe = messaging().onMessage(async (remoteMessage: any) => {
       console.log('🔔 FCM Message received (foreground):', remoteMessage);
 
       // Show local notification
@@ -122,7 +122,7 @@ export function setupFCMForegroundHandler() {
           body: remoteMessage.notification?.body || '',
           data: remoteMessage.data || {},
         },
-        trigger: { seconds: 1 },
+        trigger: { seconds: 1 } as any,
       });
     });
 
@@ -140,7 +140,7 @@ export function setupFCMBackgroundHandler() {
   }
 
   try {
-    messaging().setBackgroundMessageHandler(async remoteMessage => {
+    messaging().setBackgroundMessageHandler(async (remoteMessage: any) => {
       console.log('🔔 FCM Message received (background):', remoteMessage);
       // Message handling is done by Firebase automatically
       // This callback is for custom processing
@@ -153,13 +153,13 @@ export function setupFCMBackgroundHandler() {
 }
 
 // Handle notification press (when user taps notification)
-export function setupFCMNotificationHandler(onNotificationPress) {
+export function setupFCMNotificationHandler(onNotificationPress: any) {
   if (Platform.OS !== 'android' || isExpoGo) {
     return () => {};
   }
 
   try {
-    const unsubscribe = messaging().onNotificationOpenedApp(remoteMessage => {
+    const unsubscribe = messaging().onNotificationOpenedApp((remoteMessage: any) => {
       console.log('📱 Notification opened from background:', remoteMessage);
       onNotificationPress?.(remoteMessage);
     });
@@ -167,7 +167,7 @@ export function setupFCMNotificationHandler(onNotificationPress) {
     // Check if app was opened from a notification when it was completely closed
     messaging()
       .getInitialNotification()
-      .then(remoteMessage => {
+      .then((remoteMessage: any) => {
         if (remoteMessage) {
           console.log('📱 Notification opened from quit state:', remoteMessage);
           onNotificationPress?.(remoteMessage);
@@ -183,7 +183,7 @@ export function setupFCMNotificationHandler(onNotificationPress) {
 
 // Define the background task for handling notifications when the app is closed
 if (!isExpoGo) {
-  TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, ({ data, error, executionContext }) => {
+  TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async ({ data, error }: any) => {
     if (error) {
       console.error('Background notification task error:', error);
       return;
@@ -300,7 +300,7 @@ export async function registerForPushNotificationsAsync() {
 /**
  * Handle notification clicks and routing
  */
-export function handleNotificationResponse(response, router, userRole) {
+export function handleNotificationResponse(response: any, router: any, userRole: any) {
   const data = response.notification.request.content.data;
 
   console.log('Notification Response received:', data, 'User Role:', userRole);

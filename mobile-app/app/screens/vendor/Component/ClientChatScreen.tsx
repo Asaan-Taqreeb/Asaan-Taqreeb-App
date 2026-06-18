@@ -1,13 +1,14 @@
 import { useRouter, useLocalSearchParams } from 'expo-router'
-import { ArrowLeft, Send } from 'lucide-react-native'
+import { ArrowLeft, Send, Paperclip } from 'lucide-react-native'
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, Alert, ViewStyle, Image } from 'react-native'
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, Alert, ViewStyle, Image, ActivityIndicator } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors } from '@/app/_constants/theme'
 import { getChatHistory, sendMessage, markChatAsRead, Message } from '@/app/_utils/messagesApi'
 import { useSocket } from '@/app/_context/SocketContext'
 import { useUser } from '@/app/_context/UserContext'
 import ImageViewerModal from '@/app/_components/ImageViewerModal'
+import * as ImagePicker from 'expo-image-picker'
 
 export default function ClientChatScreen() {
     const insets = useSafeAreaInsets()
@@ -20,6 +21,16 @@ export default function ClientChatScreen() {
     const [viewerVisible, setViewerVisible] = useState(false)
     const [viewerImages, setViewerImages] = useState<string[]>([])
     const [viewerIndex, setViewerIndex] = useState(0)
+    const [isUploadingImage, setIsUploadingImage] = useState(false)
+    const [isOpponentTyping, setIsOpponentTyping] = useState(false)
+    const typingTimeoutRef = useRef<any>(null)
+    const isTypingRef = useRef(false)
+
+    useEffect(() => {
+        ImagePicker.requestMediaLibraryPermissionsAsync().catch((error) => {
+            console.warn('Failed to prefetch media library permission:', error)
+        })
+    }, [])
 
     // Params will include the client's info
     const clientId = params.clientId as string
@@ -71,9 +82,16 @@ export default function ClientChatScreen() {
             markChatAsRead(chatId)
         })
 
+        socket.on('typing', ({ userId, isTyping }) => {
+            if (userId !== user?.id) {
+                setIsOpponentTyping(isTyping)
+            }
+        })
+
         return () => {
             socket.emit('leaveChat', chatId)
             socket.off('receiveMessage')
+            socket.off('typing')
         }
     }, [socket, chatId, user])
 
@@ -83,10 +101,110 @@ export default function ClientChatScreen() {
         }
     }, [messages, isLoading])
 
+    const handleTextChange = (text: string) => {
+        setMessage(text)
+
+        if (!socket || !chatId) return
+
+        if (!isTypingRef.current) {
+            isTypingRef.current = true
+            socket.emit('typing', { bookingId: chatId, isTyping: true })
+        }
+
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+
+        typingTimeoutRef.current = setTimeout(() => {
+            isTypingRef.current = false
+            socket.emit('typing', { bookingId: chatId, isTyping: false })
+        }, 2000)
+    }
+
+    const sendImageProof = useCallback(async () => {
+        if (!clientId || !chatId || isUploadingImage) return
+
+        try {
+            const permission = await ImagePicker.getMediaLibraryPermissionsAsync()
+            const activePermission = permission.granted ? permission : await ImagePicker.requestMediaLibraryPermissionsAsync()
+            if (!activePermission.granted) {
+                Alert.alert('Permission Required', 'Please allow gallery access to attach images.')
+                return
+            }
+
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                quality: 0.85,
+                allowsEditing: false,
+            })
+
+            if (result.canceled) {
+                console.log('Image picker cancelled by user')
+                return
+            }
+
+            if (!result.assets || result.assets.length === 0) {
+                Alert.alert('No Image Selected', 'Please select an image to send.')
+                return
+            }
+
+            const asset = result.assets[0]
+            if (!asset || !asset.uri) {
+                console.error('Invalid asset:', asset)
+                Alert.alert('Invalid Image', 'Could not read the selected image. Please try again.')
+                return
+            }
+
+            const textToSend = message.trim() || 'Attached image'
+            const optimisticId = Date.now().toString()
+
+            const optimisticMessage: Message = {
+                _id: optimisticId,
+                chatId,
+                senderId: { _id: user?.id as string, name: user?.name as string, email: '' },
+                receiverId: { _id: clientId, name: clientName, email: '' },
+                text: textToSend,
+                imageUrl: asset.uri,
+                isSending: true,
+                isRead: false,
+                createdAt: new Date().toISOString()
+            }
+            
+            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+            isTypingRef.current = false
+            if (socket) {
+                socket.emit('typing', { bookingId: chatId, isTyping: false })
+            }
+
+            setIsUploadingImage(true)
+            setMessages(prev => [...prev, optimisticMessage])
+            setMessage('')
+
+            const savedMessage = normalizeMessage(await sendMessage(chatId, clientId, textToSend, undefined, undefined, asset.uri))
+            
+            setMessages(prev => {
+                if (prev.some(m => m._id === savedMessage._id)) {
+                    return prev.filter(m => m._id !== optimisticId)
+                }
+                return prev.map(m => m._id === optimisticId ? { ...savedMessage, isSending: false } : m)
+            })
+            setIsUploadingImage(false)
+        } catch (error: any) {
+            console.error('Failed to send image:', error)
+            setMessages(prev => prev.filter(m => !m.isSending))
+            Alert.alert('Upload Error', 'Could not upload the image. Please try again.')
+            setIsUploadingImage(false)
+        }
+    }, [chatId, isUploadingImage, message, clientId, clientName, user?.id, user?.name, socket, normalizeMessage])
+
     const handleSend = async () => {
         if (message.trim() && clientId && chatId) {
             const textToSend = message.trim()
             setMessage('')
+
+            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+            isTypingRef.current = false
+            if (socket) {
+                socket.emit('typing', { bookingId: chatId, isTyping: false })
+            }
             
             // Optimistic update
             const optimisticMessage: Message = {
@@ -129,22 +247,33 @@ export default function ClientChatScreen() {
             }}
         >
             {msg.imageUrl ? (
-                <Pressable
-                    onPress={() => {
-                        const imageOnlyMessages = messages.filter((item) => Boolean(item.imageUrl))
-                        const images = imageOnlyMessages.map((item) => item.imageUrl as string)
-                        const currentIndex = Math.max(0, images.findIndex((uri) => uri === msg.imageUrl))
-                        setViewerImages(images)
-                        setViewerIndex(currentIndex)
-                        setViewerVisible(true)
-                    }}
-                >
-                    <Image
-                        source={{ uri: msg.imageUrl }}
-                        style={{ width: 220, height: 220, borderRadius: 16, marginBottom: msg.text ? 10 : 0 }}
-                        resizeMode='cover'
-                    />
-                </Pressable>
+                <View style={{ marginBottom: msg.text ? 10 : 0 }}>
+                    <Pressable
+                        onPress={() => {
+                            const imageOnlyMessages = messages.filter((item) => Boolean(item.imageUrl))
+                            const images = imageOnlyMessages.map((item) => item.imageUrl as string)
+                            const currentIndex = Math.max(0, images.findIndex((uri) => uri === msg.imageUrl))
+                            setViewerImages(images)
+                            setViewerIndex(currentIndex)
+                            setViewerVisible(true)
+                        }}
+                    >
+                        <Image
+                            source={{ uri: msg.imageUrl }}
+                            style={{ width: 220, height: 220, borderRadius: 16, opacity: msg.isSending ? 0.7 : 1 }}
+                            resizeMode='cover'
+                        />
+                    </Pressable>
+                    {msg.isSending ? (
+                        <View
+                            className='absolute inset-0 items-center justify-center rounded-2xl'
+                            style={{ backgroundColor: 'rgba(15, 23, 42, 0.35)' }}
+                        >
+                            <ActivityIndicator size='small' color={Colors.white} />
+                            <Text className='text-xs font-semibold mt-2' style={{ color: Colors.white }}>Sending...</Text>
+                        </View>
+                    ) : null}
+                </View>
             ) : null}
             {msg.text ? (
                 <Text
@@ -211,28 +340,53 @@ export default function ClientChatScreen() {
                     </View>
                     )
                 })}
+                {isOpponentTyping && (
+                    <View className='items-start mb-3'>
+                        <View
+                            className='px-4 py-3 rounded-2xl bg-white border border-gray-100 flex-row items-center gap-2'
+                            style={{ borderBottomLeftRadius: 4, borderColor: Colors.border }}
+                        >
+                            <ActivityIndicator size="small" color={Colors.primary} />
+                            <Text className="text-xs font-bold text-slate-400 uppercase tracking-widest">{clientName} is typing...</Text>
+                        </View>
+                    </View>
+                )}
             </ScrollView>
 
             {/* Message Input */}
             <View className='px-5 py-4' style={{borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.white}}>
-                <View className='flex-row items-center gap-3'>
+                {isUploadingImage && (
+                    <View className='mb-3 flex-row items-center gap-2 px-3 py-2 rounded-lg' style={{backgroundColor: Colors.lightGray}}>
+                        <ActivityIndicator size='small' color={Colors.primary} />
+                        <Text className='text-xs font-medium flex-1' style={{color: Colors.textSecondary}}>Uploading image...</Text>
+                    </View>
+                )}
+                <View className='flex-row items-center gap-2'>
+                    <Pressable
+                        className='w-12 h-12 rounded-full items-center justify-center active:opacity-75'
+                        style={{backgroundColor: Colors.lightGray}}
+                        onPress={sendImageProof}
+                        disabled={isUploadingImage}
+                    >
+                        <Paperclip color={Colors.primary} size={22} />
+                    </Pressable>
                     <TextInput
                         value={message}
-                        onChangeText={setMessage}
+                        onChangeText={handleTextChange}
                         placeholder='Type a message...'
                         placeholderTextColor={Colors.textTertiary}
-                        className='flex-1 rounded-full px-5 py-3 text-base'
+                        className='flex-1 rounded-2xl px-4 py-3 text-base'
                         style={{backgroundColor: Colors.lightGray, color: Colors.textPrimary}}
                         multiline
                         maxLength={500}
                     />
                     <Pressable
-                        className='rounded-full p-3 active:opacity-80'
+                        className='w-12 h-12 rounded-full items-center justify-center active:opacity-80'
                         style={{backgroundColor: message.trim() ? Colors.primary : Colors.borderDark}}
                         onPress={handleSend}
                         disabled={!message.trim()}
                     >
-                        <Send color={Colors.white} size={24} fill={Colors.white} />
+                        <Send color={Colors.white} size={22} fill={Colors.white} />
                     </Pressable>
                 </View>
             </View>

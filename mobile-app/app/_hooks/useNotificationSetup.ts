@@ -50,7 +50,7 @@ export function useNotificationSetup() {
 
         // Send tokens to backend only when authenticated
         if (user?.id && (expoToken || fcmToken)) {
-          await updatePushTokens(expoToken, fcmToken);
+          await updatePushTokens(expoToken || undefined, fcmToken || undefined);
         } else if (!user?.id) {
           console.log('Skipping token update: user not authenticated yet');
         }
@@ -61,7 +61,7 @@ export function useNotificationSetup() {
           setupFCMBackgroundHandler();
 
           const unsubscribeForeground = setupFCMForegroundHandler();
-          const unsubscribeTokenRefresh = onFCMTokenRefresh(async newToken => {
+          const unsubscribeTokenRefresh = onFCMTokenRefresh(async (newToken: string) => {
             console.log('FCM token refreshed, updating backend...');
             if (user?.id) {
               await updatePushTokens(undefined, newToken);
@@ -69,7 +69,7 @@ export function useNotificationSetup() {
           });
 
           const unsubscribeNotificationPress = setupFCMNotificationHandler(
-            remoteMessage => {
+            (remoteMessage: any) => {
               handleNotificationResponse(
                 {
                   notification: {
@@ -135,7 +135,7 @@ export function useFCMTokenRefresh() {
   useEffect(() => {
     if (Platform.OS !== 'android') return;
 
-    const unsubscribe = onFCMTokenRefresh(async newToken => {
+    const unsubscribe = onFCMTokenRefresh(async (newToken: string) => {
       console.log('Updating FCM token:', newToken);
       await updatePushTokens(undefined, newToken);
     });

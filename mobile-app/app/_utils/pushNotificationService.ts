@@ -7,7 +7,7 @@ import * as TaskManager from 'expo-task-manager';
 const BACKGROUND_NOTIFICATION_TASK = 'BACKGROUND_NOTIFICATION_TASK';
 
 // Define the background task for handling notifications when the app is closed
-TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, ({ data, error, executionContext }) => {
+TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async ({ data, error }: any) => {
   if (error) {
     console.error('Background notification task error:', error);
     return;
@@ -21,7 +21,7 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
-  }),
+  } as any),
 });
 
 /**

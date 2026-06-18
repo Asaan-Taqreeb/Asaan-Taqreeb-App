@@ -22,6 +22,9 @@ export default function VendorChatScreen() {
     const [viewerVisible, setViewerVisible] = useState(false)
     const [viewerImages, setViewerImages] = useState<string[]>([])
     const [viewerIndex, setViewerIndex] = useState(0)
+    const [isOpponentTyping, setIsOpponentTyping] = useState(false)
+    const typingTimeoutRef = useRef<any>(null)
+    const isTypingRef = useRef(false)
 
     let vendor = null
     if (params.vendor) {
@@ -110,9 +113,16 @@ export default function VendorChatScreen() {
             markChatAsRead(chatId)
         })
 
+        socket.on('typing', ({ userId, isTyping }) => {
+            if (userId !== user?.id) {
+                setIsOpponentTyping(isTyping)
+            }
+        })
+
         return () => {
             socket.emit('leaveChat', chatId)
             socket.off('receiveMessage')
+            socket.off('typing')
         }
     }, [socket, chatId, user, isGuest])
 
@@ -122,11 +132,35 @@ export default function VendorChatScreen() {
         }
     }, [messages, isLoading])
 
+    const handleTextChange = (text: string) => {
+        setMessage(text)
+
+        if (!socket || !chatId || isGuest) return
+
+        if (!isTypingRef.current) {
+            isTypingRef.current = true
+            socket.emit('typing', { bookingId: chatId, isTyping: true })
+        }
+
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+
+        typingTimeoutRef.current = setTimeout(() => {
+            isTypingRef.current = false
+            socket.emit('typing', { bookingId: chatId, isTyping: false })
+        }, 2000)
+    }
+
     const handleSend = async () => {
         if (message.trim() && targetUserId) {
             const textToSend = message.trim()
             setMessage('')
             
+            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+            isTypingRef.current = false
+            if (socket && chatId && !isGuest) {
+                socket.emit('typing', { bookingId: chatId, isTyping: false })
+            }
+
             // Optimistic update
             const optimisticMessage: Message = {
                 _id: Date.now().toString(),
@@ -365,6 +399,17 @@ export default function VendorChatScreen() {
                     </View>
                     )
                 })}
+                {isOpponentTyping && (
+                    <View className='items-start mb-3'>
+                        <View
+                            className='px-4 py-3 rounded-2xl bg-white border border-gray-100 flex-row items-center gap-2'
+                            style={{ borderBottomLeftRadius: 4, borderColor: Colors.border }}
+                        >
+                            <ActivityIndicator size="small" color={categoryColor} />
+                            <Text className="text-xs font-bold text-slate-400 uppercase tracking-widest">{vendorName} is typing...</Text>
+                        </View>
+                    </View>
+                )}
             </ScrollView>
 
             {/* Message Input */}
@@ -386,7 +431,7 @@ export default function VendorChatScreen() {
                     </Pressable>
                     <TextInput
                         value={message}
-                        onChangeText={setMessage}
+                        onChangeText={handleTextChange}
                         placeholder='Add a note...'
                         placeholderTextColor={Colors.textTertiary}
                         className='flex-1 rounded-2xl px-4 py-3 text-base'

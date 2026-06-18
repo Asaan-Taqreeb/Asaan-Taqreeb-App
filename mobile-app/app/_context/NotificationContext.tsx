@@ -7,7 +7,7 @@ export const useNotifications = (enabled: boolean = true) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollIntervalRef = useRef<any>(null);
 
   const fetchNotifications = async () => {
     try {
@@ -79,7 +79,7 @@ export const useNotifications = (enabled: boolean = true) => {
  */
 export const useUnreadNotificationCount = (enabled: boolean = true) => {
   const [unreadCount, setUnreadCount] = useState(0);
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollIntervalRef = useRef<any>(null);
 
   useEffect(() => {
     if (!enabled) return;
@@ -114,7 +114,7 @@ export const useUnreadNotificationCount = (enabled: boolean = true) => {
  */
 export const useUnreadMessageCount = (enabled: boolean = true) => {
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollIntervalRef = useRef<any>(null);
 
   const fetchCount = async () => {
     try {
