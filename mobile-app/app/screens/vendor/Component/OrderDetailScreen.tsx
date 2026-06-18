@@ -239,7 +239,9 @@ export default function OrderDetailScreen() {
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: orderStatus === 'pending' ? 220 : 120 }}
+        contentContainerStyle={{ 
+          paddingBottom: orderStatus === 'pending' ? 260 : orderStatus === 'accepted' ? 190 : 120 
+        }}
       >
         {/* Status Banner */}
         <View

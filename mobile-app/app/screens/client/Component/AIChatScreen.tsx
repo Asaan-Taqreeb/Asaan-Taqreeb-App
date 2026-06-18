@@ -241,10 +241,11 @@ export default function AIChatScreen() {
 
     return (
         <KeyboardAvoidingView
-            style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}
+            style={{ flex: 1 }}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             keyboardVerticalOffset={0}
         >
+            <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: Colors.background }}>
             {/* Header */}
             <View className='flex-row items-center gap-4 px-6 py-4' style={{borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.white}}>
                 <Pressable
@@ -282,6 +283,7 @@ export default function AIChatScreen() {
                 contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 24 }}
                 showsVerticalScrollIndicator={false}
                 onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+                onLayout={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
             >
                 {messages.map((msg) => (
                     <View
@@ -355,6 +357,7 @@ export default function AIChatScreen() {
                 <Text className="text-[10px] text-center mt-3 font-semibold text-slate-400">
                     Always confirm rates and availability directly with vendors.
                 </Text>
+            </View>
             </View>
         </KeyboardAvoidingView>
     )

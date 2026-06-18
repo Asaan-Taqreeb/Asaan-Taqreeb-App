@@ -14,7 +14,8 @@
         "NSLocationWhenInUseUsageDescription": "Allow Asaan Taqreeb to access your location while you use the app to find nearby vendors.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow Asaan Taqreeb to access your location even when the app is in the background for real-time order tracking."
       },
-      "bundleIdentifier": "com.asaantaqreeb"
+      "bundleIdentifier": "com.asaantaqreeb",
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "permissions": [
@@ -39,6 +40,8 @@
     "plugins": [
       "expo-router",
       "expo-notifications",
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging",
       [
         "expo-splash-screen",
         {
@@ -62,6 +65,9 @@
         {
           "android": {
             "minSdkVersion": 26
+          },
+          "ios": {
+            "useFrameworks": "static"
           }
         }
       ]

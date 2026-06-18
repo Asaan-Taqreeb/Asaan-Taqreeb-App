@@ -169,10 +169,11 @@ export default function ClientChatScreen() {
 
     return (
         <KeyboardAvoidingView
-            style={StyleSheet.flatten([styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]) as ViewStyle}
+            style={{ flex: 1 }}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             keyboardVerticalOffset={0}
         >
+            <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: Colors.background }}>
             {/* Header */}
             <View className='flex-row items-center gap-4 px-5 py-4' style={{borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.white}}>
                 <Pressable
@@ -194,6 +195,7 @@ export default function ClientChatScreen() {
                 className='flex-1 px-5 py-4'
                 showsVerticalScrollIndicator={false}
                 onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+                onLayout={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
             >
                 {messages.map((msg) => {
                     const isUser = msg.senderId._id === user?.id
@@ -241,6 +243,7 @@ export default function ClientChatScreen() {
                 index={viewerIndex}
                 onRequestClose={() => setViewerVisible(false)}
             />
+            </View>
         </KeyboardAvoidingView>
     )
 }
