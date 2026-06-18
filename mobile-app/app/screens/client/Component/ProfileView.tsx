@@ -170,7 +170,7 @@ export default function ProfileView() {
                     <Pressable 
                         className='px-5 flex-row items-center rounded-2xl gap-4 active:opacity-80 py-4' 
                         style={styles.menuItem}
-                        onPress={() => Alert.alert('Help Center', 'Our support team is available 24/7 at support@asaantaqreeb.com or call +92 300 1234567')}
+                        onPress={() => Alert.alert('Help Center', 'Our support team is available 24/7 at asaantaqreebhelpline@outlook.com')}
                     >
                         <View className='p-2.5 rounded-xl' style={{backgroundColor: Colors.lightGray}}>
                             <CircleQuestionMark size={20} color={Colors.textSecondary} />

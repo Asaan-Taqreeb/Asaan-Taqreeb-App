@@ -300,7 +300,7 @@ export default function BookingDetailScreen() {
         {/* Support Link */}
         <TouchableOpacity 
           className="mx-5 mt-8 p-4 bg-gray-50 rounded-2xl items-center"
-          onPress={() => Alert.alert('Help', 'Contact us at support@asaantaqreeb.com')}
+          onPress={() => Alert.alert('Help', 'Contact us at asaantaqreebhelpline@outlook.com')}
         >
           <Text className="text-xs font-bold text-gray-400">HAVE AN ISSUE WITH THIS BOOKING?</Text>
         </TouchableOpacity>

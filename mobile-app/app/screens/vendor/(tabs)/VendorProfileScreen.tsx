@@ -206,7 +206,7 @@ export default function VendorProfileScreen() {
             title="Partner Support"
             subtitle="Get help with your bookings"
             onPress={() => {
-              Alert.alert('Help & Support', 'Contact us at support@asaantaqreeb.com or call +92-300-1234567')
+              Alert.alert('Help & Support', 'Contact us at asaantaqreebhelpline@outlook.com')
             }}
           />
         </View>
