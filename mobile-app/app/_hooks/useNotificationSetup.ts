@@ -23,15 +23,14 @@ export function useNotificationSetup() {
   const { user, loading } = useUser();
   const unsubscribesRef = useRef<(() => void)[]>([]);
   const initializationStartedRef = useRef(false);
-  const isExpoGoAndroid =
-    Platform.OS === 'android' &&
-    (Constants.executionEnvironment === 'storeClient' || Constants.appOwnership === 'expo');
+  const isExpoGo =
+    Constants.executionEnvironment === 'storeClient' || Constants.appOwnership === 'expo';
 
   useEffect(() => {
     if (loading || !user?.id || initializationStartedRef.current) return;
 
-    if (isExpoGoAndroid) {
-      console.log('Skipping push notification setup in Expo Go on Android');
+    if (isExpoGo) {
+      console.log('Skipping push notification setup in Expo Go');
       initializationStartedRef.current = true;
       return;
     }
