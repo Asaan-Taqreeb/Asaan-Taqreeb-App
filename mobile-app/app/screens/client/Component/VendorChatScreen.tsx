@@ -1,7 +1,7 @@
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { ArrowLeft, Send, Paperclip } from 'lucide-react-native'
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, Alert, ViewStyle, Image, ActivityIndicator } from 'react-native'
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, Alert, ViewStyle, Image, ActivityIndicator, Keyboard } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors, getCategoryColor } from '@/app/_constants/theme'
 import { getChatHistory, sendMessage, markChatAsRead, Message } from '@/app/_utils/messagesApi'
@@ -131,6 +131,17 @@ export default function VendorChatScreen() {
             scrollViewRef.current?.scrollToEnd({ animated: true })
         }
     }, [messages, isLoading])
+
+    useEffect(() => {
+        const showSubscription = Keyboard.addListener('keyboardDidShow', () => {
+            setTimeout(() => {
+                scrollViewRef.current?.scrollToEnd({ animated: true })
+            }, 100)
+        })
+        return () => {
+            showSubscription.remove()
+        }
+    }, [])
 
     const handleTextChange = (text: string) => {
         setMessage(text)
@@ -382,8 +393,16 @@ export default function VendorChatScreen() {
                 ref={scrollViewRef}
                 className='flex-1 px-5 py-4'
                 showsVerticalScrollIndicator={false}
-                onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
-                onLayout={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+                onContentSizeChange={() => {
+                    setTimeout(() => {
+                        scrollViewRef.current?.scrollToEnd({ animated: true })
+                    }, 50)
+                }}
+                onLayout={() => {
+                    setTimeout(() => {
+                        scrollViewRef.current?.scrollToEnd({ animated: true })
+                    }, 50)
+                }}
             >
                 {messages.map((msg) => {
                     const isUser = msg.senderId._id === user?.id

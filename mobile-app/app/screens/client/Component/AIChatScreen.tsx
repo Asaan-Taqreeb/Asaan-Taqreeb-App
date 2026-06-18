@@ -1,7 +1,7 @@
 import { router } from 'expo-router'
 import { ArrowLeft, Send, Sparkles, Trash2, MessageSquare } from 'lucide-react-native'
 import { useState, useRef, useEffect } from 'react'
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native'
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Keyboard } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors } from '@/app/_constants/theme'
 import { getChatById, addMessageToChat, Message, deleteChat } from '@/app/_utils/chatStorage'
@@ -104,6 +104,17 @@ export default function AIChatScreen() {
             scrollViewRef.current?.scrollToEnd({ animated: true })
         }
     }, [messages, isLoading])
+
+    useEffect(() => {
+        const showSubscription = Keyboard.addListener('keyboardDidShow', () => {
+            setTimeout(() => {
+                scrollViewRef.current?.scrollToEnd({ animated: true })
+            }, 100)
+        })
+        return () => {
+            showSubscription.remove()
+        }
+    }, [])
 
     const handleSend = async () => {
         if (message.trim() && !isTyping) {
@@ -282,8 +293,16 @@ export default function AIChatScreen() {
                 className='flex-1'
                 contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 24 }}
                 showsVerticalScrollIndicator={false}
-                onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
-                onLayout={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+                onContentSizeChange={() => {
+                    setTimeout(() => {
+                        scrollViewRef.current?.scrollToEnd({ animated: true })
+                    }, 50)
+                }}
+                onLayout={() => {
+                    setTimeout(() => {
+                        scrollViewRef.current?.scrollToEnd({ animated: true })
+                    }, 50)
+                }}
             >
                 {messages.map((msg) => (
                     <View
