@@ -155,16 +155,6 @@ export default function ProfileView() {
                         <Text className='text-base font-semibold flex-1' style={{color: Colors.textPrimary}}>My Bookings</Text>
                     </Pressable>
 
-                    <Pressable 
-                        className='px-5 flex-row items-center rounded-2xl gap-4 active:opacity-80 py-4' 
-                        style={styles.menuItem}
-                    >
-                        <View className='p-2.5 rounded-xl' style={{backgroundColor: Colors.successLight}}>
-                            <CreditCard size={20} color={Colors.success} />
-                        </View>
-                        <Text className='text-base font-semibold flex-1' style={{color: Colors.textPrimary}}>Payment Methods</Text>
-                    </Pressable>
-
                     <Text className='text-xs font-bold mt-4 mb-1 px-1' style={{color: Colors.textTertiary}}>SUPPORT & LEGAL</Text>
 
                     <Pressable 
