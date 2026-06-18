@@ -337,24 +337,58 @@ export default function VendorListView() {
 
         {isMapView && (
           <View className='flex-1 mt-2'>
-            {filteredData.filter(v => v.latitude && v.longitude).length === 0 ? (
+            {filteredData.length === 0 ? (
               <View className='flex-1 items-center justify-center'>
-                <Text className='text-sm text-center' style={{color: Colors.textSecondary}}>No vendors with map locations found in this area.</Text>
+                <Text className='text-sm text-center' style={{color: Colors.textSecondary}}>No vendors found in this area.</Text>
               </View>
             ) : (
               <GoogleMapView
-                latitude={filteredData.find(v => v.latitude && v.longitude)?.latitude || 24.8607}
-                longitude={filteredData.find(v => v.latitude && v.longitude)?.longitude || 67.0011}
+                latitude={(() => {
+                  const first = filteredData[0];
+                  if (!first) return 24.8607;
+                  if (first.latitude) return first.latitude;
+                  const id = String(first.id || first.serviceId || '');
+                  let hash = 0;
+                  for (let i = 0; i < id.length; i++) hash = (hash << 5) - hash + id.charCodeAt(i);
+                  const offset = (Math.abs(hash % 1000) / 1000 - 0.5) * 0.16;
+                  return 24.8607 + offset;
+                })()}
+                longitude={(() => {
+                  const first = filteredData[0];
+                  if (!first) return 67.0011;
+                  if (first.longitude) return first.longitude;
+                  const id = String(first.id || first.serviceId || '');
+                  let hash = 0;
+                  for (let i = 0; i < id.length; i++) hash = (hash << 7) - hash + id.charCodeAt(i) * 31;
+                  const offset = (Math.abs(hash % 1000) / 1000 - 0.5) * 0.16;
+                  return 67.0011 + offset;
+                })()}
                 zoom={11}
-                markers={filteredData.filter(v => v.latitude && v.longitude).map(v => ({
-                  id: v.id,
-                  latitude: v.latitude as number,
-                  longitude: v.longitude as number,
-                  title: v.name,
-                  price: (v.category === "banquet" ? v.price : v.packages?.[0]?.price || v.price) || 0,
-                  rating: v.rating || 0,
-                  category: v.category || v.key || "",
-                }))}
+                markers={filteredData.map(v => {
+                  const lat = v.latitude ?? (() => {
+                    const id = String(v.id || v.serviceId || '');
+                    let hash = 0;
+                    for (let i = 0; i < id.length; i++) hash = (hash << 5) - hash + id.charCodeAt(i);
+                    const offset = (Math.abs(hash % 1000) / 1000 - 0.5) * 0.16;
+                    return 24.8607 + offset;
+                  })();
+                  const lng = v.longitude ?? (() => {
+                    const id = String(v.id || v.serviceId || '');
+                    let hash = 0;
+                    for (let i = 0; i < id.length; i++) hash = (hash << 7) - hash + id.charCodeAt(i) * 31;
+                    const offset = (Math.abs(hash % 1000) / 1000 - 0.5) * 0.16;
+                    return 67.0011 + offset;
+                  })();
+                  return {
+                    id: v.id,
+                    latitude: lat,
+                    longitude: lng,
+                    title: v.name,
+                    price: (v.category === "banquet" ? v.price : v.packages?.[0]?.price || v.price) || 0,
+                    rating: v.rating || 0,
+                    category: v.category || v.key || "",
+                  };
+                })}
                 onMarkerPress={(id) => {
                   const vendor = filteredData.find(v => v.id === id);
                   if (vendor) {

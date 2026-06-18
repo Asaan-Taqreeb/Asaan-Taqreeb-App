@@ -99,6 +99,9 @@ export default React.forwardRef<LeafletMapMethods, LeafletMapProps>((props, ref)
             });
 
             // Signal that map is ready
+            setTimeout(function() {
+                map.invalidateSize();
+            }, 500);
             window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'ON_READY' }));
         </script>
     </body>
@@ -139,7 +142,7 @@ export default React.forwardRef<LeafletMapMethods, LeafletMapProps>((props, ref)
             <WebView
                 ref={webViewRef}
                 originWhitelist={['*']}
-                source={{ html: mapHtml }}
+                source={{ html: mapHtml, baseUrl: 'http://localhost' }}
                 onMessage={handleMessage}
                 style={styles.map}
                 scrollEnabled={false} // Disable inner scrolling to avoid conflicts
