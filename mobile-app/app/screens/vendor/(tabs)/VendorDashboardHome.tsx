@@ -13,6 +13,7 @@ import { useUser } from '@/app/_context/UserContext';
 import { useLanguage } from '@/app/_context/LanguageContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import VendorHeader from '../Component/VendorHeader';
+import { getVendorReviews } from '@/app/_utils/reviewsApi';
 
 export default function VendorDashboardHome() {
   const router = useRouter();
@@ -30,33 +31,70 @@ export default function VendorDashboardHome() {
       const data = await getVendorBookings()
       setOrders(data)
       
-      // Load ratings to simulate real-time feedback
-      const savedRatings = await AsyncStorage.getItem('client_rated_bookings');
-      if (savedRatings) {
-        const ratings = JSON.parse(savedRatings);
-        const ratingArray = Object.values(ratings);
-        if (ratingArray.length > 0) {
-          const sum = ratingArray.reduce((acc: number, curr: any) => acc + curr.rating, 0);
-          setAvgRating(Number((sum / ratingArray.length).toFixed(1)));
-          setRecentReviews(ratingArray.slice(-3).reverse());
-
-          // Calculate distribution
-          const dist = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-          ratingArray.forEach((r: any) => {
-            const rounded = Math.round(r.rating);
-            if (rounded >= 1 && rounded <= 5) {
-              dist[rounded as 1|2|3|4|5] += 1;
-            }
-          });
-          setRatingDistribution(dist);
-        }
+      const vendorId = user?.id || user?._id;
+      let apiReviews: any[] = [];
+      if (vendorId) {
+        apiReviews = await getVendorReviews(vendorId);
       }
-    } catch {
+
+      const savedRatings = await AsyncStorage.getItem('client_rated_bookings');
+      const localRatings = savedRatings ? JSON.parse(savedRatings) : {};
+      const localRatingArray = Object.values(localRatings);
+
+      // Merge reviews (de-duplicate by booking ID or client ID/comment if needed)
+      const allRatings: { rating: number; comment?: string; booking?: string; createdAt?: string }[] = [];
+
+      apiReviews.forEach((r: any) => {
+        allRatings.push({ 
+          rating: Number(r.rating), 
+          comment: r.comment, 
+          booking: String(r.booking || ''),
+          createdAt: r.createdAt 
+        });
+      });
+
+      const apiBookingIds = new Set(apiReviews.map((r: any) => String(r.booking || '')));
+      localRatingArray.forEach((lr: any) => {
+        if (lr.bookingId && !apiBookingIds.has(String(lr.bookingId))) {
+          allRatings.push({ 
+            rating: Number(lr.rating), 
+            comment: lr.comment, 
+            booking: String(lr.bookingId),
+            createdAt: new Date().toISOString()
+          });
+        }
+      });
+
+      if (allRatings.length > 0) {
+        const sum = allRatings.reduce((acc: number, curr: any) => acc + curr.rating, 0);
+        setAvgRating(Number((sum / allRatings.length).toFixed(1)));
+        
+        // Sort by date or just take the last 3 for recent reviews
+        const sortedReviews = [...allRatings].sort((a, b) => {
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        });
+        setRecentReviews(sortedReviews.slice(0, 3));
+
+        const dist = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+        allRatings.forEach((r: any) => {
+          const rounded = Math.round(r.rating);
+          if (rounded >= 1 && rounded <= 5) {
+            dist[rounded as 1|2|3|4|5] += 1;
+          }
+        });
+        setRatingDistribution(dist);
+      } else {
+        setAvgRating(0);
+        setRecentReviews([]);
+        setRatingDistribution({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 });
+      }
+    } catch (err) {
+      console.warn("Failed to load dashboard review stats:", err);
       setOrders([])
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [user])
 
   useFocusEffect(
     React.useCallback(() => {

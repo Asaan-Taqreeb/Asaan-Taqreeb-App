@@ -31,6 +31,7 @@ import { useLanguage } from '@/app/_context/LanguageContext';
 import VendorHeader from '../Component/VendorHeader';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getVendorReviews } from '@/app/_utils/reviewsApi';
 
 export default function VendorProfileScreen() {
   const router = useRouter();
@@ -44,28 +45,51 @@ export default function VendorProfileScreen() {
 
   const loadProfileStats = React.useCallback(async () => {
     try {
-      const savedRatings = await AsyncStorage.getItem('client_rated_bookings');
-      if (savedRatings) {
-        const ratings = JSON.parse(savedRatings);
-        const ratingArray = Object.values(ratings);
-        if (ratingArray.length > 0) {
-          const sum = ratingArray.reduce((acc: number, curr: any) => acc + curr.rating, 0);
-          setAvgRating(Number((sum / ratingArray.length).toFixed(1)));
-          setTotalReviews(ratingArray.length);
+      const vendorId = user?.id || user?._id;
+      let apiReviews: any[] = [];
+      if (vendorId) {
+        apiReviews = await getVendorReviews(vendorId);
+      }
 
-          const dist = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-          ratingArray.forEach((r: any) => {
-            const rounded = Math.round(r.rating);
-            if (rounded >= 1 && rounded <= 5) {
-              dist[rounded as 1|2|3|4|5] += 1;
-            }
+      const savedRatings = await AsyncStorage.getItem('client_rated_bookings');
+      const localRatings = savedRatings ? JSON.parse(savedRatings) : {};
+      const localRatingArray = Object.values(localRatings);
+
+      // Merge reviews (de-duplicate by booking ID or client ID/comment if needed)
+      const allRatings: { rating: number; comment?: string; booking?: string }[] = [];
+
+      apiReviews.forEach((r: any) => {
+        allRatings.push({ 
+          rating: Number(r.rating), 
+          comment: r.comment, 
+          booking: String(r.booking || '')
+        });
+      });
+
+      const apiBookingIds = new Set(apiReviews.map((r: any) => String(r.booking || '')));
+      localRatingArray.forEach((lr: any) => {
+        if (lr.bookingId && !apiBookingIds.has(String(lr.bookingId))) {
+          allRatings.push({ 
+            rating: Number(lr.rating), 
+            comment: lr.comment, 
+            booking: String(lr.bookingId)
           });
-          setRatingDistribution(dist);
-        } else {
-          setAvgRating(0);
-          setTotalReviews(0);
-          setRatingDistribution({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 });
         }
+      });
+
+      if (allRatings.length > 0) {
+        const sum = allRatings.reduce((acc: number, curr: any) => acc + curr.rating, 0);
+        setAvgRating(Number((sum / allRatings.length).toFixed(1)));
+        setTotalReviews(allRatings.length);
+
+        const dist = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+        allRatings.forEach((r: any) => {
+          const rounded = Math.round(r.rating);
+          if (rounded >= 1 && rounded <= 5) {
+            dist[rounded as 1|2|3|4|5] += 1;
+          }
+        });
+        setRatingDistribution(dist);
       } else {
         setAvgRating(0);
         setTotalReviews(0);
@@ -74,7 +98,7 @@ export default function VendorProfileScreen() {
     } catch (e) {
       console.warn("Failed to load profile reviews stats:", e);
     }
-  }, []);
+  }, [user]);
 
   useFocusEffect(
     React.useCallback(() => {
