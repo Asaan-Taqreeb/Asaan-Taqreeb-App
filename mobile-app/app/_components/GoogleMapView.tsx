@@ -7,7 +7,7 @@ interface GoogleMapViewProps {
     longitude: number;
     zoom?: number;
     markerPosition?: { latitude: number; longitude: number } | null;
-    markers?: Array<{ id: string | number; latitude: number; longitude: number; title?: string; color?: string }>;
+    markers?: Array<{ id: string | number; latitude: number; longitude: number; title?: string; color?: string; price?: number; rating?: number; category?: string }>;
     onMapPress?: (lat: number, lng: number) => void;
     onMarkerPress?: (id: string | number) => void;
     onMapReady?: () => void;
@@ -103,7 +103,20 @@ const GoogleMapView = React.forwardRef<GoogleMapMethods, GoogleMapViewProps>((pr
             markersData.forEach(function(m) {
                 var marker = L.marker([m.latitude, m.longitude]).addTo(map);
                 if (m.title) {
-                    marker.bindPopup('<b>' + m.title + '</b>');
+                    var categoryTag = m.category ? '<span style="background-color:#E0F2FE;color:#0369A1;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:bold;text-transform:uppercase;">' + m.category + '</span>' : '';
+                    var priceTag = m.price ? '<div style="font-size:13px;font-weight:800;color:#0F766E;margin-top:4px;">PKR ' + m.price.toLocaleString() + '</div>' : '';
+                    var ratingTag = m.rating ? '<div style="font-size:11px;font-weight:bold;color:#D97706;margin-top:2px;">★ ' + m.rating.toFixed(1) + '</div>' : '';
+                    var detailsBtn = '<button onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type:\'ON_MARKER_PRESS\',payload:{id:\'' + m.id + '\'}}))" style="background-color:#0284C7;color:#FFFFFF;border:none;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:bold;margin-top:8px;cursor:pointer;width:100%;">View Details</button>';
+                    
+                    var popupContent = '<div style="font-family:sans-serif;min-width:140px;">' +
+                        '<div style="font-size:14px;font-weight:bold;color:#1F2937;margin-bottom:2px;">' + m.title + '</div>' +
+                        categoryTag + 
+                        priceTag + 
+                        ratingTag + 
+                        detailsBtn +
+                        '</div>';
+                    
+                    marker.bindPopup(popupContent);
                 }
                 marker.on('click', function() {
                     window.ReactNativeWebView.postMessage(JSON.stringify({
@@ -135,7 +148,22 @@ const GoogleMapView = React.forwardRef<GoogleMapMethods, GoogleMapViewProps>((pr
                     multiMarkers = {};
                     message.payload.markers.forEach(function(m) {
                         var marker = L.marker([m.latitude, m.longitude]).addTo(map);
-                        if (m.title) marker.bindPopup('<b>' + m.title + '</b>');
+                        if (m.title) {
+                            var categoryTag = m.category ? '<span style="background-color:#E0F2FE;color:#0369A1;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:bold;text-transform:uppercase;">' + m.category + '</span>' : '';
+                            var priceTag = m.price ? '<div style="font-size:13px;font-weight:800;color:#0F766E;margin-top:4px;">PKR ' + m.price.toLocaleString() + '</div>' : '';
+                            var ratingTag = m.rating ? '<div style="font-size:11px;font-weight:bold;color:#D97706;margin-top:2px;">★ ' + m.rating.toFixed(1) + '</div>' : '';
+                            var detailsBtn = '<button onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type:\'ON_MARKER_PRESS\',payload:{id:\'' + m.id + '\'}}))" style="background-color:#0284C7;color:#FFFFFF;border:none;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:bold;margin-top:8px;cursor:pointer;width:100%;">View Details</button>';
+                            
+                            var popupContent = '<div style="font-family:sans-serif;min-width:140px;">' +
+                                '<div style="font-size:14px;font-weight:bold;color:#1F2937;margin-bottom:2px;">' + m.title + '</div>' +
+                                categoryTag + 
+                                priceTag + 
+                                ratingTag + 
+                                detailsBtn +
+                                '</div>';
+                            
+                            marker.bindPopup(popupContent);
+                        }
                         marker.on('click', function() {
                             window.ReactNativeWebView.postMessage(JSON.stringify({
                                 type: 'ON_MARKER_PRESS',

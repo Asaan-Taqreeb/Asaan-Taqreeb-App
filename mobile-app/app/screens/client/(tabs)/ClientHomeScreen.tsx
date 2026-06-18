@@ -1,7 +1,7 @@
-import { Alert, View, StyleSheet, ScrollView, Pressable } from "react-native";
+import { Alert, View, StyleSheet, ScrollView, Pressable, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { MessageSquare } from "lucide-react-native";
+import { MessageSquare, Map as MapIcon } from "lucide-react-native";
 import Header from "../Component/Header";
 import CategoriesView from "../Component/CategoriesView";
 import FeaturedVendors from "../Component/FeaturedVendors";
@@ -28,6 +28,25 @@ export default function ClientHomeScreen() {
       <Header />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
         <CategoriesView />
+
+        {/* Explore on Map Banner */}
+        <Pressable
+          className="mx-5 my-2 rounded-3xl p-5 overflow-hidden flex-row items-center justify-between"
+          style={[{ backgroundColor: Colors.primary + '12', borderWidth: 1, borderColor: Colors.primary + '20' }]}
+          onPress={() => router.push({
+            pathname: "/screens/client/Component/VendorListView",
+            params: { mapMode: 'true' }
+          })}
+        >
+          <View className="flex-1 mr-4">
+            <Text className="text-base font-black" style={{ color: Colors.primary }}>Explore Vendors on Map</Text>
+            <Text className="text-xs font-semibold mt-1" style={{ color: Colors.textSecondary }}>Find venues, caterers, and salons near you visually</Text>
+          </View>
+          <View className="p-3 rounded-2xl bg-white" style={Shadows.small}>
+            <MapIcon color={Colors.primary} size={22} />
+          </View>
+        </Pressable>
+
         <FeaturedVendors />
       </ScrollView>
 

@@ -1,5 +1,6 @@
 import { NOTIFICATION_ENDPOINTS } from '@/app/_constants/apiEndpoints';
 import { apiFetchJson } from './apiClient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type Notification = {
   id: string;
@@ -33,13 +34,24 @@ export const getNotifications = async (limit: number = 20): Promise<Notification
     );
 
     const raw = Array.isArray(response) ? response : (Array.isArray(response?.data) ? response.data : []);
-    return raw.map((item: any) => ({
+    const uiNotifs = raw.map((item: any) => ({
       ...item,
       id: item._id || item.id,
       message: item.body || item.message || '',
     }));
+
+    if (uiNotifs.length > 0) {
+      await AsyncStorage.setItem('cached_notifications', JSON.stringify(uiNotifs));
+    }
+    return uiNotifs;
   } catch (error) {
-    console.warn('Notification fetch failed, returning empty list');
+    console.warn('Notification fetch failed, loading cache:', error);
+    try {
+      const cached = await AsyncStorage.getItem('cached_notifications');
+      if (cached) return JSON.parse(cached);
+    } catch (cacheError) {
+      console.error('Failed to read notifications cache:', cacheError);
+    }
     return [];
   }
 };
@@ -55,9 +67,17 @@ export const getUnreadNotificationCount = async (): Promise<number> => {
       'Failed to load unread count'
     );
 
-    return response?.count ?? response?.data?.count ?? 0;
+    const count = response?.count ?? response?.data?.count ?? 0;
+    await AsyncStorage.setItem('cached_unread_notification_count', String(count));
+    return count;
   } catch (error) {
-    console.warn('Unread count fetch failed');
+    console.warn('Unread count fetch failed, loading cache:', error);
+    try {
+      const cached = await AsyncStorage.getItem('cached_unread_notification_count');
+      if (cached) return Number(cached) || 0;
+    } catch (cacheError) {
+      console.error('Failed to read unread count cache:', cacheError);
+    }
     return 0;
   }
 };

@@ -12,7 +12,7 @@ import GoogleMapView from '@/app/_components/GoogleMapView'
 
 export default function VendorListView() {
     const insets = useSafeAreaInsets()
-    const params = useLocalSearchParams<{ query?: string; category?: string }>()
+    const params = useLocalSearchParams<{ query?: string; category?: string; mapMode?: string }>()
   const [vendors, setVendors] = useState<ServiceListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -49,7 +49,11 @@ export default function VendorListView() {
       if (typeof params.category === "string") {
         setSelectedCategory(params.category)
       }
-    }, [params.query, params.category])
+
+      if (params.mapMode === 'true') {
+        setIsMapView(true)
+      }
+    }, [params.query, params.category, params.mapMode])
 
     useEffect(() => {
       let mounted = true
@@ -347,6 +351,9 @@ export default function VendorListView() {
                   latitude: v.latitude as number,
                   longitude: v.longitude as number,
                   title: v.name,
+                  price: (v.category === "banquet" ? v.price : v.packages?.[0]?.price || v.price) || 0,
+                  rating: v.rating || 0,
+                  category: v.category || v.key || "",
                 }))}
                 onMarkerPress={(id) => {
                   const vendor = filteredData.find(v => v.id === id);

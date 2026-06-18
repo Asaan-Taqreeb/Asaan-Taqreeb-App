@@ -23,6 +23,7 @@ export default function VendorDashboardHome() {
   const [isLoading, setIsLoading] = React.useState(true)
   const [recentReviews, setRecentReviews] = React.useState<any[]>([])
   const [avgRating, setAvgRating] = React.useState(4.8)
+  const [ratingDistribution, setRatingDistribution] = React.useState<Record<number, number>>({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 })
 
   const loadDashboard = React.useCallback(async () => {
     try {
@@ -38,6 +39,16 @@ export default function VendorDashboardHome() {
           const sum = ratingArray.reduce((acc: number, curr: any) => acc + curr.rating, 0);
           setAvgRating(Number((sum / ratingArray.length).toFixed(1)));
           setRecentReviews(ratingArray.slice(-3).reverse());
+
+          // Calculate distribution
+          const dist = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+          ratingArray.forEach((r: any) => {
+            const rounded = Math.round(r.rating);
+            if (rounded >= 1 && rounded <= 5) {
+              dist[rounded as 1|2|3|4|5] += 1;
+            }
+          });
+          setRatingDistribution(dist);
         }
       }
     } catch {
@@ -246,6 +257,50 @@ export default function VendorDashboardHome() {
             ))
           )}
         </View>
+
+        {/* Rating Breakdown Graph */}
+        {recentReviews.length > 0 && (
+          <View className="px-5 mt-8">
+            <Text className="text-lg font-bold mb-4" style={{ color: Colors.textPrimary }}>
+              Rating Distribution
+            </Text>
+            <View className="bg-white rounded-3xl p-5" style={Shadows.small}>
+              <View className="flex-row items-center mb-4 gap-4">
+                <View className="items-center justify-center p-3 bg-amber-50 rounded-2xl border border-amber-100" style={{minWidth: 70}}>
+                  <Text className="text-3xl font-black text-amber-500">{avgRating}</Text>
+                  <Text className="text-[9px] font-black text-slate-400 mt-1 uppercase tracking-wider">Out of 5</Text>
+                </View>
+                <View className="flex-1">
+                  <Text className="text-sm font-black text-slate-700">Overall Performance</Text>
+                  <Text className="text-xs font-semibold text-slate-400 mt-1">Based on {Object.values(ratingDistribution).reduce((a, b) => a + b, 0)} customer reviews</Text>
+                </View>
+              </View>
+
+              <View className="gap-2">
+                {[5, 4, 3, 2, 1].map((star) => {
+                  const total = Object.values(ratingDistribution).reduce((a, b) => a + b, 0) || 1;
+                  const count = ratingDistribution[star] || 0;
+                  const percentage = Math.round((count / total) * 100);
+                  
+                  return (
+                    <View key={star} className="flex-row items-center gap-3">
+                      <View className="flex-row items-center w-8 justify-end gap-1">
+                        <Text className="text-xs font-bold text-slate-600">{star}</Text>
+                        <Star size={10} fill="#F59E0B" color="#F59E0B" />
+                      </View>
+                      <View className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
+                        <View className="h-full rounded-full bg-amber-500" style={{ width: `${percentage}%` }} />
+                      </View>
+                      <View className="w-10">
+                        <Text className="text-xs font-bold text-slate-400 text-right">{percentage}%</Text>
+                      </View>
+                    </View>
+                  )
+                })}
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Recent Reviews */}
         {recentReviews.length > 0 && (
