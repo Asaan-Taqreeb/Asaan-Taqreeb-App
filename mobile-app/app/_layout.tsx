@@ -6,6 +6,7 @@ import { LogBox } from 'react-native';
 import { UserProvider } from '@/app/_context/UserContext';
 import { LanguageProvider } from '@/app/_context/LanguageContext';
 import { SocketProvider } from '@/app/_context/SocketContext';
+import { ThemeProvider } from '@/app/_context/ThemeContext';
 import { useNotificationSetup } from '@/app/_hooks/useNotificationSetup';
 
 LogBox.ignoreLogs([
@@ -21,15 +22,17 @@ function NotificationInitializer() {
 export default function RootLayout() { 
   return (
     <UserProvider>
-      <LanguageProvider>
-        <SocketProvider>
-          <NotificationInitializer />
-          <StatusBar style="dark" backgroundColor="#F8FAFC" />
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" />
-          </Stack>
-        </SocketProvider>
-      </LanguageProvider>
+      <ThemeProvider>
+        <LanguageProvider>
+          <SocketProvider>
+            <NotificationInitializer />
+            <StatusBar style="dark" backgroundColor="#F8FAFC" />
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="index" />
+            </Stack>
+          </SocketProvider>
+        </LanguageProvider>
+      </ThemeProvider>
     </UserProvider>
   );
 }

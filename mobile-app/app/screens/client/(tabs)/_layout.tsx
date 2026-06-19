@@ -1,11 +1,15 @@
-import { Tabs } from 'expo-router'
-import { Alert, View, TouchableOpacity, StyleSheet, Text } from 'react-native'
+import React, { useState, useEffect } from 'react'
+import { Tabs, useRouter } from 'expo-router'
+import { Alert, View, TouchableOpacity, StyleSheet, Text, ActivityIndicator, AppState, AppStateStatus } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors } from '@/app/_constants/theme'
 import { useUnreadNotificationCount, useUnreadMessageCount } from '@/app/_context/NotificationContext'
 import { useUser } from '@/app/_context/UserContext'
 import { Home, NotebookPen, Calendar, MessageSquare, Heart } from 'lucide-react-native'
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
+import * as Location from 'expo-location'
+import LocationPermissionScreen from '../Component/LocationPermissionScreen'
+import { logoutUser } from '@/app/_utils/authApi'
 
 function ClientTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets()
@@ -176,6 +180,71 @@ const styles = StyleSheet.create({
 })
 
 export default function TabLayout() {
+  const { user, setUser } = useUser()
+  const router = useRouter()
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null)
+  const [checkingPermission, setCheckingPermission] = useState(true)
+
+  const checkLocationPermission = async () => {
+    try {
+      const { status } = await Location.getForegroundPermissionsAsync()
+      setHasPermission(status === 'granted')
+    } catch (error) {
+      console.log('Error checking location permission:', error)
+      setHasPermission(false)
+    } finally {
+      setCheckingPermission(false)
+    }
+  }
+
+  useEffect(() => {
+    checkLocationPermission()
+
+    const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        checkLocationPermission()
+      }
+    })
+
+    return () => {
+      subscription.remove()
+    }
+  }, [])
+
+  const handlePermissionGranted = () => {
+    setHasPermission(true)
+  }
+
+  const handleBack = async () => {
+    try {
+      if (user && !user.isGuest) {
+        await logoutUser()
+      }
+    } catch (error) {
+      console.log('Error logging out during location back:', error)
+    } finally {
+      setUser(null)
+      router.replace('/')
+    }
+  }
+
+  if (checkingPermission) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background }}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    )
+  }
+
+  if (!hasPermission) {
+    return (
+      <LocationPermissionScreen 
+        onPermissionGranted={handlePermissionGranted}
+        onBack={handleBack}
+      />
+    )
+  }
+
   return (
     <Tabs
       tabBar={(props) => <ClientTabBar {...props} />}

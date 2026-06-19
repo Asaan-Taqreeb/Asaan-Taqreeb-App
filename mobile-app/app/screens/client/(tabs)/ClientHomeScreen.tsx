@@ -1,7 +1,7 @@
 import { Alert, View, StyleSheet, ScrollView, Pressable, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { MessageSquare, Map as MapIcon } from "lucide-react-native";
+import { Bot, Map as MapIcon } from "lucide-react-native";
 import Header from "../Component/Header";
 import CategoriesView from "../Component/CategoriesView";
 import FeaturedVendors from "../Component/FeaturedVendors";
@@ -52,11 +52,14 @@ export default function ClientHomeScreen() {
 
       {/* Floating AI Chat Button */}
       <Pressable
-        className='absolute bottom-6 right-6 rounded-full p-4 active:opacity-80'
-        style={[{backgroundColor: Colors.primary}, Shadows.large]}
+        className='absolute right-6 rounded-full p-4 active:opacity-80'
+        style={[{
+          backgroundColor: Colors.primary,
+          bottom: insets.bottom > 0 ? insets.bottom + 90 : 100
+        }, Shadows.large]}
         onPress={handleOpenAIChat}
       >
-        <MessageSquare color={Colors.white} size={28} />
+        <Bot color={Colors.white} size={28} />
       </Pressable>
     </View>
   )

@@ -69,6 +69,15 @@ const GoogleMapView = React.forwardRef<GoogleMapMethods, GoogleMapViewProps>((pr
     <html>
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <script>
+            window.onerror = function(message, source, lineno, colno, error) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                    type: 'ERROR',
+                    payload: { message: message, lineno: lineno, colno: colno }
+                }));
+                return true;
+            };
+        </script>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
         <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
         <style>
@@ -87,10 +96,11 @@ const GoogleMapView = React.forwardRef<GoogleMapMethods, GoogleMapViewProps>((pr
                 scrollWheelZoom: ${zoomEnabled}
             }).setView([${latitude}, ${longitude}], ${zoom});
 
-            // Using OpenStreetMap Tiles (No API key required)
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            // Using Google Maps Tiles (Keyless HTTPS approach)
+            L.tileLayer('https://{s}.google.com/vt/lyrs=${getTileLayer()}&hl=en&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                attribution: '&copy; Google Maps'
             }).addTo(map);
 
             var singleMarker;
@@ -106,7 +116,7 @@ const GoogleMapView = React.forwardRef<GoogleMapMethods, GoogleMapViewProps>((pr
                     var categoryTag = m.category ? '<span style="background-color:#E0F2FE;color:#0369A1;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:bold;text-transform:uppercase;">' + m.category + '</span>' : '';
                     var priceTag = m.price ? '<div style="font-size:13px;font-weight:800;color:#0F766E;margin-top:4px;">PKR ' + m.price.toLocaleString() + '</div>' : '';
                     var ratingTag = m.rating ? '<div style="font-size:11px;font-weight:bold;color:#D97706;margin-top:2px;">★ ' + m.rating.toFixed(1) + '</div>' : '';
-                    var detailsBtn = '<button onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type:\'ON_MARKER_PRESS\',payload:{id:\'' + m.id + '\'}}))" style="background-color:#0284C7;color:#FFFFFF;border:none;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:bold;margin-top:8px;cursor:pointer;width:100%;">View Details</button>';
+                    var detailsBtn = '<button onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type:\\'ON_MARKER_PRESS\\',payload:{id:\\'' + m.id + '\\'}}))" style="background-color:#0284C7;color:#FFFFFF;border:none;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:bold;margin-top:8px;cursor:pointer;width:100%;">View Details</button>';
                     
                     var popupContent = '<div style="font-family:sans-serif;min-width:140px;">' +
                         '<div style="font-size:14px;font-weight:bold;color:#1F2937;margin-bottom:2px;">' + m.title + '</div>' +
@@ -152,7 +162,7 @@ const GoogleMapView = React.forwardRef<GoogleMapMethods, GoogleMapViewProps>((pr
                             var categoryTag = m.category ? '<span style="background-color:#E0F2FE;color:#0369A1;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:bold;text-transform:uppercase;">' + m.category + '</span>' : '';
                             var priceTag = m.price ? '<div style="font-size:13px;font-weight:800;color:#0F766E;margin-top:4px;">PKR ' + m.price.toLocaleString() + '</div>' : '';
                             var ratingTag = m.rating ? '<div style="font-size:11px;font-weight:bold;color:#D97706;margin-top:2px;">★ ' + m.rating.toFixed(1) + '</div>' : '';
-                            var detailsBtn = '<button onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type:\'ON_MARKER_PRESS\',payload:{id:\'' + m.id + '\'}}))" style="background-color:#0284C7;color:#FFFFFF;border:none;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:bold;margin-top:8px;cursor:pointer;width:100%;">View Details</button>';
+                            var detailsBtn = '<button onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type:\\'ON_MARKER_PRESS\\',payload:{id:\\'' + m.id + '\\'}}))" style="background-color:#0284C7;color:#FFFFFF;border:none;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:bold;margin-top:8px;cursor:pointer;width:100%;">View Details</button>';
                             
                             var popupContent = '<div style="font-family:sans-serif;min-width:140px;">' +
                                 '<div style="font-size:14px;font-weight:bold;color:#1F2937;margin-bottom:2px;">' + m.title + '</div>' +
@@ -198,6 +208,8 @@ const GoogleMapView = React.forwardRef<GoogleMapMethods, GoogleMapViewProps>((pr
                 onMarkerPress(data.payload.id);
             } else if (data.type === 'ON_READY' && onMapReady) {
                 onMapReady();
+            } else if (data.type === 'ERROR') {
+                console.error("GoogleMapView WebView JS Error:", data.payload);
             }
         } catch (e) {
             console.warn("GoogleMap message error:", e);
@@ -230,7 +242,7 @@ const GoogleMapView = React.forwardRef<GoogleMapMethods, GoogleMapViewProps>((pr
             <WebView
                 ref={webViewRef}
                 originWhitelist={['*']}
-                source={{ html: mapHtml, baseUrl: 'https://cdnjs.cloudflare.com' }}
+                source={{ html: mapHtml, baseUrl: 'http://localhost' }}
                 onMessage={handleMessage}
                 style={styles.map}
                 scrollEnabled={false}

@@ -1,5 +1,5 @@
 import { router } from 'expo-router'
-import { ArrowLeft, Send, Sparkles, Trash2, MessageSquare } from 'lucide-react-native'
+import { ArrowLeft, Send, Sparkles, Trash2, MessageSquare, Bot } from 'lucide-react-native'
 import { useState, useRef, useEffect } from 'react'
 import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Keyboard } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -268,7 +268,7 @@ export default function AIChatScreen() {
                 </Pressable>
                 <View className='flex-row items-center gap-3 flex-1'>
                     <View className='rounded-xl p-2.5' style={{backgroundColor: Colors.primary + '12'}}>
-                        <MessageSquare color={Colors.primary} size={22} />
+                        <Bot color={Colors.primary} size={22} />
                     </View>
                     <View>
                         <Text className='text-base font-extrabold' style={{color: Colors.textPrimary}}>Event Concierge</Text>
