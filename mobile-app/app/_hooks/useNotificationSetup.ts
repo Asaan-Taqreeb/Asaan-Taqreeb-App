@@ -29,12 +29,6 @@ export function useNotificationSetup() {
   useEffect(() => {
     if (loading || !user?.id || initializationStartedRef.current) return;
 
-    if (isExpoGo) {
-      console.log('Skipping push notification setup in Expo Go');
-      initializationStartedRef.current = true;
-      return;
-    }
-
     initializationStartedRef.current = true;
     let interactionHandle: { cancel: () => void } | null = null;
     let cancelled = false;
@@ -55,8 +49,8 @@ export function useNotificationSetup() {
           console.log('Skipping token update: user not authenticated yet');
         }
 
-        // Set up handlers
-        if (Platform.OS === 'android') {
+        // Set up handlers (only if not Expo Go, to avoid native module calls)
+        if (Platform.OS === 'android' && !isExpoGo) {
           // Setup FCM handlers for Android
           setupFCMBackgroundHandler();
 

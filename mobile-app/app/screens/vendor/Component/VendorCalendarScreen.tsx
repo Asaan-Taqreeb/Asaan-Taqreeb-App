@@ -6,8 +6,62 @@ import { Colors, Shadows } from '@/app/_constants/theme'
 import { blockDateForVendor, getVendorAvailability, unblockDateForVendor, type VendorAvailabilityDay } from '@/app/_utils/availabilityApi'
 import { getVendorBookings } from '@/app/_utils/bookingsApi'
 import { useUser } from '@/app/_context/UserContext'
+import { getMyVendorServices } from '@/app/_utils/servicesApi'
 
 import AsyncStorage from '@react-native-async-storage/async-storage'
+
+const toMinutes = (value: string) => {
+  const raw = String(value || '').trim().toUpperCase()
+  const ampmMatch = raw.match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)$/)
+  if (ampmMatch) {
+    let hour = Number(ampmMatch[1])
+    const minute = Number(ampmMatch[2] || '0')
+    const period = ampmMatch[3]
+    if (hour === 12) hour = 0
+    if (period === 'PM') hour += 12
+    return hour * 60 + minute
+  }
+  const h24Match = raw.match(/^(\d{1,2}):(\d{2})$/)
+  if (h24Match) {
+    const hour = Number(h24Match[1])
+    const minute = Number(h24Match[2])
+    if (hour >= 0 && hour < 24 && minute >= 0 && minute < 60) {
+      return hour * 60 + minute
+    }
+  }
+  return null
+}
+
+const generateHourlyIntervals = (fromStr: string, toStr: string) => {
+  const fromMin = toMinutes(fromStr) ?? (9 * 60)
+  const toMin = toMinutes(toStr) ?? (21 * 60)
+  const intervals = []
+  
+  for (let time = fromMin; time <= toMin - 60; time += 60) {
+    const hour = Math.floor(time / 60) % 24
+    const min = time % 60
+    const period = hour >= 12 ? 'PM' : 'AM'
+    const displayHour = hour % 12 === 0 ? 12 : hour % 12
+    const displayMin = String(min).padStart(2, '0')
+    const label = `${displayHour}:${displayMin} ${period}`
+    
+    const endTimeMin = time + 3 * 60
+    const endHour = Math.floor(endTimeMin / 60) % 24
+    const endMin = endTimeMin % 60
+    const endPeriod = endHour >= 12 ? 'PM' : 'AM'
+    const endDisplayHour = endHour % 12 === 0 ? 12 : endHour % 12
+    const endDisplayMin = String(endMin).padStart(2, '0')
+    const toLabel = `${endDisplayHour}:${endDisplayMin} ${endPeriod}`
+    
+    intervals.push({
+      id: `slot_${time}`,
+      label: `${label} - ${toLabel}`,
+      from: label,
+      to: toLabel
+    })
+  }
+  return intervals
+}
  
 interface BookingDetail {
   id: number
@@ -56,6 +110,19 @@ export default function VendorCalendarScreen() {
   const [bookingsByDate, setBookingsByDate] = useState<Record<string, BookingDetail[]>>({})
   const [isLoading, setIsLoading] = useState(false)
   const [slots, setSlots] = useState<TimeSlot[]>([])
+  const [category, setCategory] = useState<'banquet' | 'photo' | 'parlor' | 'catering' | null>(null)
+  const [operatingHours, setOperatingHours] = useState<{ from: string; to: string } | null>(null)
+  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null)
+  const [showCustomTime, setShowCustomTime] = useState(false)
+
+  const blockOptions = useMemo(() => {
+    if (category === 'banquet') {
+      return slots
+    } else if (operatingHours) {
+      return generateHourlyIntervals(operatingHours.from, operatingHours.to)
+    }
+    return []
+  }, [category, slots, operatingHours])
 
   // Dynamic Pricing & Heatmap States
   const [isHeatmapActive, setIsHeatmapActive] = useState(false)
@@ -68,10 +135,34 @@ export default function VendorCalendarScreen() {
     const loadSlotsAndMultipliers = async () => {
       if (!user?.id) return
       try {
-        const saved = await AsyncStorage.getItem('vendor_slots_' + user.id)
-        if (saved) {
-          setSlots(JSON.parse(saved))
+        const services = await getMyVendorServices()
+        const vendorCat = services && services.length > 0 ? services[0].category : 'banquet'
+        setCategory(vendorCat)
+
+        if (vendorCat === 'banquet') {
+          const saved = await AsyncStorage.getItem('vendor_slots_' + user.id)
+          if (saved) {
+            setSlots(JSON.parse(saved))
+          } else {
+            const defaultSlots = [
+              { id: '1', label: 'Morning', from: '10:00 AM', to: '01:00 PM' },
+              { id: '2', label: 'Afternoon', from: '03:00 PM', to: '07:00 PM' },
+              { id: '3', label: 'Evening', from: '09:00 PM', to: '12:00 AM' },
+            ]
+            setSlots(defaultSlots)
+            await AsyncStorage.setItem('vendor_slots_' + user.id, JSON.stringify(defaultSlots))
+          }
+        } else {
+          const savedHours = await AsyncStorage.getItem('vendor_operating_hours_' + user.id)
+          if (savedHours) {
+            setOperatingHours(JSON.parse(savedHours))
+          } else {
+            const defaultHours = { from: '09:00 AM', to: '09:00 PM' }
+            setOperatingHours(defaultHours)
+            await AsyncStorage.setItem('vendor_operating_hours_' + user.id, JSON.stringify(defaultHours))
+          }
         }
+
         const savedWeekend = await AsyncStorage.getItem(`vendor_weekend_mult_${user.id}`)
         const savedOffpeak = await AsyncStorage.getItem(`vendor_offpeak_mult_${user.id}`)
         const savedAuto = await AsyncStorage.getItem(`vendor_autopilot_${user.id}`)
@@ -346,6 +437,8 @@ export default function VendorCalendarScreen() {
 
     const dateString = toDateString(day)
     setManageDateString(dateString)
+    setSelectedSlotId(null)
+    setShowCustomTime(false)
     setBlockFromHour('10')
     setBlockFromMinute('00')
     setBlockFromPeriod('AM')
@@ -356,26 +449,44 @@ export default function VendorCalendarScreen() {
     setShowBlockModal(true)
   }
 
-  const applyPredefinedSlot = (slot: TimeSlot) => {
-    // Expected format "10:00 AM"
-    const fromParts = slot.from.match(/(\d+):(\d+)\s*(AM|PM)/i)
-    const toParts = slot.to.match(/(\d+):(\d+)\s*(AM|PM)/i)
-    
-    if (fromParts) {
-      setBlockFromHour(fromParts[1])
-      setBlockFromMinute(fromParts[2])
-      setBlockFromPeriod(fromParts[3].toUpperCase() as 'AM' | 'PM')
+  const applyPredefinedSlot = (slot: any) => {
+    const parseTimeStr = (str: string) => {
+      const match = str.match(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM)/i)
+      if (match) {
+        return {
+          hour: String(Number(match[1])),
+          minute: match[2] || '00',
+          period: match[3].toUpperCase() as 'AM' | 'PM'
+        }
+      }
+      return null
+    }
+
+    const fromVal = parseTimeStr(slot.from)
+    const toVal = parseTimeStr(slot.to)
+
+    if (fromVal) {
+      setBlockFromHour(fromVal.hour)
+      setBlockFromMinute(fromVal.minute)
+      setBlockFromPeriod(fromVal.period)
     }
     
-    if (toParts) {
-      setBlockToHour(toParts[1])
-      setBlockToMinute(toParts[2])
-      setBlockToPeriod(toParts[3].toUpperCase() as 'AM' | 'PM')
+    if (toVal) {
+      setBlockToHour(toVal.hour)
+      setBlockToMinute(toVal.minute)
+      setBlockToPeriod(toVal.period)
     }
+
+    setSelectedSlotId(slot.id)
   }
 
   const handleBlockWithTime = async () => {
     if (!manageDateString || isSubmittingBlock) return
+
+    if (!showCustomTime && !selectedSlotId) {
+      Alert.alert('Selection Required', 'Please select a time slot to block.')
+      return
+    }
 
     const from24 = toTwentyFourHour(`${blockFromHour}:${blockFromMinute}`, blockFromPeriod)
     const to24 = toTwentyFourHour(`${blockToHour}:${blockToMinute}`, blockToPeriod)
@@ -732,117 +843,156 @@ export default function VendorCalendarScreen() {
                 </Pressable>
               </View>
 
-              {/* Predefined Slots */}
-              {slots.length > 0 && (
-                <View className="mb-6">
-                  <Text className="text-[10px] font-bold text-gray-400 mb-3 uppercase tracking-widest">QUICK BLOCK SLOTS</Text>
-                  <View className="flex-row flex-wrap gap-2">
-                    {slots.map(slot => (
-                      <Pressable
-                        key={slot.id}
-                        onPress={() => applyPredefinedSlot(slot)}
-                        className="px-4 py-3 rounded-2xl border-2 items-center justify-center"
-                        style={{
-                          borderColor: Colors.vendor + '20',
-                          backgroundColor: Colors.vendor + '05',
-                          minWidth: '30%'
-                        }}
-                      >
-                        <Text className="text-sm font-extrabold" style={{ color: Colors.vendor }}>
-                          {slot.label}
+              {/* Select Time Slot / Custom Time toggle */}
+              {!showCustomTime ? (
+                <View className="mb-4">
+                  <Text className="text-[10px] font-bold text-gray-400 mb-3 uppercase tracking-widest">SELECT TIME SLOT</Text>
+                  {blockOptions.length === 0 ? (
+                    <Text className="text-xs font-semibold text-center my-3" style={{ color: Colors.textSecondary }}>
+                      No slots configured or available.
+                    </Text>
+                  ) : (
+                    <ScrollView style={{ maxHeight: 185 }} showsVerticalScrollIndicator={true} nestedScrollEnabled={true}>
+                      <View className="flex-row flex-wrap gap-2 justify-between">
+                        {blockOptions.map(slot => {
+                          const isSelected = selectedSlotId === slot.id
+                          return (
+                            <Pressable
+                              key={slot.id}
+                              onPress={() => applyPredefinedSlot(slot)}
+                              className="px-4 py-3.5 rounded-2xl border-2 items-center justify-center flex-row gap-2"
+                              style={{
+                                borderColor: isSelected ? Colors.vendor : Colors.border,
+                                backgroundColor: isSelected ? Colors.vendor + '15' : Colors.white,
+                                width: '48%',
+                              }}
+                            >
+                              <Clock size={14} color={isSelected ? Colors.vendor : Colors.textSecondary} />
+                              <View className="items-center">
+                                {slot.label && slot.label !== `${slot.from} - ${slot.to}` ? (
+                                  <>
+                                    <Text className="text-xs font-extrabold" style={{ color: isSelected ? Colors.vendor : Colors.textPrimary }}>
+                                      {slot.label}
+                                    </Text>
+                                    <Text className="text-[9px] font-bold text-gray-500 mt-0.5">{slot.from} - {slot.to}</Text>
+                                  </>
+                                ) : (
+                                  <Text className="text-[11px] font-extrabold" style={{ color: isSelected ? Colors.vendor : Colors.textPrimary }}>
+                                    {slot.from} - {slot.to}
+                                  </Text>
+                                )}
+                              </View>
+                            </Pressable>
+                          )
+                        })}
+                      </View>
+                    </ScrollView>
+                  )}
+                  <Pressable 
+                    onPress={() => setShowCustomTime(true)} 
+                    className="mt-3 py-2 align-self-start"
+                  >
+                    <Text className="text-xs font-bold" style={{ color: Colors.vendor }}>
+                      Or enter custom time manually...
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <View>
+                  <View className='mb-3'>
+                    <View className="flex-row justify-between items-center mb-2">
+                      <Text className='text-[10px] font-bold' style={{color: Colors.textSecondary}}>FROM</Text>
+                      <Pressable onPress={() => { setShowCustomTime(false); setSelectedSlotId(null); }}>
+                        <Text className="text-xs font-bold" style={{ color: Colors.vendor }}>
+                          Select from options
                         </Text>
-                        <Text className="text-[10px] font-bold text-gray-500 mt-0.5">{slot.from} - {slot.to}</Text>
                       </Pressable>
-                    ))}
+                    </View>
+                    <View className='flex-row gap-2'>
+                      <TextInput
+                        value={blockFromHour}
+                        onChangeText={setBlockFromHour}
+                        placeholder='10'
+                        className='flex-1 rounded-xl px-3 py-3'
+                        style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
+                        placeholderTextColor={Colors.textTertiary}
+                        keyboardType='numeric'
+                        maxLength={2}
+                      />
+                      <Text className='self-center text-lg font-extrabold' style={{color: Colors.textSecondary}}>:</Text>
+                      <TextInput
+                        value={blockFromMinute}
+                        onChangeText={setBlockFromMinute}
+                        placeholder='00'
+                        className='flex-1 rounded-xl px-3 py-3'
+                        style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
+                        placeholderTextColor={Colors.textTertiary}
+                        keyboardType='numeric'
+                        maxLength={2}
+                      />
+                      <View className='flex-row rounded-xl overflow-hidden' style={{borderWidth: 1, borderColor: Colors.border}}>
+                        <Pressable
+                          className='px-3 py-3'
+                          style={{backgroundColor: blockFromPeriod === 'AM' ? Colors.vendor : 'transparent'}}
+                          onPress={() => setBlockFromPeriod('AM')}
+                        >
+                          <Text className='font-bold' style={{color: blockFromPeriod === 'AM' ? Colors.white : Colors.textSecondary}}>AM</Text>
+                        </Pressable>
+                        <Pressable
+                          className='px-3 py-3'
+                          style={{backgroundColor: blockFromPeriod === 'PM' ? Colors.vendor : 'transparent'}}
+                          onPress={() => setBlockFromPeriod('PM')}
+                        >
+                          <Text className='font-bold' style={{color: blockFromPeriod === 'PM' ? Colors.white : Colors.textSecondary}}>PM</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View className='mb-4'>
+                    <Text className='text-[10px] font-bold mb-2' style={{color: Colors.textSecondary}}>TO</Text>
+                    <View className='flex-row gap-2'>
+                      <TextInput
+                        value={blockToHour}
+                        onChangeText={setBlockToHour}
+                        placeholder='05'
+                        className='flex-1 rounded-xl px-3 py-3'
+                        style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
+                        placeholderTextColor={Colors.textTertiary}
+                        keyboardType='numeric'
+                        maxLength={2}
+                      />
+                      <Text className='self-center text-lg font-extrabold' style={{color: Colors.textSecondary}}>:</Text>
+                      <TextInput
+                        value={blockToMinute}
+                        onChangeText={setBlockToMinute}
+                        placeholder='00'
+                        className='flex-1 rounded-xl px-3 py-3'
+                        style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
+                        placeholderTextColor={Colors.textTertiary}
+                        keyboardType='numeric'
+                        maxLength={2}
+                      />
+                      <View className='flex-row rounded-xl overflow-hidden' style={{borderWidth: 1, borderColor: Colors.border}}>
+                        <Pressable
+                          className='px-3 py-3'
+                          style={{backgroundColor: blockToPeriod === 'AM' ? Colors.vendor : 'transparent'}}
+                          onPress={() => setBlockToPeriod('AM')}
+                        >
+                          <Text className='font-bold' style={{color: blockToPeriod === 'AM' ? Colors.white : Colors.textSecondary}}>AM</Text>
+                        </Pressable>
+                        <Pressable
+                          className='px-3 py-3'
+                          style={{backgroundColor: blockToPeriod === 'PM' ? Colors.vendor : 'transparent'}}
+                          onPress={() => setBlockToPeriod('PM')}
+                        >
+                          <Text className='font-bold' style={{color: blockToPeriod === 'PM' ? Colors.white : Colors.textSecondary}}>PM</Text>
+                        </Pressable>
+                      </View>
+                    </View>
                   </View>
                 </View>
               )}
-
-              <View className='mb-3'>
-                <Text className='text-[10px] font-bold mb-2' style={{color: Colors.textSecondary}}>FROM</Text>
-                <View className='flex-row gap-2'>
-                  <TextInput
-                    value={blockFromHour}
-                    onChangeText={setBlockFromHour}
-                    placeholder='10'
-                    className='flex-1 rounded-xl px-3 py-3'
-                    style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
-                    placeholderTextColor={Colors.textTertiary}
-                    keyboardType='numeric'
-                    maxLength={2}
-                  />
-                  <Text className='self-center text-lg font-extrabold' style={{color: Colors.textSecondary}}>:</Text>
-                  <TextInput
-                    value={blockFromMinute}
-                    onChangeText={setBlockFromMinute}
-                    placeholder='00'
-                    className='flex-1 rounded-xl px-3 py-3'
-                    style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
-                    placeholderTextColor={Colors.textTertiary}
-                    keyboardType='numeric'
-                    maxLength={2}
-                  />
-                  <View className='flex-row rounded-xl overflow-hidden' style={{borderWidth: 1, borderColor: Colors.border}}>
-                    <Pressable
-                      className='px-3 py-3'
-                      style={{backgroundColor: blockFromPeriod === 'AM' ? Colors.vendor : 'transparent'}}
-                      onPress={() => setBlockFromPeriod('AM')}
-                    >
-                      <Text className='font-bold' style={{color: blockFromPeriod === 'AM' ? Colors.white : Colors.textSecondary}}>AM</Text>
-                    </Pressable>
-                    <Pressable
-                      className='px-3 py-3'
-                      style={{backgroundColor: blockFromPeriod === 'PM' ? Colors.vendor : 'transparent'}}
-                      onPress={() => setBlockFromPeriod('PM')}
-                    >
-                      <Text className='font-bold' style={{color: blockFromPeriod === 'PM' ? Colors.white : Colors.textSecondary}}>PM</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              </View>
-
-              <View className='mb-4'>
-                <Text className='text-[10px] font-bold mb-2' style={{color: Colors.textSecondary}}>TO</Text>
-                <View className='flex-row gap-2'>
-                  <TextInput
-                    value={blockToHour}
-                    onChangeText={setBlockToHour}
-                    placeholder='05'
-                    className='flex-1 rounded-xl px-3 py-3'
-                    style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
-                    placeholderTextColor={Colors.textTertiary}
-                    keyboardType='numeric'
-                    maxLength={2}
-                  />
-                  <Text className='self-center text-lg font-extrabold' style={{color: Colors.textSecondary}}>:</Text>
-                  <TextInput
-                    value={blockToMinute}
-                    onChangeText={setBlockToMinute}
-                    placeholder='00'
-                    className='flex-1 rounded-xl px-3 py-3'
-                    style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
-                    placeholderTextColor={Colors.textTertiary}
-                    keyboardType='numeric'
-                    maxLength={2}
-                  />
-                  <View className='flex-row rounded-xl overflow-hidden' style={{borderWidth: 1, borderColor: Colors.border}}>
-                    <Pressable
-                      className='px-3 py-3'
-                      style={{backgroundColor: blockToPeriod === 'AM' ? Colors.vendor : 'transparent'}}
-                      onPress={() => setBlockToPeriod('AM')}
-                    >
-                      <Text className='font-bold' style={{color: blockToPeriod === 'AM' ? Colors.white : Colors.textSecondary}}>AM</Text>
-                    </Pressable>
-                    <Pressable
-                      className='px-3 py-3'
-                      style={{backgroundColor: blockToPeriod === 'PM' ? Colors.vendor : 'transparent'}}
-                      onPress={() => setBlockToPeriod('PM')}
-                    >
-                      <Text className='font-bold' style={{color: blockToPeriod === 'PM' ? Colors.white : Colors.textSecondary}}>PM</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              </View>
 
               <View className='mb-6'>
                 <Text className='text-[10px] font-bold mb-2' style={{color: Colors.textSecondary}}>REASON (OPTIONAL)</Text>

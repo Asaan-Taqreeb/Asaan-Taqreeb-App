@@ -15,6 +15,7 @@
 // ─────────────────────────────────────────────────────────
 
 import { Platform } from 'react-native'
+import { apiFetchJson } from '@/app/_utils/apiClient'
 
 const CLOUDINARY_CLOUD_NAME = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME || ''
 const CLOUDINARY_UPLOAD_PRESET = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET || ''
@@ -120,20 +121,11 @@ export const deleteFromCloudinary = async (imageUrl: string): Promise<boolean> =
 
     console.log('Requesting backend to delete image:', imageUrl);
 
-    const response = await fetch(DELETE_ENDPOINT, {
+    await apiFetchJson<any>(DELETE_ENDPOINT, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      auth: true,
       body: JSON.stringify({ imageUrl }),
     });
-
-    const data = await response.json();
-    
-    if (!response.ok) {
-      console.error('Backend deletion failed:', data.message);
-      return false;
-    }
 
     console.log('Image deleted successfully from Cloudinary');
     return true;

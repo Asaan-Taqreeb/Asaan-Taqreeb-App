@@ -199,20 +199,14 @@ export async function registerForPushNotificationsAsync() {
   let expoToken = null;
   let fcmToken = null;
 
-  if (isExpoGo) {
-    console.log('Skipping push notification registration in Expo Go');
-    return {
-      expoToken,
-      fcmToken,
-    };
-  }
-
   try {
-    // Register the background task
-    const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_NOTIFICATION_TASK);
-    if (!isRegistered) {
-      await Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK);
-      console.log('✅ Background notification task registered');
+    // Register the background task (only if not Expo Go)
+    if (!isExpoGo) {
+      const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_NOTIFICATION_TASK);
+      if (!isRegistered) {
+        await Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK);
+        console.log('✅ Background notification task registered');
+      }
     }
   } catch (err) {
     console.error('Failed to register background task:', err);
@@ -268,8 +262,8 @@ export async function registerForPushNotificationsAsync() {
       console.error('Error setting up Expo notifications:', error);
     }
 
-    // Get FCM Token (Android only)
-    if (Platform.OS === 'android') {
+    // Get FCM Token (Android native, only if not Expo Go)
+    if (Platform.OS === 'android' && !isExpoGo) {
       try {
         // Request permission first
         const authStatus = await messaging().requestPermission();
@@ -300,28 +294,34 @@ export async function registerForPushNotificationsAsync() {
 /**
  * Handle notification clicks and routing
  */
-export function handleNotificationResponse(response: any, router: any, userRole: any) {
+export function handleNotificationResponse(response: any, router: any, userRole?: string) {
   const data = response.notification.request.content.data;
-
+  
   console.log('Notification Response received:', data, 'User Role:', userRole);
 
-  // Route based on notification type
-  if (data?.bookingId) {
-    if (userRole === 'vendor') {
-      router.push({
-        pathname: '/vendor/booking/[id]',
-        params: { id: data.bookingId },
-      });
-    } else {
-      router.push({
-        pathname: '/client/booking/[id]',
-        params: { id: data.bookingId },
-      });
+  if (data?.chatId) {
+    // Navigate to chat
+    if (data.vendorId && userRole !== 'vendor') {
+        // Client side
+        router.push({
+            pathname: '/screens/client/Component/VendorChatScreen',
+            params: { chatId: data.chatId, vendorId: data.vendorId }
+        });
+    } else if (data.clientId || userRole === 'vendor') {
+        // Vendor side
+        router.push({
+            pathname: '/screens/vendor/Component/ClientChatScreen',
+            params: { chatId: data.chatId, clientId: data.clientId }
+        });
     }
-  } else if (data?.chatId) {
-    router.push({
-      pathname: '/chat/[id]',
-      params: { id: data.chatId },
-    });
+  } else if (data?.bookingId) {
+    // Navigate to booking detail
+    if (userRole === 'vendor') {
+        // For vendors, go to Orders screen
+        router.push('/screens/vendor/OrdersScreen');
+    } else {
+        // For clients
+        router.push('/screens/client/Component/BookingHistoryScreen');
+    }
   }
 }

@@ -31,6 +31,7 @@ type VerifyOtpParams = {
 type ResetPasswordParams = {
   email: string
   newPassword: string
+  token: string
 }
 
 export type AppRole = 'client' | 'vendor'

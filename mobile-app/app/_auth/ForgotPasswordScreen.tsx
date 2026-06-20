@@ -31,6 +31,7 @@ const ForgotPasswordScreen = ({
     const [confirmPassword, setConfirmPassword] = useState('')
     const [loading, setLoading] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
+    const [resetToken, setResetToken] = useState('')
 
     const handleEmailSubmit = async () => {
         if (!email.trim()) {
@@ -65,7 +66,10 @@ const ForgotPasswordScreen = ({
 
         setLoading(true)
         try {
-            await verifyOtp({ email: email.trim().toLowerCase(), otp: otp.trim() })
+            const response = await verifyOtp({ email: email.trim().toLowerCase(), otp: otp.trim() })
+            if (response && response.resetToken) {
+                setResetToken(response.resetToken)
+            }
             setStep('reset')
         } catch (error) {
             const message = error instanceof Error ? error.message : 'OTP verification failed.'
@@ -89,7 +93,8 @@ const ForgotPasswordScreen = ({
         try {
             await resetPassword({ 
                 email: email.trim().toLowerCase(), 
-                newPassword: newPassword 
+                newPassword: newPassword,
+                token: resetToken
             })
             Alert.alert('Success', 'Your password has been reset successfully.', [
                 { text: 'Login Now', onPress: () => router.push(redirectLoginRoute as any) }
