@@ -1,11 +1,12 @@
 import { apiFetchJson } from './apiClient';
 import { NOTIFICATION_ENDPOINTS, API_BASE_URL, API_PREFIX } from '@/app/_constants/apiEndpoints';
 
-export const updatePushTokens = async (expoToken?: string, fcmToken?: string) => {
+export const updatePushTokens = async (expoToken?: string, fcmToken?: string, webPushSubscription?: any) => {
   try {
     const payload: any = {};
     if (expoToken) payload.expoPushToken = expoToken;
     if (fcmToken) payload.fcmToken = fcmToken;
+    if (webPushSubscription) payload.webPushSubscription = webPushSubscription;
 
     if (Object.keys(payload).length === 0) {
       console.warn('No tokens to update');
@@ -32,8 +33,8 @@ export const updatePushTokens = async (expoToken?: string, fcmToken?: string) =>
 
 export const sendTestNotification = async () => {
   try {
-    const { registerForPushNotificationsAsync } = require('./fcmService');
-    const { expoToken, fcmToken } = await registerForPushNotificationsAsync();
+    const { registerForPushNotificationsAsync } = require('./pushNotificationService');
+    const { expoToken, fcmToken } = await registerForPushNotificationsAsync() || {};
     const token = expoToken || fcmToken;
 
     if (!token) {

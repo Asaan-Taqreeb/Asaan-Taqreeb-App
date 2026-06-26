@@ -6,28 +6,38 @@ import * as TaskManager from 'expo-task-manager';
 
 const BACKGROUND_NOTIFICATION_TASK = 'BACKGROUND_NOTIFICATION_TASK';
 
-// Define the background task for handling notifications when the app is closed
-TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async ({ data, error }: any) => {
-  if (error) {
-    console.error('Background notification task error:', error);
-    return;
+// Guard task definition for native only
+if (Platform.OS !== 'web') {
+  try {
+    TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async ({ data, error }: any) => {
+      if (error) {
+        console.error('Background notification task error:', error);
+        return;
+      }
+      console.log('Background notification task triggered:', data);
+    });
+  } catch (e) {
+    console.warn('Failed to define TaskManager background task:', e);
   }
-  console.log('Background notification task triggered:', data);
-});
 
-// Configure notification behavior
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  } as any),
-});
+  // Configure notification behavior
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    } as any),
+  });
+}
 
 /**
- * Register for push notifications and get the token
+ * Register for push notifications and get the token (Native Only)
  */
 export async function registerForPushNotificationsAsync() {
+  if (Platform.OS === 'web') {
+    return null;
+  }
+
   let token;
 
   // Register the background task
@@ -65,7 +75,6 @@ export async function registerForPushNotificationsAsync() {
     
     if (finalStatus !== 'granted') {
       console.warn('Failed to get push token: Permission not granted');
-      // If we are on Android 13+, we might want to alert the user
       if (Platform.OS === 'android' && Platform.Version >= 33) {
           console.log('Android 13+ detected, permission is mandatory for notifications');
       }
@@ -94,8 +103,8 @@ export async function registerForPushNotificationsAsync() {
 /**
  * Handle notification clicks
  */
-export function handleNotificationResponse(response: Notifications.NotificationResponse, router: any, userRole?: string) {
-  const data = response.notification.request.content.data;
+export function handleNotificationResponse(response: any, router: any, userRole?: string) {
+  const data = response.notification?.request?.content?.data || response.data || {};
   
   console.log('Notification Response received:', data, 'User Role:', userRole);
 
@@ -117,10 +126,8 @@ export function handleNotificationResponse(response: Notifications.NotificationR
   } else if (data.bookingId) {
     // Navigate to booking detail
     if (userRole === 'vendor') {
-        // For vendors, go to Orders screen (since we need full object for Detail)
         router.push('/screens/vendor/OrdersScreen');
     } else {
-        // For clients
         router.push('/screens/client/Component/BookingHistoryScreen');
     }
   }
@@ -130,6 +137,7 @@ export function handleNotificationResponse(response: Notifications.NotificationR
  * Dismiss all notifications from the system tray
  */
 export async function dismissAllTrayNotifications() {
+    if (Platform.OS === 'web') return;
     try {
         await Notifications.dismissAllNotificationsAsync();
     } catch (error) {

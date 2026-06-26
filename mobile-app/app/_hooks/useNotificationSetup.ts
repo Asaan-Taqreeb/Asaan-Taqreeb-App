@@ -3,12 +3,12 @@ import { InteractionManager, Platform } from 'react-native';
 import Constants from 'expo-constants';
 import {
   registerForPushNotificationsAsync,
-  setupFCMForegroundHandler,
-  setupFCMBackgroundHandler,
-  setupFCMNotificationHandler,
-  onFCMTokenRefresh,
   handleNotificationResponse,
-} from '@/app/_utils/fcmService';
+} from '@/app/_utils/pushNotificationService';
+import {
+  registerPWAServiceWorker,
+  subscribeToWebPush,
+} from '@/app/_utils/pwaNotificationRegister';
 import { updatePushTokens } from '@/app/_utils/pushTokenManager';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
@@ -23,8 +23,6 @@ export function useNotificationSetup() {
   const { user, loading } = useUser();
   const unsubscribesRef = useRef<(() => void)[]>([]);
   const initializedUserIdRef = useRef<string | null>(null);
-  const isExpoGo =
-    Constants.executionEnvironment === 'storeClient' || Constants.appOwnership === 'expo';
 
   useEffect(() => {
     if (loading || !user?.id || user.isGuest || initializedUserIdRef.current === user.id) return;
@@ -33,77 +31,88 @@ export function useNotificationSetup() {
     let interactionHandle: { cancel: () => void } | null = null;
     let cancelled = false;
 
-    const initializeNotifications = async () => {
+    // Web Platform Setup (Progressive Web App)
+    if (Platform.OS === 'web') {
+      const initializeWebNotifications = async () => {
+        if (cancelled) return;
+        try {
+          console.log('🔧 Initializing Web/PWA push notifications...');
+          const swReg = await registerPWAServiceWorker();
+          if (swReg) {
+            await subscribeToWebPush(swReg, updatePushTokens);
+          }
+        } catch (error) {
+          console.error('Error initializing web notifications:', error);
+        }
+      };
+
+      interactionHandle = InteractionManager.runAfterInteractions(() => {
+        initializeWebNotifications();
+      });
+
+      // Listen for notification click routing messages posted from the Service Worker
+      if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+        const handleMessage = (event: MessageEvent) => {
+          if (event.data?.type === 'NOTIFICATION_CLICK') {
+            console.log('Notification click received from SW:', event.data.data);
+            handleNotificationResponse({ data: event.data.data } as any, router, user?.role);
+          }
+        };
+
+        navigator.serviceWorker.addEventListener('message', handleMessage);
+        return () => {
+          cancelled = true;
+          interactionHandle?.cancel();
+          initializedUserIdRef.current = null;
+          navigator.serviceWorker.removeEventListener('message', handleMessage);
+        };
+      }
+
+      return () => {
+        cancelled = true;
+        interactionHandle?.cancel();
+        initializedUserIdRef.current = null;
+      };
+    }
+
+    // Native Platforms Setup (iOS / Android)
+    const initializeNativeNotifications = async () => {
       if (cancelled) return;
 
       try {
-        console.log('🔧 Initializing push notifications...');
+        console.log('🔧 Initializing Native push notifications...');
 
-        // Register and get tokens
-        const { expoToken, fcmToken } = await registerForPushNotificationsAsync();
+        // Register and get token
+        const expoToken = await registerForPushNotificationsAsync();
 
-        // Send tokens to backend only when authenticated
-        if (user?.id && (expoToken || fcmToken)) {
-          await updatePushTokens(expoToken || undefined, fcmToken || undefined);
-        } else if (!user?.id) {
-          console.log('Skipping token update: user not authenticated yet');
+        // Send token to backend only when authenticated
+        if (expoToken) {
+          await updatePushTokens(expoToken, undefined);
         }
 
-        // Set up handlers (only if not Expo Go, to avoid native module calls)
-        if (Platform.OS === 'android' && !isExpoGo) {
-          // Setup FCM handlers for Android
-          setupFCMBackgroundHandler();
+        // Set up handler for foreground notifications
+        const foregroundSub = Notifications.addNotificationReceivedListener(notification => {
+          console.log('🔔 Notification received in foreground:', notification);
+        });
 
-          const unsubscribeForeground = setupFCMForegroundHandler();
-          const unsubscribeTokenRefresh = onFCMTokenRefresh(async (newToken: string) => {
-            console.log('FCM token refreshed, updating backend...');
-            if (user?.id) {
-              await updatePushTokens(undefined, newToken);
-            }
-          });
-
-          const unsubscribeNotificationPress = setupFCMNotificationHandler(
-            (remoteMessage: any) => {
-              handleNotificationResponse(
-                {
-                  notification: {
-                    request: {
-                      content: {
-                        title: remoteMessage.notification?.title || '',
-                        body: remoteMessage.notification?.body || '',
-                        data: remoteMessage.data || {},
-                      },
-                    },
-                  },
-                } as any,
-                router,
-                user?.role
-              );
-            }
-          );
-
-          unsubscribesRef.current.push(
-            unsubscribeForeground,
-            unsubscribeTokenRefresh,
-            unsubscribeNotificationPress
-          );
-        }
-
-        // Set up handler for Expo notifications (tap)
-        const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+        // Set up handler for Expo notifications tap / click response
+        const responseSub = Notifications.addNotificationResponseReceivedListener(response => {
           handleNotificationResponse(response, router, user?.role);
         });
 
-        unsubscribesRef.current.push(() => subscription.remove());
+        unsubscribesRef.current.push(
+          () => foregroundSub.remove(),
+          () => responseSub.remove()
+        );
 
-        console.log('✅ Push notifications initialized successfully');
+        console.log('✅ Native Push notifications initialized successfully');
       } catch (error) {
-        console.error('Error initializing notifications:', error);
+        console.error('Error initializing native notifications:', error);
       }
     };
 
     interactionHandle = InteractionManager.runAfterInteractions(() => {
-      initializeNotifications();
+      initializeNativeNotifications();
     });
 
     // Cleanup on unmount
@@ -115,7 +124,7 @@ export function useNotificationSetup() {
         try {
           unsubscribe?.();
         } catch (error) {
-          console.error('Error cleaning up notification handler:', error);
+          console.error('Error cleaning up native notification listener:', error);
         }
       });
       unsubscribesRef.current = [];
@@ -124,18 +133,10 @@ export function useNotificationSetup() {
 }
 
 /**
- * Hook to update FCM token when it changes
- * Use this if you need to update the token in specific scenarios
+ * Hook to update token when it changes (stubbed for backward compatibility)
  */
 export function useFCMTokenRefresh() {
-  useEffect(() => {
-    if (Platform.OS !== 'android') return;
-
-    const unsubscribe = onFCMTokenRefresh(async (newToken: string) => {
-      console.log('Updating FCM token:', newToken);
-      await updatePushTokens(undefined, newToken);
-    });
-
-    return unsubscribe;
-  }, []);
+  // Native FCM direct token refreshing is not used since we standardized on Expo-notifications.
+  // This is kept as a stub to avoid import breaking changes elsewhere.
+  return () => {};
 }
