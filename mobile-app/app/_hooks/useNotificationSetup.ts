@@ -22,14 +22,14 @@ export function useNotificationSetup() {
   const router = useRouter();
   const { user, loading } = useUser();
   const unsubscribesRef = useRef<(() => void)[]>([]);
-  const initializationStartedRef = useRef(false);
+  const initializedUserIdRef = useRef<string | null>(null);
   const isExpoGo =
     Constants.executionEnvironment === 'storeClient' || Constants.appOwnership === 'expo';
 
   useEffect(() => {
-    if (loading || !user?.id || initializationStartedRef.current) return;
+    if (loading || !user?.id || user.isGuest || initializedUserIdRef.current === user.id) return;
 
-    initializationStartedRef.current = true;
+    initializedUserIdRef.current = user.id;
     let interactionHandle: { cancel: () => void } | null = null;
     let cancelled = false;
 
@@ -110,6 +110,7 @@ export function useNotificationSetup() {
     return () => {
       cancelled = true;
       interactionHandle?.cancel();
+      initializedUserIdRef.current = null;
       unsubscribesRef.current.forEach(unsubscribe => {
         try {
           unsubscribe?.();
@@ -117,6 +118,7 @@ export function useNotificationSetup() {
           console.error('Error cleaning up notification handler:', error);
         }
       });
+      unsubscribesRef.current = [];
     };
   }, [loading, user?.id, user?.role, router]);
 }

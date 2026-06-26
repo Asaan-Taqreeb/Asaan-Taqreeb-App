@@ -1,0 +1,72 @@
+name: Build Android Release APK
+
+on:
+  push:
+    branches:
+      - main  # Trigger on push to main branch
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+jobs:
+  build:
+    name: Build Signed Release APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17' # React Native 0.81.5 requires JDK 17
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: mobile-app/package-lock.json
+
+      # Cache Gradle dependencies to speed up Android builds
+      - name: Setup Gradle Cache
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Install dependencies
+        working-directory: mobile-app
+        run: npm ci
+
+      # Injects env variables needed for the React Native JS bundle
+      - name: Create .env File
+        working-directory: mobile-app
+        run: |
+          echo "EXPO_PUBLIC_GROQ_API_KEY=${{ secrets.EXPO_PUBLIC_GROQ_API_KEY }}" >> .env
+          echo "EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME=${{ secrets.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME }}" >> .env
+          echo "EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET=${{ secrets.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET }}" >> .env
+
+      - name: Generate Native Android Directory
+        working-directory: mobile-app
+        run: npx expo prebuild --platform android --no-install
+
+      # Decode keystore base64 string back into a binary file
+      - name: Decode Android Keystore
+        run: |
+          mkdir -p mobile-app/android/app/keystores
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > mobile-app/android/app/keystores/release.keystore
+
+      # Build signed release APK using injected project signing credentials
+      - name: Build Release APK
+        working-directory: mobile-app/android
+        run: |
+          ./gradlew assembleRelease \
+            -Pandroid.injected.signing.store.file=keystores/release.keystore \
+            -Pandroid.injected.signing.store.password="${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
+            -Pandroid.injected.signing.key.alias="${{ secrets.ANDROID_KEY_ALIAS }}" \
+            -Pandroid.injected.signing.key.password="${{ secrets.ANDROID_KEY_PASSWORD }}"
+
+      # Upload the built APK as a downloadable run artifact
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: mobile-app/android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error

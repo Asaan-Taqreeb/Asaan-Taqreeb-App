@@ -37,15 +37,13 @@ messaging.AuthorizationStatus = {
 
 const BACKGROUND_NOTIFICATION_TASK = 'BACKGROUND_NOTIFICATION_TASK';
 
-if (!isExpoGo) {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-    } as any),
-  });
-}
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  } as any),
+});
 
 // Request user permissions for notifications
 export async function requestNotificationPermissions() {
@@ -221,68 +219,64 @@ export async function registerForPushNotificationsAsync() {
     });
   }
 
-  if (Device.isDevice) {
-    // Get Expo Push Token
-    try {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
+  // Get Expo Push Token
+  try {
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
 
-      console.log('Current notification permission status:', existingStatus);
+    console.log('Current notification permission status:', existingStatus);
 
-      if (existingStatus !== 'granted') {
-        console.log('Requesting notification permissions...');
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-        console.log('New notification permission status:', finalStatus);
+    if (existingStatus !== 'granted') {
+      console.log('Requesting notification permissions...');
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+      console.log('New notification permission status:', finalStatus);
+    }
+
+    if (finalStatus !== 'granted') {
+      console.warn('Failed to get push token: Permission not granted');
+      if (Platform.OS === 'android' && Platform.Version >= 33) {
+        console.log('Android 13+ detected, permission is mandatory for notifications');
       }
+    } else {
+      try {
+        const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
+        if (!projectId) {
+          console.log('⚠️  Project ID not found in expo config');
+        } else {
+          expoToken = (
+            await Notifications.getExpoPushTokenAsync({
+              projectId,
+            })
+          ).data;
+          console.log('✅ Expo Push Token:', expoToken);
+        }
+      } catch (e) {
+        console.log('Error getting expo push token:', e);
+      }
+    }
+  } catch (error) {
+    console.error('Error setting up Expo notifications:', error);
+  }
 
-      if (finalStatus !== 'granted') {
-        console.warn('Failed to get push token: Permission not granted');
-        if (Platform.OS === 'android' && Platform.Version >= 33) {
-          console.log('Android 13+ detected, permission is mandatory for notifications');
-        }
+  // Get FCM Token (Android native, only if not Expo Go)
+  if (Platform.OS === 'android' && !isExpoGo) {
+    try {
+      // Request permission first
+      const authStatus = await messaging().requestPermission();
+      const enabled =
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+
+      if (enabled) {
+        fcmToken = await getFCMToken();
+        console.log('✅ FCM setup complete');
       } else {
-        try {
-          const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
-          if (!projectId) {
-            console.log('⚠️  Project ID not found in expo config');
-          } else {
-            expoToken = (
-              await Notifications.getExpoPushTokenAsync({
-                projectId,
-              })
-            ).data;
-            console.log('✅ Expo Push Token:', expoToken);
-          }
-        } catch (e) {
-          console.log('Error getting expo push token:', e);
-        }
+        console.warn('FCM permission not granted');
       }
     } catch (error) {
-      console.error('Error setting up Expo notifications:', error);
+      console.error('Error setting up FCM:', error);
     }
-
-    // Get FCM Token (Android native, only if not Expo Go)
-    if (Platform.OS === 'android' && !isExpoGo) {
-      try {
-        // Request permission first
-        const authStatus = await messaging().requestPermission();
-        const enabled =
-          authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-          authStatus === messaging.AuthorizationStatus.PROVISIONAL;
-
-        if (enabled) {
-          fcmToken = await getFCMToken();
-          console.log('✅ FCM setup complete');
-        } else {
-          console.warn('FCM permission not granted');
-        }
-      } catch (error) {
-        console.error('Error setting up FCM:', error);
-      }
-    }
-  } else {
-    console.log('Must use physical device for Push Notifications');
   }
 
   return {
