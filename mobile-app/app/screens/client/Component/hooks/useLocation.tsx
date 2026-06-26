@@ -1,5 +1,6 @@
 import * as Location from "expo-location"
 import { useEffect, useState, useCallback } from 'react'
+import { Platform } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
 const LOCATION_CACHE_KEY = '@user_location_cache'
@@ -86,10 +87,32 @@ const useLocation = () => {
                 setLongitude(longitude)
                 
                 try {
-                    let response = await Location.reverseGeocodeAsync({
-                        latitude,
-                        longitude
-                    })
+                    let response: any[] = []
+                    if (Platform.OS === 'web') {
+                        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
+                        const res = await fetch(url, {
+                            headers: {
+                                'User-Agent': 'Asaan-Taqreeb-App/1.0'
+                            }
+                        })
+                        const data = await res.json()
+                        if (data && data.address) {
+                            const addr = data.address
+                            const city = addr.city || addr.town || addr.village || addr.suburb || addr.municipality || ""
+                            const district = addr.county || addr.city_district || addr.district || addr.state || ""
+                            response = [{
+                                city: city,
+                                district: district,
+                                country: addr.country || "",
+                                name: addr.road || addr.suburb || ""
+                            }]
+                        }
+                    } else {
+                        response = await Location.reverseGeocodeAsync({
+                            latitude,
+                            longitude
+                        })
+                    }
                     
                     if (response && response.length > 0) {
                         setResult(response)
