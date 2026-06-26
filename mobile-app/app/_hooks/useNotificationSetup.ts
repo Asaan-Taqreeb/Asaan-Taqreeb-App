@@ -31,48 +31,10 @@ export function useNotificationSetup() {
     let interactionHandle: { cancel: () => void } | null = null;
     let cancelled = false;
 
-    // Web Platform Setup (Progressive Web App)
+    // Web Platform Setup (Disabled in favor of Native APK)
     if (Platform.OS === 'web') {
-      const initializeWebNotifications = async () => {
-        if (cancelled) return;
-        try {
-          console.log('🔧 Initializing Web/PWA push notifications...');
-          const swReg = await registerPWAServiceWorker();
-          if (swReg) {
-            await subscribeToWebPush(swReg, updatePushTokens);
-          }
-        } catch (error) {
-          console.error('Error initializing web notifications:', error);
-        }
-      };
-
-      interactionHandle = InteractionManager.runAfterInteractions(() => {
-        initializeWebNotifications();
-      });
-
-      // Listen for notification click routing messages posted from the Service Worker
-      if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-        const handleMessage = (event: MessageEvent) => {
-          if (event.data?.type === 'NOTIFICATION_CLICK') {
-            console.log('Notification click received from SW:', event.data.data);
-            handleNotificationResponse({ data: event.data.data } as any, router, user?.role);
-          }
-        };
-
-        navigator.serviceWorker.addEventListener('message', handleMessage);
-        return () => {
-          cancelled = true;
-          interactionHandle?.cancel();
-          initializedUserIdRef.current = null;
-          navigator.serviceWorker.removeEventListener('message', handleMessage);
-        };
-      }
-
-      return () => {
-        cancelled = true;
-        interactionHandle?.cancel();
-        initializedUserIdRef.current = null;
-      };
+      console.log('ℹ️ Web/PWA notifications are disabled (focusing on native APK).');
+      return () => {};
     }
 
     // Native Platforms Setup (iOS / Android)
