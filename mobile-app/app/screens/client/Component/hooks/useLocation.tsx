@@ -51,6 +51,65 @@ const useLocation = () => {
             // Try to load cached location first
             const hasCached = await getCachedLocation()
             
+            if (Platform.OS === 'web') {
+                if (typeof window !== 'undefined' && window.navigator && window.navigator.geolocation) {
+                    window.navigator.geolocation.getCurrentPosition(
+                        async (position) => {
+                            const { latitude, longitude } = position.coords;
+                            setLatitude(latitude);
+                            setLongitude(longitude);
+                            try {
+                                const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
+                                const res = await fetch(url, {
+                                    headers: {
+                                        'User-Agent': 'Asaan-Taqreeb-App/1.0'
+                                    }
+                                });
+                                const data = await res.json();
+                                if (data && data.address) {
+                                    const addr = data.address;
+                                    const city = addr.city || addr.town || addr.village || addr.suburb || addr.municipality || "";
+                                    const district = addr.county || addr.city_district || addr.district || addr.state || "";
+                                    const response = [{
+                                        city: city,
+                                        district: district,
+                                        country: addr.country || "",
+                                        name: addr.road || addr.suburb || ""
+                                    }];
+                                    setResult(response);
+                                    await cacheLocation(latitude, longitude, response);
+                                    setError("");
+                                } else {
+                                    throw new Error("No reverse geocoding results found");
+                                }
+                            } catch (err: any) {
+                                console.log("Web geocoding failed:", err);
+                                if (!hasCached) {
+                                    setError("Geocoding failed");
+                                }
+                            } finally {
+                                setLoading(false);
+                            }
+                        },
+                        (geoError) => {
+                            console.log("Web Geolocation failed:", geoError);
+                            if (!hasCached) {
+                                setError("Location permission denied or unavailable");
+                            }
+                            setLoading(false);
+                        },
+                        { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }
+                    );
+                } else {
+                    if (!hasCached) {
+                        setError("Geolocation not supported by browser");
+                    }
+                    setLoading(false);
+                }
+                return;
+            }
+
+            // Native iOS/Android implementation
             let {status} = await Location.requestForegroundPermissionsAsync()
 
             if (status !== 'granted') {
@@ -88,7 +147,13 @@ const useLocation = () => {
                 
                 try {
                     let response: any[] = []
-                    if (Platform.OS === 'web') {
+                    try {
+                        response = await Location.reverseGeocodeAsync({
+                            latitude,
+                            longitude
+                        })
+                    } catch (nativeGeocodeErr) {
+                        console.log("Native reverse geocoding failed, trying Nominatim fallback:", nativeGeocodeErr);
                         const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
                         const res = await fetch(url, {
                             headers: {
@@ -107,11 +172,6 @@ const useLocation = () => {
                                 name: addr.road || addr.suburb || ""
                             }]
                         }
-                    } else {
-                        response = await Location.reverseGeocodeAsync({
-                            latitude,
-                            longitude
-                        })
                     }
                     
                     if (response && response.length > 0) {
@@ -138,7 +198,9 @@ const useLocation = () => {
             console.log("Error getting location:", error)
             setError("Error fetching location - using cached if available")
         } finally {
-            setLoading(false)
+            if (Platform.OS !== 'web') {
+                setLoading(false)
+            }
         }
     }, [cacheLocation, getCachedLocation])
     

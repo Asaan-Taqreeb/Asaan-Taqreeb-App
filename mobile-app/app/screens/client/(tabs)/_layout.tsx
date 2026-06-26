@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Tabs, useRouter } from 'expo-router'
-import { Alert, View, TouchableOpacity, StyleSheet, Text, ActivityIndicator, AppState, AppStateStatus } from 'react-native'
+import { Alert, View, TouchableOpacity, StyleSheet, Text, ActivityIndicator, AppState, AppStateStatus, Platform } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors } from '@/app/_constants/theme'
 import { useUnreadNotificationCount, useUnreadMessageCount } from '@/app/_context/NotificationContext'
@@ -186,6 +186,11 @@ export default function TabLayout() {
   const [checkingPermission, setCheckingPermission] = useState(true)
 
   const checkLocationPermission = async () => {
+    if (Platform.OS === 'web') {
+      setHasPermission(true)
+      setCheckingPermission(false)
+      return
+    }
     try {
       const { status } = await Location.getForegroundPermissionsAsync()
       setHasPermission(status === 'granted')
