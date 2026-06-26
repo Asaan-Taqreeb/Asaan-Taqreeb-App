@@ -1,9 +1,6 @@
 name: Build Android Release APK
 
 on:
-  push:
-    branches:
-      - main  # Trigger on push to main branch
   workflow_dispatch: # Allows manual trigger from GitHub Actions tab
 
 jobs:
