@@ -8,7 +8,7 @@ const useLocation = () => {
     const [error, setError] = useState("")
     const [latitude, setLatitude] = useState<number | undefined>(undefined)
     const [longitude, setLongitude] = useState<number | undefined>(undefined)
-    const [result, setResult] = useState({})
+    const [result, setResult] = useState<any>(null)
     const [loading, setLoading] = useState(true)
 
     const getCachedLocation = useCallback(async () => {
@@ -55,19 +55,32 @@ const useLocation = () => {
             if (status !== 'granted') {
                 setError("Permission denied - using cached location if available")
                 setLoading(false)
-                // If permission denied but we have cache, that's OK
-                if (hasCached) {
-                    return
-                }
                 return
             }
 
-            // Get fresh location
-            let {coords} = await Location.getCurrentPositionAsync({
+            // Get fresh location with a 6-second timeout to prevent infinite hanging
+            const positionPromise = Location.getCurrentPositionAsync({
                 accuracy: Location.Accuracy.Balanced
-            })
+            });
 
-            if(coords) {
+            const timeoutPromise = new Promise<null>((resolve) => 
+                setTimeout(() => resolve(null), 6000)
+            );
+
+            const locationObj = await Promise.race([positionPromise, timeoutPromise]);
+            let coords = null;
+
+            if (locationObj) {
+                coords = locationObj.coords;
+            } else {
+                console.log("getCurrentPositionAsync timed out, trying getLastKnownPositionAsync...");
+                const lastKnown = await Location.getLastKnownPositionAsync();
+                if (lastKnown) {
+                    coords = lastKnown.coords;
+                }
+            }
+
+            if (coords) {
                 const {latitude, longitude} = coords;
                 setLatitude(latitude)
                 setLongitude(longitude)
@@ -77,19 +90,25 @@ const useLocation = () => {
                         latitude,
                         longitude
                     })
-                    setResult(response)
                     
-                    // Cache the location
-                    await cacheLocation(latitude, longitude, response)
-                    
-                    console.log("Fresh location fetched: ", response)
-                    setError("") // Clear any previous errors
+                    if (response && response.length > 0) {
+                        setResult(response)
+                        await cacheLocation(latitude, longitude, response)
+                        console.log("Fresh location fetched: ", response)
+                        setError("") // Clear any previous errors
+                    } else {
+                        throw new Error("No reverse geocoding results found");
+                    }
                 } catch (geocodeError) {
                     console.log("Geocoding service unavailable:", geocodeError)
-                    // If geocoding fails but we have cached location, use it
                     if (!hasCached) {
                         setError("Location service unavailable")
                     }
+                }
+            } else {
+                console.log("Failed to retrieve coordinates from GPS/Browser");
+                if (!hasCached) {
+                    setError("Location coordinates unavailable")
                 }
             }
         } catch (error) {
