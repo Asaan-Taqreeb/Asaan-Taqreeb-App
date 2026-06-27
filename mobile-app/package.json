@@ -1,7 +1,7 @@
 {
   "name": "mobile-app",
   "main": "expo-router/entry",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
@@ -9,6 +9,10 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "test": "npx --yes jest@29.7.0 --runInBand",
+    "test:watch": "npx --yes jest@29.7.0 --watch",
+    "release:update": "node ./scripts/release-update.js",
+    "release:update:ask": "node ./scripts/release-update-interactive.js",
     "postinstall": "patch-package"
   },
   "dependencies": {
@@ -69,6 +73,7 @@
     "@types/react": "~19.1.10",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "jest": "^29.7.0",
     "patch-package": "^8.0.1",
     "typescript": "~5.9.2"
   },

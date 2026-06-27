@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors, getCategoryColor, Shadows } from '@/app/_constants/theme'
 import { createBooking } from '@/app/_utils/bookingsApi'
 import { getVendorAvailability, type VendorAvailabilityDay } from '@/app/_utils/availabilityApi'
+import { parseRange, rangesOverlap, toLocalIsoDate } from '@/app/_utils/calendarDateUtils'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useUser } from '@/app/_context/UserContext'
 
@@ -18,84 +19,6 @@ type BookingAddon = {
     price: number
     items: string[]
 }
-
-const toMinutes = (value: string) => {
-    const raw = String(value || '').trim().toUpperCase()
-    
-    // Handle AM/PM format (e.g., "10:00 AM", "9 PM")
-    const ampmMatch = raw.match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)$/)
-    if (ampmMatch) {
-        let hour = Number(ampmMatch[1])
-        const minute = Number(ampmMatch[2] || '0')
-        const period = ampmMatch[3]
-        if (hour === 12) hour = 0
-        if (period === 'PM') hour += 12
-        return hour * 60 + minute
-    }
-
-    // Handle 24-hour format (e.g., "14:30", "9:00")
-    const h24Match = raw.match(/^(\d{1,2}):(\d{2})$/)
-    if (h24Match) {
-        const hour = Number(h24Match[1])
-        const minute = Number(h24Match[2])
-        if (hour >= 0 && hour < 24 && minute >= 0 && minute < 60) {
-            return hour * 60 + minute
-        }
-    }
-
-    return null
-}
-
-const parseRange = (value: string) => {
-    const [fromRaw, toRaw] = String(value || '').split(/\s*(?:to|-|–|—)\s*/i)
-    const from = toMinutes(fromRaw || '')
-    const to = toMinutes(toRaw || '')
-
-    if (from === null || to === null) return null
-
-    if (to <= from) {
-        return { from, to: to + 24 * 60 }
-    }
-
-    return { from, to }
-}
-
-const rangesOverlap = (
-    a: { from: number; to: number },
-    b: { from: number; to: number }
-) => Math.max(a.from, b.from) < Math.min(a.to, b.to)
-
-const generateHourlyIntervals = (fromStr: string, toStr: string) => {
-    const fromMin = toMinutes(fromStr) ?? (9 * 60);
-    const toMin = toMinutes(toStr) ?? (21 * 60);
-    
-    const intervals = [];
-    // Loop every 60 minutes
-    for (let time = fromMin; time <= toMin - 60; time += 60) {
-        const hour = Math.floor(time / 60) % 24;
-        const min = time % 60;
-        const period = hour >= 12 ? 'PM' : 'AM';
-        const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-        const displayMin = String(min).padStart(2, '0');
-        
-        const label = `${displayHour}:${displayMin} ${period}`;
-        
-        // Let's make it a 3-hour duration slot for booking
-        const endTimeMin = time + 3 * 60;
-        const endHour = Math.floor(endTimeMin / 60) % 24;
-        const endMin = endTimeMin % 60;
-        const endPeriod = endHour >= 12 ? 'PM' : 'AM';
-        const endDisplayHour = endHour % 12 === 0 ? 12 : endHour % 12;
-        const endDisplayMin = String(endMin).padStart(2, '0');
-        
-        const value = `${label} to ${endDisplayHour}:${endDisplayMin} ${endPeriod}`;
-        intervals.push({ label, value });
-    }
-    return intervals;
-}
-
-
-
 export default function BookingScreen() {
     const insets = useSafeAreaInsets()
     const params = useLocalSearchParams()
@@ -223,17 +146,13 @@ export default function BookingScreen() {
     }, 0)
 
     const packagePrice = Number(bookingData.price) || 0
-    const guestMultiplier = requiresGuestCount ? (Number(bookingData.guestCount) || 1) : 1
+    const guestMultiplier = requiresGuestCount ? Number(bookingData.guestCount) : 1
     const travelFeeTotal = (normalizedCategory === 'parlor' && isHomeService) ? (Number(bookingData.onSiteFee) || 0) : 0
     const totalPrice = (packagePrice * guestMultiplier) + addonsTotal + travelFeeTotal
     const advancePayment = Math.round(totalPrice * 0.5) // 50% advance
 
     // Get today's date for min date
-    const today = new Date()
-    const year = today.getFullYear()
-    const month = String(today.getMonth() + 1).padStart(2, '0')
-    const day = String(today.getDate()).padStart(2, '0')
-    const minDate = `${year}-${month}-${day}`
+    const minDate = toLocalIsoDate(new Date())
 
     useEffect(() => {
         let mounted = true
@@ -247,9 +166,9 @@ export default function BookingScreen() {
             try {
                 if (mounted) setIsLoadingAvailability(true)
                 const now = new Date()
-                const from = now.toISOString().slice(0, 10)
+                const from = toLocalIsoDate(now)
                 const nextYear = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate())
-                const to = nextYear.toISOString().slice(0, 10)
+                const to = toLocalIsoDate(nextYear)
                 const days = await getVendorAvailability(vendorAvailabilityId, from, to)
 
                 if (mounted) {
@@ -343,7 +262,6 @@ export default function BookingScreen() {
 
     const markedDates = useMemo(() => {
         const result: Record<string, any> = {};
-        const min = new Date(minDate);
         for (const [date, status] of Object.entries(dayStatusMap)) {
             const ranges = unavailableRangesMap[date] || [];
             
@@ -356,7 +274,7 @@ export default function BookingScreen() {
                 selectedTimeRange && ranges.some((range) => rangesOverlap(selectedTimeRange, range))
             )
             
-            const isPast = new Date(date) < min;
+            const isPast = date < minDate;
             const shouldDisable = isFullDayBlocked || isBlockedBySelection || isPast;
 
             result[date] = {
@@ -440,6 +358,11 @@ export default function BookingScreen() {
 
         if (!getSelectedTime()) {
             Alert.alert('Missing Time', 'Please select or enter event time.')
+            return false
+        }
+
+        if (requiresGuestCount && (!bookingData.guestCount || Number(bookingData.guestCount) <= 0)) {
+            Alert.alert('Missing Guests', 'Please provide the number of guests for this booking.')
             return false
         }
 
@@ -583,11 +506,6 @@ export default function BookingScreen() {
                 <View className='rounded-2xl overflow-hidden' style={[{backgroundColor: Colors.lightGray}, Shadows.medium]}>
                     <Calendar 
                         onDayPress={day => {
-                            const selected = new Date(day.dateString);
-                            const min = new Date(minDate);
-                            if (selected < min) {
-                                return;
-                            }
                             if (day.dateString < minDate) {
                                 return;
                             }

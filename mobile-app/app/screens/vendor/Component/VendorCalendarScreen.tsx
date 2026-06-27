@@ -7,61 +7,9 @@ import { blockDateForVendor, getVendorAvailability, unblockDateForVendor, type V
 import { getVendorBookings } from '@/app/_utils/bookingsApi'
 import { useUser } from '@/app/_context/UserContext'
 import { getMyVendorServices } from '@/app/_utils/servicesApi'
+import { generateHourlyIntervals, getLocalMonthRange, toLocalIsoDate } from '@/app/_utils/calendarDateUtils'
 
 import AsyncStorage from '@react-native-async-storage/async-storage'
-
-const toMinutes = (value: string) => {
-  const raw = String(value || '').trim().toUpperCase()
-  const ampmMatch = raw.match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)$/)
-  if (ampmMatch) {
-    let hour = Number(ampmMatch[1])
-    const minute = Number(ampmMatch[2] || '0')
-    const period = ampmMatch[3]
-    if (hour === 12) hour = 0
-    if (period === 'PM') hour += 12
-    return hour * 60 + minute
-  }
-  const h24Match = raw.match(/^(\d{1,2}):(\d{2})$/)
-  if (h24Match) {
-    const hour = Number(h24Match[1])
-    const minute = Number(h24Match[2])
-    if (hour >= 0 && hour < 24 && minute >= 0 && minute < 60) {
-      return hour * 60 + minute
-    }
-  }
-  return null
-}
-
-const generateHourlyIntervals = (fromStr: string, toStr: string) => {
-  const fromMin = toMinutes(fromStr) ?? (9 * 60)
-  const toMin = toMinutes(toStr) ?? (21 * 60)
-  const intervals = []
-  
-  for (let time = fromMin; time <= toMin - 60; time += 60) {
-    const hour = Math.floor(time / 60) % 24
-    const min = time % 60
-    const period = hour >= 12 ? 'PM' : 'AM'
-    const displayHour = hour % 12 === 0 ? 12 : hour % 12
-    const displayMin = String(min).padStart(2, '0')
-    const label = `${displayHour}:${displayMin} ${period}`
-    
-    const endTimeMin = time + 3 * 60
-    const endHour = Math.floor(endTimeMin / 60) % 24
-    const endMin = endTimeMin % 60
-    const endPeriod = endHour >= 12 ? 'PM' : 'AM'
-    const endDisplayHour = endHour % 12 === 0 ? 12 : endHour % 12
-    const endDisplayMin = String(endMin).padStart(2, '0')
-    const toLabel = `${endDisplayHour}:${endDisplayMin} ${endPeriod}`
-    
-    intervals.push({
-      id: `slot_${time}`,
-      label: `${label} - ${toLabel}`,
-      from: label,
-      to: toLabel
-    })
-  }
-  return intervals
-}
  
 interface BookingDetail {
   id: number
@@ -222,10 +170,7 @@ export default function VendorCalendarScreen() {
       try {
         if (mounted) setIsLoading(true)
 
-        const year = currentDate.getFullYear()
-        const month = currentDate.getMonth()
-        const from = new Date(year, month, 1).toISOString().slice(0, 10)
-        const to = new Date(year, month + 1, 0).toISOString().slice(0, 10)
+        const { from, to } = getLocalMonthRange(currentDate)
 
         const [availability, vendorBookings] = await Promise.all([
           getVendorAvailability(user.id, from, to),

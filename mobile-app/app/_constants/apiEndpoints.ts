@@ -82,6 +82,10 @@ export const NOTIFICATION_ENDPOINTS = {
   delete: (id: string) => withApiPrefix(`/notifications/${id}`),
 }
 
+export const APP_ENDPOINTS = {
+  updateInfo: withApiPrefix('/app/update-info'),
+}
+
 export const REVIEW_ENDPOINTS = {
   createReview: withApiPrefix('/reviews'),
   vendorReviews: (vendorId: string | number) => withApiPrefix(`/reviews/vendor/${vendorId}`),

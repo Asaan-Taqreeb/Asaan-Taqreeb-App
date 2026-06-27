@@ -8,6 +8,9 @@ import { LanguageProvider } from '@/app/_context/LanguageContext';
 import { SocketProvider } from '@/app/_context/SocketContext';
 import { ThemeProvider, useTheme } from '@/app/_context/ThemeContext';
 import { useNotificationSetup } from '@/app/_hooks/useNotificationSetup';
+import { useAppUpdateCheck } from '@/app/_hooks/useAppUpdateCheck';
+import AppUpdateModal from '@/app/_components/AppUpdateModal';
+import { useEffect, useState } from 'react';
 
 LogBox.ignoreLogs([
   'expo-notifications: Android Push notifications',
@@ -17,6 +20,29 @@ LogBox.ignoreLogs([
 function NotificationInitializer() {
   useNotificationSetup();
   return null;
+}
+
+function UpdateInitializer() {
+  const { checking, updateAvailable, currentVersion, latestVersion, apkUrl, forceUpdate, releaseNotes } = useAppUpdateCheck();
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    if (updateAvailable) {
+      setDismissed(false);
+    }
+  }, [updateAvailable, latestVersion]);
+
+  return (
+    <AppUpdateModal
+      visible={!checking && updateAvailable && !dismissed}
+      currentVersion={currentVersion}
+      latestVersion={latestVersion}
+      releaseNotes={releaseNotes}
+      apkUrl={apkUrl}
+      forceUpdate={forceUpdate}
+      onClose={() => setDismissed(true)}
+    />
+  );
 }
 
 function AppContent({ stackContent }: { stackContent: React.ReactNode }) {
@@ -54,6 +80,7 @@ export default function RootLayout() {
         <LanguageProvider>
           <SocketProvider>
             <NotificationInitializer />
+            <UpdateInitializer />
             <AppContent stackContent={stackContent} />
           </SocketProvider>
         </LanguageProvider>
