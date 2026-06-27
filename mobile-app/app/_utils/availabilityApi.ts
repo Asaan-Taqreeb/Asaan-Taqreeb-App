@@ -95,9 +95,14 @@ export const getVendorAvailability = async (
   vendorId: string | number,
   from?: string,
   to?: string,
+  branchId?: string,
   options?: { auth?: boolean }
 ) => {
-  const primaryUrl = AVAILABILITY_ENDPOINTS.getVendorAvailability(vendorId, from, to)
+  let primaryUrl = AVAILABILITY_ENDPOINTS.getVendorAvailability(vendorId, from, to)
+
+  if (branchId) {
+    primaryUrl += `${primaryUrl.includes('?') ? '&' : '?'}branchId=${branchId}`
+  }
 
   let response = await apiFetch(primaryUrl, {
     method: 'GET',
@@ -139,11 +144,12 @@ export const getVendorAvailability = async (
 
 export const blockDateForVendor = async (
   date: string,
-  options?: { vendorId?: string | number; reason?: string; timeSlot?: { from: string; to: string } }
+  options?: { vendorId?: string | number; reason?: string; timeSlot?: { from: string; to: string }; branchId?: string }
 ) => {
   const body = JSON.stringify({
     timeSlot: options?.timeSlot ?? { from: '10:00', to: '17:00' },
     reason: options?.reason ?? 'Blocked by vendor',
+    branchId: options?.branchId,
   })
 
   const url = AVAILABILITY_ENDPOINTS.blockAvailability(date)
@@ -179,9 +185,10 @@ export const blockDateForVendor = async (
   return true
 }
 
-export const unblockDateForVendor = async (date: string, options?: { vendorId?: string | number; timeSlot?: { from: string; to: string } }) => {
+export const unblockDateForVendor = async (date: string, options?: { vendorId?: string | number; timeSlot?: { from: string; to: string }; branchId?: string }) => {
   const body = JSON.stringify({
     timeSlot: options?.timeSlot ?? { from: '10:00', to: '17:00' },
+    branchId: options?.branchId,
   })
   
   const url = AVAILABILITY_ENDPOINTS.unblockAvailability(date)

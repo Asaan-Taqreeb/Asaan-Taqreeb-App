@@ -58,6 +58,8 @@ export type VendorOrderItem = {
   specialRequests?: string
   optionalItems?: { name: string; price: number }[]
   paidAmount: number
+  branchId?: string
+  branchName?: string
 }
 
 export type CreateBookingPayload = {
@@ -79,6 +81,8 @@ export type CreateBookingPayload = {
   selectedAddons?: string[]
   totalAmount: number
   advancePayment: number
+  branchId?: string
+  branchName?: string
 }
 
 const normalizeTo24Hour = (value: string): string | null => {
@@ -208,6 +212,8 @@ const mapSingleVendorBookingToUi = (item: any, index = Date.now()): VendorOrderI
     specialRequests: item?.specialRequests || undefined,
     optionalItems,
     paidAmount: toNumber(firstDefined(item?.paidAmount, item?.pricing?.paidAmount, 0), 0),
+    branchId: item?.branchId,
+    branchName: item?.branchName,
   }
 }
 
@@ -232,6 +238,8 @@ export const createBooking = async (payload: CreateBookingPayload) => {
     selectedAddons,
     totalAmount: payload.totalAmount,
     advancePayment: payload.advancePayment,
+    branchId: payload.branchId,
+    branchName: payload.branchName,
   }
 
   const result = await apiFetchJson<any>(

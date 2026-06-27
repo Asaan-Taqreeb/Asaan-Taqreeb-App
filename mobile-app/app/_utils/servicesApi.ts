@@ -65,6 +65,16 @@ export type ServiceListItem = {
   optionalServices?: { name: string; price: number }[]
   createdAt?: string
   updatedAt?: string
+  isOnSite?: boolean
+  onSiteFee?: number
+  branches?: Array<{
+    id: string
+    name: string
+    location: string
+    latitude?: number
+    longitude?: number
+    operatingHours: { from: string; to: string }
+  }>
 }
 
 const toCategoryKey = (value: unknown): ServiceListItem['category'] => {
@@ -283,6 +293,21 @@ export const mapServiceToUi = (service: any): ServiceListItem => {
     })(),
     packages,
     optionalServices,
+    isOnSite: bi?.isOnSite ?? service?.isOnSite ?? false,
+    onSiteFee: toNumber(bi?.onSiteFee ?? service?.onSiteFee, 0),
+    branches: Array.isArray(service?.branches) 
+      ? service.branches.map((b: any) => ({
+          id: String(b.id || b._id || ''),
+          name: String(b.name || ''),
+          location: String(b.location || ''),
+          latitude: toFiniteNumberOrUndefined(b.latitude),
+          longitude: toFiniteNumberOrUndefined(b.longitude),
+          operatingHours: {
+            from: String(b.operatingHours?.from || '09:00 AM'),
+            to: String(b.operatingHours?.to || '09:00 PM')
+          }
+        }))
+      : undefined
   }
 }
 
@@ -523,8 +548,18 @@ export const createVendorService = async (payload: Record<string, any>) => {
 
   const requestBody: Record<string, any> = {
     category,
-    basicInfo: { name, location, landmark, about, latitude, longitude },
+    basicInfo: { 
+      name, 
+      location, 
+      landmark, 
+      about, 
+      latitude, 
+      longitude,
+      isOnSite: payload.isOnSite ?? false,
+      onSiteFee: toNumber(payload.onSiteFee, 0)
+    },
     packages: normalizedPackages,
+    branches: Array.isArray(payload.branches) ? payload.branches : [],
   }
 
   if (category === 'BANQUET_HALL') {
@@ -699,7 +734,7 @@ export const updateVendorService = async (serviceId: string | number, payload: R
   const about = payload.about || payload.description;
   const landmark = payload.landmark || payload.nearbyLandmark || payload.landmark;
 
-  if (name || location || landmark || about || payload.latitude !== undefined) {
+  if (name || location || landmark || about || payload.latitude !== undefined || payload.isOnSite !== undefined) {
     body.basicInfo = {
       ...(name ? { name } : {}),
       ...(location ? { location } : {}),
@@ -707,6 +742,8 @@ export const updateVendorService = async (serviceId: string | number, payload: R
       ...(about ? { about } : {}),
       ...(payload.latitude !== undefined ? { latitude: toFiniteNumberOrUndefined(payload.latitude) } : {}),
       ...(payload.longitude !== undefined ? { longitude: toFiniteNumberOrUndefined(payload.longitude) } : {}),
+      ...(payload.isOnSite !== undefined ? { isOnSite: payload.isOnSite } : {}),
+      ...(payload.onSiteFee !== undefined ? { onSiteFee: toNumber(payload.onSiteFee, 0) } : {}),
     }
   }
 
@@ -725,6 +762,10 @@ export const updateVendorService = async (serviceId: string | number, payload: R
     body.optionalServices = payload.optionalServices
       .filter((s: any) => s?.name?.trim() && s?.price !== undefined)
       .map((s: any) => ({ name: String(s.name), price: toNumber(s.price, 0) }))
+  }
+
+  if (Array.isArray(payload.branches)) {
+    body.branches = payload.branches
   }
 
   const result = await apiFetchJson<any>(

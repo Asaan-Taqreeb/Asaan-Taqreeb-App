@@ -626,7 +626,10 @@ export default function DetailScreenPage() {
                                             guestCount: selectedGuestCount,
                                             vendorName: vendor.name,
                                             vendorLocation: vendor.location,
-                                            optionalServices: vendor.optionalServices || []
+                                            isOnSite: vendor.isOnSite,
+                                            onSiteFee: vendor.onSiteFee,
+                                            optionalServices: vendor.optionalServices || [],
+                                            branches: vendor.branches || []
                                         }
                                         router.push({
                                             pathname: "/screens/client/Component/BookingScreen",
@@ -778,7 +781,8 @@ export default function DetailScreenPage() {
                                         vendorName: vendor.name,
                                         vendorLocation: vendor.location,
                                         isCustomPackage: true,
-                                        optionalServices: vendor.optionalServices || []
+                                        optionalServices: vendor.optionalServices || [],
+                                        branches: vendor.branches || []
                                     }
                                     setShowCustomPackage(false)
                                     setCustomPackageName('')

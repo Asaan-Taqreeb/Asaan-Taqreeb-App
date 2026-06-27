@@ -1,7 +1,9 @@
 import { useRouter, useLocalSearchParams } from 'expo-router'
-import { ArrowLeft, Send, Paperclip, FileText, Calendar, Video, MapPin, X } from 'lucide-react-native'
+import { ArrowLeft, Send, Paperclip, FileText, Calendar, Video, MapPin, X, Mic } from 'lucide-react-native'
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, Alert, ViewStyle, Image, ActivityIndicator, Keyboard, Modal } from 'react-native'
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, Alert, ViewStyle, Image, ActivityIndicator, Keyboard, Modal, FlatList } from 'react-native'
+import { Audio } from 'expo-av'
+import AudioPlayer from '@/app/_components/AudioPlayer'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors, Shadows } from '@/app/_constants/theme'
 import { getChatHistory, sendMessage, markChatAsRead, Message } from '@/app/_utils/messagesApi'
@@ -14,7 +16,7 @@ export default function ClientChatScreen() {
     const insets = useSafeAreaInsets()
     const router = useRouter()
     const params = useLocalSearchParams()
-    const scrollViewRef = useRef<ScrollView>(null)
+    const flatListRef = useRef<FlatList<Message>>(null)
     const [message, setMessage] = useState('')
     const [messages, setMessages] = useState<Message[]>([])
     const [isLoading, setIsLoading] = useState(true)
@@ -22,6 +24,124 @@ export default function ClientChatScreen() {
     const [viewerImages, setViewerImages] = useState<string[]>([])
     const [viewerIndex, setViewerIndex] = useState(0)
     const [isUploadingImage, setIsUploadingImage] = useState(false)
+    
+    // Voice recording states and functions
+    const [isRecording, setIsRecording] = useState(false)
+    const [recording, setRecording] = useState<Audio.Recording | null>(null)
+    const [recordingDuration, setRecordingDuration] = useState(0)
+    const recordingTimerRef = useRef<any>(null)
+    const [isUploadingVoice, setIsUploadingVoice] = useState(false)
+
+    const startRecording = async () => {
+        try {
+            const { status } = await Audio.requestPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Permission Denied', 'Please enable microphone access in settings to send voice notes.');
+                return;
+            }
+
+            await Audio.setAudioModeAsync({
+                allowsRecordingIOS: true,
+                playsInSilentModeIOS: true,
+            });
+
+            if (recording) {
+                await recording.stopAndUnloadAsync().catch(() => {});
+            }
+
+            const { recording: newRecording } = await Audio.Recording.createAsync(
+                Audio.RecordingOptionsPresets.HIGH_QUALITY
+            );
+            
+            setRecording(newRecording);
+            setIsRecording(true);
+            setRecordingDuration(0);
+
+            if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+            recordingTimerRef.current = setInterval(() => {
+                setRecordingDuration(prev => prev + 1);
+            }, 1000);
+        } catch (err) {
+            console.error('Failed to start recording', err);
+            Alert.alert('Recording Error', 'Could not start recording. Please try again.');
+        }
+    };
+
+    const stopAndSendRecording = async () => {
+        if (!recording) return;
+        
+        setIsRecording(false);
+        if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+
+        try {
+            await recording.stopAndUnloadAsync();
+            const uri = recording.getURI();
+            setRecording(null);
+
+            if (uri && clientId) {
+                setIsUploadingVoice(true);
+
+                // Add an optimistic voice message to UI
+                const optimisticId = Date.now().toString();
+                const optimisticMessage: Message = {
+                    _id: optimisticId,
+                    chatId,
+                    senderId: { _id: user?.id as string, name: user?.name as string, email: '' },
+                    receiverId: { _id: clientId, name: clientName, email: '' },
+                    text: '',
+                    audioUrl: uri,
+                    isSending: true,
+                    isRead: false,
+                    createdAt: new Date().toISOString()
+                };
+
+                setMessages(prev => [optimisticMessage, ...prev]);
+
+                const savedMessage = normalizeMessage(await sendMessage(
+                    chatId, 
+                    clientId, 
+                    '', 
+                    undefined, 
+                    undefined, 
+                    undefined, 
+                    uri
+                ));
+
+                setMessages(prev => {
+                    if (prev.some(m => m._id === savedMessage._id)) {
+                        return prev.filter(m => m._id !== optimisticId);
+                    }
+                    return prev.map(m => m._id === optimisticId ? { ...savedMessage, isSending: false } : m);
+                });
+            }
+        } catch (error) {
+            console.error('Failed to stop and send recording', error);
+            Alert.alert('Upload Error', 'Could not upload the voice note. Please try again.');
+        } finally {
+            setIsUploadingVoice(false);
+        }
+    };
+
+    const cancelRecording = async () => {
+        if (!recording) return;
+        
+        setIsRecording(false);
+        if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+
+        try {
+            await recording.stopAndUnloadAsync();
+            setRecording(null);
+        } catch (err) {
+            console.log('Error cancelling recording:', err);
+        }
+    };
+
+    useEffect(() => {
+        return () => {
+            if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+        };
+    }, []);
+
     const [isOpponentTyping, setIsOpponentTyping] = useState(false)
     const typingTimeoutRef = useRef<any>(null)
     const isTypingRef = useRef(false)
@@ -129,7 +249,7 @@ export default function ClientChatScreen() {
         if (!chatId) return
         try {
             const history = await getChatHistory(chatId)
-            setMessages(history.map(normalizeMessage))
+            setMessages(history.map(normalizeMessage).reverse())
             await markChatAsRead(chatId)
         } catch (error) {
             console.log('Error loading chat history:', error)
@@ -154,7 +274,7 @@ export default function ClientChatScreen() {
                 if (normalizedMessage.senderId._id === user?.id) return prev;
                 
                 if (prev.some((msg) => msg._id === normalizedMessage._id)) return prev;
-                return [...prev, normalizedMessage];
+                return [normalizedMessage, ...prev];
             })
             markChatAsRead(chatId)
         })
@@ -172,22 +292,7 @@ export default function ClientChatScreen() {
         }
     }, [socket, chatId, user])
 
-    useEffect(() => {
-        if (!isLoading) {
-            scrollViewRef.current?.scrollToEnd({ animated: true })
-        }
-    }, [messages, isLoading])
-
-    useEffect(() => {
-        const showSubscription = Keyboard.addListener('keyboardDidShow', () => {
-            setTimeout(() => {
-                scrollViewRef.current?.scrollToEnd({ animated: true })
-            }, 100)
-        })
-        return () => {
-            showSubscription.remove()
-        }
-    }, [])
+    // Auto-scroll is handled natively by the inverted FlatList container
 
     const handleTextChange = (text: string) => {
         setMessage(text)
@@ -263,7 +368,7 @@ export default function ClientChatScreen() {
             }
 
             setIsUploadingImage(true)
-            setMessages(prev => [...prev, optimisticMessage])
+            setMessages(prev => [optimisticMessage, ...prev])
             setMessage('')
 
             const savedMessage = normalizeMessage(await sendMessage(chatId, clientId, textToSend, undefined, undefined, asset.uri))
@@ -304,7 +409,7 @@ export default function ClientChatScreen() {
                 isRead: false,
                 createdAt: new Date().toISOString()
             }
-            setMessages(prev => [...prev, optimisticMessage])
+            setMessages(prev => [optimisticMessage, ...prev])
 
             try {
                 const savedMessage = normalizeMessage(await sendMessage(chatId, clientId, textToSend))
@@ -362,7 +467,7 @@ Generated by ${user?.name || 'Vendor Partner'}`
                 isRead: false,
                 createdAt: new Date().toISOString()
             }
-            setMessages(prev => [...prev, optimisticMessage])
+            setMessages(prev => [optimisticMessage, ...prev])
 
             try {
                 const savedMessage = normalizeMessage(await sendMessage(chatId, clientId, text))
@@ -545,6 +650,19 @@ Generated by ${user?.name || 'Vendor Partner'}`
                         ) : null}
                     </View>
                 ) : null}
+                {msg.audioUrl ? (
+                    <View style={{ marginBottom: msg.text ? 10 : 0 }}>
+                        <AudioPlayer audioUrl={msg.audioUrl} isSender={isUser} />
+                        {msg.isSending ? (
+                            <View
+                                className='absolute inset-0 items-center justify-center rounded-2xl'
+                                style={{ backgroundColor: 'rgba(15, 23, 42, 0.35)' }}
+                            >
+                                <ActivityIndicator size='small' color={Colors.white} />
+                            </View>
+                        ) : null}
+                    </View>
+                ) : null}
                 {msg.text ? (
                     <Text
                         className='text-base leading-relaxed'
@@ -590,36 +708,28 @@ Generated by ${user?.name || 'Vendor Partner'}`
             </View>
 
             {/* Messages */}
-            <ScrollView
-                ref={scrollViewRef}
-                className='flex-1 px-5 py-4'
+            <FlatList
+                ref={flatListRef}
+                data={messages}
+                keyExtractor={(item) => item._id}
+                inverted
                 showsVerticalScrollIndicator={false}
-                onContentSizeChange={() => {
-                    setTimeout(() => {
-                        scrollViewRef.current?.scrollToEnd({ animated: true })
-                    }, 50)
-                }}
-                onLayout={() => {
-                    setTimeout(() => {
-                        scrollViewRef.current?.scrollToEnd({ animated: true })
-                    }, 50)
-                }}
-            >
-                {messages.map((msg) => {
+                contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 16 }}
+                renderItem={({ item: msg }) => {
                     const isUser = msg.senderId._id === user?.id
                     return (
-                    <View
-                        key={msg._id}
-                        className={`mb-3 ${isUser ? 'items-end' : 'items-start'}`}
-                    >
-                        {renderMessageBody(msg, isUser)}
-                        <Text className='text-xs mt-1 px-1' style={{color: Colors.textTertiary}}>
-                            {formatTime(new Date(msg.createdAt))}
-                        </Text>
-                    </View>
+                        <View
+                            key={msg._id}
+                            className={`mb-3 ${isUser ? 'items-end' : 'items-start'}`}
+                        >
+                            {renderMessageBody(msg, isUser)}
+                            <Text className='text-xs mt-1 px-1' style={{color: Colors.textTertiary}}>
+                                {formatTime(new Date(msg.createdAt))}
+                            </Text>
+                        </View>
                     )
-                })}
-                {isOpponentTyping && (
+                }}
+                ListHeaderComponent={isOpponentTyping ? (
                     <View className='items-start mb-3'>
                         <View
                             className='px-4 py-3 rounded-2xl bg-white border border-gray-100 flex-row items-center gap-2'
@@ -629,8 +739,8 @@ Generated by ${user?.name || 'Vendor Partner'}`
                             <Text className="text-xs font-bold text-slate-400 uppercase tracking-widest">{clientName} is typing...</Text>
                         </View>
                     </View>
-                )}
-            </ScrollView>
+                ) : null}
+            />
 
             {/* Message Input */}
             <View className='px-5 py-4' style={{borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.white}}>
@@ -640,49 +750,91 @@ Generated by ${user?.name || 'Vendor Partner'}`
                         <Text className='text-xs font-medium flex-1' style={{color: Colors.textSecondary}}>Uploading image...</Text>
                     </View>
                 )}
+                {isUploadingVoice && (
+                    <View className='mb-3 flex-row items-center gap-2 px-3 py-2 rounded-lg' style={{backgroundColor: Colors.lightGray}}>
+                        <ActivityIndicator size='small' color={Colors.primary} />
+                        <Text className='text-xs font-medium flex-1' style={{color: Colors.textSecondary}}>Uploading voice message...</Text>
+                    </View>
+                )}
                 <View className='flex-row items-center gap-2'>
-                    <Pressable
-                        className='w-12 h-12 rounded-full items-center justify-center active:opacity-75'
-                        style={{backgroundColor: Colors.lightGray}}
-                        onPress={sendImageProof}
-                        disabled={isUploadingImage}
-                    >
-                        <Paperclip color={Colors.primary} size={22} />
-                    </Pressable>
-                    <Pressable
-                        className='w-12 h-12 rounded-full items-center justify-center active:opacity-75'
-                        style={{backgroundColor: Colors.lightGray}}
-                        onPress={() => setShowSchedulerModal(true)}
-                        disabled={isUploadingImage}
-                    >
-                        <Calendar color={Colors.primary} size={22} />
-                    </Pressable>
-                    <Pressable
-                        className='w-12 h-12 rounded-full items-center justify-center active:opacity-75'
-                        style={{backgroundColor: Colors.lightGray}}
-                        onPress={() => setInvoiceModalVisible(true)}
-                        disabled={isUploadingImage}
-                    >
-                        <FileText color={Colors.primary} size={22} />
-                    </Pressable>
-                    <TextInput
-                        value={message}
-                        onChangeText={handleTextChange}
-                        placeholder='Type a message...'
-                        placeholderTextColor={Colors.textTertiary}
-                        className='flex-1 rounded-2xl px-4 py-3 text-base'
-                        style={{backgroundColor: Colors.lightGray, color: Colors.textPrimary}}
-                        multiline
-                        maxLength={500}
-                    />
-                    <Pressable
-                        className='w-12 h-12 rounded-full items-center justify-center active:opacity-80'
-                        style={{backgroundColor: message.trim() ? Colors.primary : Colors.borderDark}}
-                        onPress={handleSend}
-                        disabled={!message.trim()}
-                    >
-                        <Send color={Colors.white} size={22} fill={Colors.white} />
-                    </Pressable>
+                    {isRecording ? (
+                        <View className="flex-row items-center flex-1 gap-3 px-4 py-2 bg-red-50 border border-red-100 rounded-2xl" style={{ borderColor: '#FEE2E2' }}>
+                            <View className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#dc2626' }} />
+                            <Text className="text-red-600 font-extrabold text-sm flex-1" style={{ color: '#dc2626' }}>
+                                Recording voice message ({recordingDuration}s)
+                            </Text>
+                            <Pressable 
+                                onPress={cancelRecording}
+                                className="px-3 py-1.5 rounded-lg border"
+                                style={{ backgroundColor: '#FEF2F2', borderColor: '#FCA5A5' }}
+                            >
+                                <Text className="text-xs font-bold" style={{ color: '#dc2626' }}>Cancel</Text>
+                            </Pressable>
+                            <Pressable 
+                                onPress={stopAndSendRecording}
+                                className="px-3 py-1.5 rounded-lg"
+                                style={{ backgroundColor: '#dc2626' }}
+                            >
+                                <Text className="text-xs font-bold text-white">Send</Text>
+                            </Pressable>
+                        </View>
+                    ) : (
+                        <>
+                            <Pressable
+                                className='w-12 h-12 rounded-full items-center justify-center active:opacity-75'
+                                style={{backgroundColor: Colors.lightGray}}
+                                onPress={sendImageProof}
+                                disabled={isUploadingImage || isUploadingVoice}
+                            >
+                                <Paperclip color={Colors.primary} size={22} />
+                            </Pressable>
+                            <Pressable
+                                className='w-12 h-12 rounded-full items-center justify-center active:opacity-75'
+                                style={{backgroundColor: Colors.lightGray}}
+                                onPress={() => setShowSchedulerModal(true)}
+                                disabled={isUploadingImage || isUploadingVoice}
+                            >
+                                <Calendar color={Colors.primary} size={22} />
+                            </Pressable>
+                            <Pressable
+                                className='w-12 h-12 rounded-full items-center justify-center active:opacity-75'
+                                style={{backgroundColor: Colors.lightGray}}
+                                onPress={() => setInvoiceModalVisible(true)}
+                                disabled={isUploadingImage || isUploadingVoice}
+                            >
+                                <FileText color={Colors.primary} size={22} />
+                            </Pressable>
+                            <TextInput
+                                value={message}
+                                onChangeText={handleTextChange}
+                                placeholder='Type a message...'
+                                placeholderTextColor={Colors.textTertiary}
+                                className='flex-1 rounded-2xl px-4 py-3 text-base'
+                                style={{backgroundColor: Colors.lightGray, color: Colors.textPrimary}}
+                                multiline
+                                maxLength={500}
+                                editable={!isUploadingImage && !isUploadingVoice}
+                            />
+                            {message.trim() ? (
+                                <Pressable
+                                    className='w-12 h-12 rounded-full items-center justify-center active:opacity-80'
+                                    style={{backgroundColor: Colors.primary}}
+                                    onPress={handleSend}
+                                >
+                                    <Send color={Colors.white} size={22} fill={Colors.white} />
+                                </Pressable>
+                            ) : (
+                                <Pressable
+                                    className='w-12 h-12 rounded-full items-center justify-center active:opacity-80'
+                                    style={{backgroundColor: Colors.primary}}
+                                    onPress={startRecording}
+                                    disabled={isUploadingImage || isUploadingVoice}
+                                >
+                                    <Mic color={Colors.white} size={22} />
+                                </Pressable>
+                            )}
+                        </>
+                    )}
                 </View>
             </View>
 

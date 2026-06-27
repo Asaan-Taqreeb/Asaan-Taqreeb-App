@@ -11,7 +11,8 @@ import {
     SafeAreaView,
     Platform,
     ViewStyle,
-    TextStyle
+    TextStyle,
+    ScrollView
 } from 'react-native';
 import { Search, MapPin, Navigation, X, Check, Map as MapIcon } from 'lucide-react-native';
 import * as Location from 'expo-location';
@@ -37,6 +38,20 @@ const DEFAULT_REGION = {
     latitudeDelta: 0.05,
     longitudeDelta: 0.05,
 };
+
+const KARACHI_FALLBACKS = [
+    { keys: ['clifton'], name: 'Clifton, Karachi', latitude: 24.8138, longitude: 67.0336 },
+    { keys: ['defence', 'dha'], name: 'DHA, Karachi', latitude: 24.8238, longitude: 67.0681 },
+    { keys: ['gulshan', 'iqbal'], name: 'Gulshan-e-Iqbal, Karachi', latitude: 24.9180, longitude: 67.0971 },
+    { keys: ['north nazimabad'], name: 'North Nazimabad, Karachi', latitude: 24.9372, longitude: 67.0416 },
+    { keys: ['saddar', 'tariq', 'pechs'], name: 'Saddar, Karachi', latitude: 24.8615, longitude: 67.0423 },
+    { keys: ['fb area', 'federal b'], name: 'Federal B Area, Karachi', latitude: 24.9312, longitude: 67.0794 },
+    { keys: ['bahria'], name: 'Bahria Town, Karachi', latitude: 25.0252, longitude: 67.3294 },
+    { keys: ['malir'], name: 'Malir, Karachi', latitude: 24.8986, longitude: 67.1908 },
+    { keys: ['korangi'], name: 'Korangi, Karachi', latitude: 24.8322, longitude: 67.1265 },
+    { keys: ['nazimabad'], name: 'Nazimabad, Karachi', latitude: 24.9122, longitude: 67.0265 },
+    { keys: ['johar', 'gulistan-e-johar'], name: 'Gulistan-e-Johar, Karachi', latitude: 24.9114, longitude: 67.1353 },
+];
 
 export default function LocationPicker({ onLocationSelect, initialLocation }: LocationPickerProps) {
     const [modalVisible, setModalVisible] = useState(false);
@@ -102,6 +117,47 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
     const [isSearching, setIsSearching] = useState(false);
     const [isLocating, setIsLocating] = useState(false);
     const [isMapReady, setIsMapReady] = useState(false);
+    const [suggestions, setSuggestions] = useState<{label: string, lat: number, lon: number}[]>([]);
+
+    useEffect(() => {
+        if (searchQuery.trim().length < 3) {
+            setSuggestions([]);
+            return;
+        }
+
+        const delayDebounceFn = setTimeout(() => {
+            const fetchSuggestions = async () => {
+                try {
+                    let query = searchQuery.trim();
+                    if (!query.toLowerCase().includes('karachi')) {
+                        query += ', Karachi, Pakistan';
+                    }
+                    
+                    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5`;
+                    const response = await fetch(url, {
+                        headers: { 'User-Agent': 'AsaanTaqreebApp/1.0' }
+                    });
+                    
+                    if (!response.ok) return;
+                    const data = await response.json();
+                    
+                    if (Array.isArray(data)) {
+                        const mapped = data.map((item: any) => ({
+                            label: item.display_name,
+                            lat: parseFloat(item.lat),
+                            lon: parseFloat(item.lon)
+                        }));
+                        setSuggestions(mapped);
+                    }
+                } catch (error) {
+                    console.log("Suggestions fetch failed:", error);
+                }
+            };
+            fetchSuggestions();
+        }, 500);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchQuery]);
 
     useEffect(() => {
         if (visible && initialLocation.latitude && initialLocation.longitude) {
@@ -119,8 +175,14 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
     const handleSearch = async () => {
         if (!searchQuery.trim()) return;
         setIsSearching(true);
+        
+        let geocodeQuery = searchQuery.trim();
+        if (!geocodeQuery.toLowerCase().includes('karachi')) {
+            geocodeQuery += ', Karachi, Pakistan';
+        }
+
         try {
-            const results = await Location.geocodeAsync(searchQuery);
+            const results = await Location.geocodeAsync(geocodeQuery);
             if (results.length > 0) {
                 const { latitude, longitude } = results[0];
                 animateToRegion(latitude, longitude);
@@ -135,10 +197,26 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
                     setTempAddress(searchQuery);
                 }
             } else {
-                Alert.alert("Not Found", "Try a more specific address or city.");
+                throw new Error("No results");
             }
         } catch (error) {
-            Alert.alert("Error", "Search failed. Check your internet.");
+            // Local fallback match to resolve "no internet / Google Services" issues in Karachi
+            const lower = searchQuery.toLowerCase();
+            const matched = KARACHI_FALLBACKS.find(item => 
+                item.keys.some(k => lower.includes(k))
+            );
+            
+            if (matched) {
+                // Move map to the matched area, but KEEP their custom typed search query as the address!
+                animateToRegion(matched.latitude, matched.longitude);
+                setMarkerPosition({ latitude: matched.latitude, longitude: matched.longitude });
+                setTempAddress(searchQuery);
+            } else {
+                // Fallback to Karachi center, but KEEP their custom typed search query as the address!
+                animateToRegion(24.8607, 67.0011);
+                setMarkerPosition({ latitude: 24.8607, longitude: 67.0011 });
+                setTempAddress(searchQuery);
+            }
         } finally {
             setIsSearching(false);
         }
@@ -159,9 +237,13 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
                 const formatted = [addr.name, addr.street, addr.district, addr.city].filter(Boolean).join(', ');
                 setTempAddress(formatted);
                 setSearchQuery(formatted);
+            } else {
+                setTempAddress(`Pinned Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)}), Karachi`);
+                setSearchQuery(`Pinned Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)}), Karachi`);
             }
         } catch (error) {
-            console.error("Reverse geocode error:", error);
+            setTempAddress(`Pinned Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)}), Karachi`);
+            setSearchQuery(`Pinned Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)}), Karachi`);
         }
     };
 
@@ -203,7 +285,21 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
             }
         } catch (error) {
             console.error("Location error:", error);
-            Alert.alert("Location Error", "Could not determine your location. Please check your GPS and try again.");
+            Alert.alert(
+                "Location Error", 
+                "Could not determine your location. Placed marker at Karachi center.",
+                [
+                    {
+                        text: "OK",
+                        onPress: () => {
+                            animateToRegion(24.8607, 67.0011);
+                            setMarkerPosition({ latitude: 24.8607, longitude: 67.0011 });
+                            setTempAddress("Karachi Center, Karachi");
+                            setSearchQuery("Karachi Center, Karachi");
+                        }
+                    }
+                ]
+            );
         } finally {
             setIsLocating(false);
         }
@@ -254,13 +350,39 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
                             <ActivityIndicator size="small" color={Colors.primary} />
                         ) : (
                             searchQuery.length > 0 && (
-                                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                                <TouchableOpacity onPress={() => { setSearchQuery(''); setSuggestions([]); }}>
                                     <X size={16} color="#9CA3AF" />
                                 </TouchableOpacity>
                             )
                         )}
                     </View>
                 </View>
+
+                {/* Suggestions List Overlay */}
+                {suggestions.length > 0 && (
+                    <View style={styles.suggestionsContainer as ViewStyle}>
+                        <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 220 }}>
+                            {suggestions.map((item, index) => (
+                                <TouchableOpacity
+                                    key={index}
+                                    style={styles.suggestionItem as ViewStyle}
+                                    onPress={() => {
+                                        setMarkerPosition({ latitude: item.lat, longitude: item.lon });
+                                        setTempAddress(item.label);
+                                        setSearchQuery(item.label);
+                                        animateToRegion(item.lat, item.lon);
+                                        setSuggestions([]);
+                                    }}
+                                >
+                                    <MapPin size={16} color={Colors.primary} style={{ marginRight: 8 }} />
+                                    <Text style={styles.suggestionText as TextStyle} numberOfLines={2}>
+                                        {item.label}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+                )}
 
                 {/* Map Area */}
                 <View style={styles.modalMapWrapper as ViewStyle}>
@@ -487,5 +609,36 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.2)',
         borderRadius: 5,
         marginTop: 2,
-    }
+    },
+    suggestionsContainer: {
+        position: 'absolute',
+        top: 130,
+        left: 15,
+        right: 15,
+        backgroundColor: '#FFF',
+        borderRadius: 12,
+        borderWidth: 1.5,
+        borderColor: '#E5E7EB',
+        maxHeight: 250,
+        zIndex: 50,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 5,
+        elevation: 10,
+    },
+    suggestionItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
+    },
+    suggestionText: {
+        flex: 1,
+        fontSize: 14,
+        color: '#374151',
+        fontWeight: '500',
+    },
 });

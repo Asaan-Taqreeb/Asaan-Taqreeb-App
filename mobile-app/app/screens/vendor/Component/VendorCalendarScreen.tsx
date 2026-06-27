@@ -124,128 +124,66 @@ export default function VendorCalendarScreen() {
     return []
   }, [category, slots, operatingHours])
 
-  // Dynamic Pricing & Heatmap States
-  const [isHeatmapActive, setIsHeatmapActive] = useState(false)
-  const [showMultiplierModal, setShowMultiplierModal] = useState(false)
-  const [weekendMultiplier, setWeekendMultiplier] = useState('15')
-  const [offpeakMultiplier, setOffpeakMultiplier] = useState('-10')
-  const [autoPilotEnabled, setAutoPilotEnabled] = useState(false)
+  // Branches States
+
 
   useEffect(() => {
-    const loadSlotsAndMultipliers = async () => {
+    const loadSlotsAndBranches = async () => {
       if (!user?.id) return
       try {
         const services = await getMyVendorServices()
-        const vendorCat = services && services.length > 0 ? services[0].category : 'banquet'
-        setCategory(vendorCat)
+        if (services && services.length > 0) {
+          const service = services[0]
+          const vendorCat = service.category || 'banquet'
+          setCategory(vendorCat)
 
-        if (vendorCat === 'banquet') {
-          const saved = await AsyncStorage.getItem('vendor_slots_' + user.id)
-          if (saved) {
-            setSlots(JSON.parse(saved))
+
+
+          if (vendorCat === 'banquet') {
+            const saved = await AsyncStorage.getItem('vendor_slots_' + user.id)
+            if (saved) {
+              setSlots(JSON.parse(saved))
+            } else {
+              const defaultSlots = [
+                { id: '1', label: 'Morning', from: '10:00 AM', to: '01:00 PM' },
+                { id: '2', label: 'Afternoon', from: '03:00 PM', to: '07:00 PM' },
+                { id: '3', label: 'Evening', from: '09:00 PM', to: '12:00 AM' },
+              ]
+              setSlots(defaultSlots)
+              await AsyncStorage.setItem('vendor_slots_' + user.id, JSON.stringify(defaultSlots))
+            }
           } else {
-            const defaultSlots = [
-              { id: '1', label: 'Morning', from: '10:00 AM', to: '01:00 PM' },
-              { id: '2', label: 'Afternoon', from: '03:00 PM', to: '07:00 PM' },
-              { id: '3', label: 'Evening', from: '09:00 PM', to: '12:00 AM' },
-            ]
-            setSlots(defaultSlots)
-            await AsyncStorage.setItem('vendor_slots_' + user.id, JSON.stringify(defaultSlots))
-          }
-        } else {
-          const savedHours = await AsyncStorage.getItem('vendor_operating_hours_' + user.id)
-          if (savedHours) {
-            setOperatingHours(JSON.parse(savedHours))
-          } else {
-            const defaultHours = { from: '09:00 AM', to: '09:00 PM' }
-            setOperatingHours(defaultHours)
-            await AsyncStorage.setItem('vendor_operating_hours_' + user.id, JSON.stringify(defaultHours))
+            const savedHours = await AsyncStorage.getItem('vendor_operating_hours_' + user.id)
+            if (savedHours) {
+              setOperatingHours(JSON.parse(savedHours))
+            } else {
+              const defaultHours = { from: '09:00 AM', to: '09:00 PM' }
+              setOperatingHours(defaultHours)
+              await AsyncStorage.setItem('vendor_operating_hours_' + user.id, JSON.stringify(defaultHours))
+            }
           }
         }
-
-        const savedWeekend = await AsyncStorage.getItem(`vendor_weekend_mult_${user.id}`)
-        const savedOffpeak = await AsyncStorage.getItem(`vendor_offpeak_mult_${user.id}`)
-        const savedAuto = await AsyncStorage.getItem(`vendor_autopilot_${user.id}`)
-        if (savedWeekend) setWeekendMultiplier(savedWeekend)
-        if (savedOffpeak) setOffpeakMultiplier(savedOffpeak)
-        if (savedAuto) setAutoPilotEnabled(savedAuto === 'true')
       } catch (error) {
-        console.log('Failed to load slots and multipliers:', error)
+        console.log('Failed to load slots and branch services:', error)
       }
     }
-    loadSlotsAndMultipliers()
+    loadSlotsAndBranches()
   }, [user?.id])
 
-  const handleSaveMultipliers = async () => {
-    if (!user?.id) return
-    try {
-      await AsyncStorage.setItem(`vendor_weekend_mult_${user.id}`, weekendMultiplier)
-      await AsyncStorage.setItem(`vendor_offpeak_mult_${user.id}`, offpeakMultiplier)
-      await AsyncStorage.setItem(`vendor_autopilot_${user.id}`, autoPilotEnabled ? 'true' : 'false')
-      setShowMultiplierModal(false)
-      Alert.alert('Success', 'Dynamic pricing rules updated successfully.')
-    } catch (error) {
-      Alert.alert('Error', 'Failed to save pricing rules.')
-    }
-  }
-
-  const getMonthDemand = (monthIndex: number): 'peak' | 'off-peak' | 'standard' => {
-    if ([9, 10, 11, 0, 1, 2].includes(monthIndex)) {
-      return 'peak'
-    } else if ([5, 6, 7].includes(monthIndex)) {
-      return 'off-peak'
-    }
-    return 'standard'
-  }
-
   const getDayPricingInfo = (day: DayData, index: number) => {
-    if (!day.isCurrentMonth) return { bgColor: '#f9fafb', textColor: Colors.textTertiary, tag: null }
-    
+    if (!day.isCurrentMonth) return { bgColor: '#f9fafb', textColor: Colors.textTertiary, tag: null, isPast: false }
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const dayDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day.date)
+    const isPast = dayDate < today
+    if (isPast) return { bgColor: '#f3f4f6', textColor: '#9ca3af', tag: null, isPast: true }
     const isWeekend = index % 7 === 0 || index % 7 === 6
-    const demand = getMonthDemand(currentDate.getMonth())
-
-    if (!isHeatmapActive) {
-      const textColor = day.isBooked || day.isBlocked 
-        ? Colors.white 
-        : isWeekend 
-          ? Colors.vendor 
-          : Colors.textPrimary
-      return { bgColor: Colors.white, textColor, tag: null }
-    }
-
-    if (day.isBooked) {
-      return { bgColor: Colors.vendor, textColor: Colors.white, tag: null }
-    }
-    if (day.isBlocked) {
-      return { bgColor: Colors.error, textColor: Colors.white, tag: null }
-    }
-
-    if (demand === 'peak') {
-      if (isWeekend) {
-        return { 
-          bgColor: '#FEE2E2', 
-          textColor: '#EF4444', 
-          tag: `+${weekendMultiplier}%` 
-        }
-      }
-      return { 
-        bgColor: '#FEF3C7', 
-        textColor: '#D97706', 
-        tag: `+5%` 
-      }
-    } else if (demand === 'off-peak') {
-      return { 
-        bgColor: '#ECFDF5', 
-        textColor: '#059669', 
-        tag: `${offpeakMultiplier}%` 
-      }
-    }
-
-    return { 
-      bgColor: Colors.white, 
-      textColor: Colors.textPrimary, 
-      tag: null 
-    }
+    const textColor = day.isBooked || day.isBlocked 
+      ? Colors.white 
+      : isWeekend 
+        ? Colors.vendor 
+        : Colors.textPrimary
+    return { bgColor: Colors.white, textColor, tag: null, isPast: false }
   }
 
   const monthNames = ["January", "February", "March", "April", "May", "June",
@@ -301,6 +239,8 @@ export default function VendorCalendarScreen() {
         const normalizedBookings = vendorBookings.reduce<Record<string, BookingDetail[]>>((acc, booking, index) => {
           // Ignore rejected bookings in the calendar view
           if (booking.status === 'rejected') return acc
+
+
 
           const date = String(booking.eventDate || '').slice(0, 10)
           if (!date) return acc
@@ -408,10 +348,11 @@ export default function VendorCalendarScreen() {
 
   const handleDatePress = (day: DayData) => {
     if (!day.isCurrentMonth) return
-    
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
     const selected = new Date(currentDate.getFullYear(), currentDate.getMonth(), day.date)
+    if (selected < today) return // ignore taps on past dates
     setSelectedDate(selected)
-    
     if (day.bookings.length > 0) {
       setShowBookingModal(true)
     }
@@ -434,7 +375,13 @@ export default function VendorCalendarScreen() {
 
   const openBlockManager = (day: DayData) => {
     if (!day.isCurrentMonth || day.isBooked) return
-
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const selected = new Date(currentDate.getFullYear(), currentDate.getMonth(), day.date)
+    if (selected < today) {
+      Alert.alert('Past Date', 'You cannot block dates that have already passed.')
+      return
+    }
     const dateString = toDateString(day)
     setManageDateString(dateString)
     setSelectedSlotId(null)
@@ -512,6 +459,7 @@ export default function VendorCalendarScreen() {
         vendorId: user?.id,
         reason: blockReason.trim() || 'Blocked by vendor',
         timeSlot: { from: from24, to: to24 },
+
       })
 
       if (!success) return
@@ -547,7 +495,10 @@ export default function VendorCalendarScreen() {
 
     try {
       setIsSubmittingBlock(true)
-      const success = await unblockDateForVendor(manageDateString, { vendorId: user?.id })
+      const success = await unblockDateForVendor(manageDateString, { 
+        vendorId: user?.id,
+
+      })
       if (!success) return
 
       setAvailabilityDays((prev) => prev.filter((item) => item.date !== manageDateString))
@@ -576,6 +527,7 @@ export default function VendorCalendarScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
+
         {/* Month Navigation */}
         <View className='px-5 py-4 flex-row items-center justify-between'>
           <Pressable 
@@ -599,32 +551,6 @@ export default function VendorCalendarScreen() {
           </Pressable>
         </View>
 
-        {/* Heatmap & Dynamic Pricing Controls */}
-        <View className='px-5 pb-4 flex-row items-center justify-between gap-3'>
-          <Pressable 
-            onPress={() => setIsHeatmapActive(!isHeatmapActive)}
-            className='flex-1 py-2.5 px-4 rounded-xl flex-row items-center justify-center gap-2 border'
-            style={{
-              backgroundColor: isHeatmapActive ? Colors.vendor + '15' : Colors.white,
-              borderColor: isHeatmapActive ? Colors.vendor : Colors.border,
-            }}
-          >
-            <Text className='text-xs font-extrabold' style={{ color: isHeatmapActive ? Colors.vendor : Colors.textPrimary }}>
-              {isHeatmapActive ? '🔥 HEATMAP ACTIVE' : '📊 SHOW DEMAND HEATMAP'}
-            </Text>
-          </Pressable>
-
-          <Pressable 
-            onPress={() => setShowMultiplierModal(true)}
-            className='py-2.5 px-4 rounded-xl border flex-row items-center justify-center gap-1 bg-white'
-            style={{ borderColor: Colors.border }}
-          >
-            <Text className='text-xs font-extrabold' style={{ color: Colors.textSecondary }}>
-              ⚙️ MULTIPLIERS
-            </Text>
-          </Pressable>
-        </View>
-
         {isLoading && (
           <View className='px-5 pb-2'>
             <Text className='text-xs font-semibold' style={{color: Colors.textSecondary}}>Refreshing availability...</Text>
@@ -645,18 +571,6 @@ export default function VendorCalendarScreen() {
             <View className='w-3 h-3 rounded-full border-2' style={{borderColor: Colors.primary}} />
             <Text className='text-xs font-medium' style={{color: Colors.textSecondary}}>Today</Text>
           </View>
-          {isHeatmapActive && (
-            <>
-              <View className='flex-row items-center gap-1'>
-                <View className='w-3 h-3 rounded-full' style={{backgroundColor: '#FEE2E2'}} />
-                <Text className='text-xs font-medium' style={{color: Colors.textSecondary}}>Peak Surcharge</Text>
-              </View>
-              <View className='flex-row items-center gap-1'>
-                <View className='w-3 h-3 rounded-full' style={{backgroundColor: '#ECFDF5'}} />
-                <Text className='text-xs font-medium' style={{color: Colors.textSecondary}}>Off-peak Discount</Text>
-              </View>
-            </>
-          )}
         </View>
 
         {/* Calendar Grid */}
@@ -686,12 +600,13 @@ export default function VendorCalendarScreen() {
                         aspectRatio: 1,
                         borderRightColor: Colors.border,
                         borderBottomColor: Colors.border,
-                        backgroundColor: cellInfo.bgColor
+                        backgroundColor: cellInfo.isPast ? '#f3f4f6' : cellInfo.bgColor,
+                        opacity: cellInfo.isPast ? 0.55 : 1,
                       }
                     ]}
                     onPress={() => handleDatePress(day)}
                     onLongPress={() => openBlockManager(day)}
-                    disabled={!day.isCurrentMonth}
+                    disabled={!day.isCurrentMonth || cellInfo.isPast}
                   >
                     <View className='w-full h-full items-center justify-center p-1 relative'>
                       {cellInfo.tag && (
@@ -721,7 +636,7 @@ export default function VendorCalendarScreen() {
                         <Text 
                           className='text-sm font-bold z-10'
                           style={{
-                            color: cellInfo.textColor
+                            color: cellInfo.isPast ? '#9ca3af' : cellInfo.textColor,
                           }}
                         >
                           {day.date}
@@ -747,32 +662,7 @@ export default function VendorCalendarScreen() {
           </View>
         </View>
 
-        {/* AI Pricing Insights Banner */}
-        {isHeatmapActive && (
-          <View className='mx-5 mb-4 rounded-xl p-4' style={{ backgroundColor: '#fff7ed', borderWidth: 1, borderColor: '#ffedd5' }}>
-            <Text className='text-xs font-black uppercase tracking-wider mb-1' style={{ color: '#c2410c' }}>
-              💡 DYNAMIC PRICING SUGGESTION
-            </Text>
-            {getMonthDemand(currentDate.getMonth()) === 'peak' ? (
-              <Text className='text-xs font-semibold leading-relaxed' style={{ color: '#7c2d12' }}>
-                This is a <Text className='font-black'>Peak Season Month</Text> (Winter Wedding rush). 
-                We recommend checking your rates. Your auto-pilot is currently applying a 
-                <Text className='font-black'> +{weekendMultiplier}%</Text> multiplier for weekends.
-              </Text>
-            ) : getMonthDemand(currentDate.getMonth()) === 'off-peak' ? (
-              <Text className='text-xs font-semibold leading-relaxed' style={{ color: '#7c2d12' }}>
-                This is an <Text className='font-black'>Off-Peak Month</Text> (Summer heat). 
-                To boost sales, we suggest offering a seasonal discount. Your auto-pilot is 
-                currently suggesting a <Text className='font-black'> {offpeakMultiplier}%</Text> price adjustment.
-              </Text>
-            ) : (
-              <Text className='text-xs font-semibold leading-relaxed' style={{ color: '#7c2d12' }}>
-                This is a <Text className='font-black'>Standard Month</Text>. Demand is stable. 
-                We recommend applying your standard package rates.
-              </Text>
-            )}
-          </View>
-        )}
+
 
         {/* Instructions */}
         <View className='px-5 pb-4'>
@@ -1134,114 +1024,7 @@ export default function VendorCalendarScreen() {
         </View>
       </Modal>
 
-      {/* Price Multipliers Modal */}
-      <Modal
-        visible={showMultiplierModal}
-        transparent={true}
-        animationType='slide'
-        onRequestClose={() => setShowMultiplierModal(false)}
-      >
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-        >
-          <View className='flex-1 justify-end' style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
-            <View className='rounded-t-3xl p-6 pb-10' style={{backgroundColor: Colors.white}}>
-              <View className='flex-row items-center justify-between mb-6'>
-                <View>
-                  <Text className='text-xl font-extrabold' style={{color: Colors.textPrimary}}>Pricing Multipliers</Text>
-                  <Text className='text-xs font-medium mt-1' style={{color: Colors.textSecondary}}>Set automatic seasonal/weekend adjustments</Text>
-                </View>
-                <Pressable
-                  className='p-2 rounded-full active:opacity-70'
-                  style={{backgroundColor: Colors.lightGray}}
-                  onPress={() => setShowMultiplierModal(false)}
-                >
-                  <X size={22} color={Colors.textPrimary} />
-                </Pressable>
-              </View>
 
-              <View className='mb-4'>
-                <Text className='text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest'>WEEKEND PEAK MARKUP (%)</Text>
-                <TextInput
-                  value={weekendMultiplier}
-                  onChangeText={setWeekendMultiplier}
-                  placeholder='15'
-                  className='rounded-xl px-4 py-3'
-                  style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
-                  placeholderTextColor={Colors.textTertiary}
-                  keyboardType='numeric'
-                />
-              </View>
-
-              <View className='mb-6'>
-                <Text className='text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest'>OFF-PEAK SEASON DISCOUNT (%)</Text>
-                <TextInput
-                  value={offpeakMultiplier}
-                  onChangeText={setOffpeakMultiplier}
-                  placeholder='-10'
-                  className='rounded-xl px-4 py-3'
-                  style={{borderWidth: 1, borderColor: Colors.border, color: Colors.textPrimary}}
-                  placeholderTextColor={Colors.textTertiary}
-                  keyboardType='numeric'
-                />
-              </View>
-
-              <Pressable
-                onPress={() => setAutoPilotEnabled(!autoPilotEnabled)}
-                className='mb-6 flex-row items-center justify-between p-4 rounded-2xl border-2'
-                style={{
-                  borderColor: autoPilotEnabled ? Colors.vendor : Colors.border,
-                  backgroundColor: autoPilotEnabled ? Colors.vendor + '08' : 'transparent'
-                }}
-              >
-                <View className='flex-1 mr-2'>
-                  <Text className='font-extrabold text-sm' style={{ color: autoPilotEnabled ? Colors.vendor : Colors.textPrimary }}>
-                    🚀 Dynamic Pricing Auto-Pilot
-                  </Text>
-                  <Text className='text-xs font-medium text-slate-400 mt-0.5'>
-                    Automatically recommend adjustments on client bookings based on event dates.
-                  </Text>
-                </View>
-                <View 
-                  className='w-12 h-6 rounded-full p-1' 
-                  style={{ backgroundColor: autoPilotEnabled ? Colors.vendor : '#CBD5E1' }}
-                >
-                  <View 
-                    style={{ 
-                      width: 16, 
-                      height: 16, 
-                      borderRadius: 8, 
-                      backgroundColor: Colors.white,
-                      alignSelf: autoPilotEnabled ? 'flex-end' : 'flex-start'
-                    }}
-                  />
-                </View>
-              </Pressable>
-
-              <View className='flex-row gap-3'>
-                <Pressable
-                  className='flex-1 py-4 rounded-2xl active:opacity-85 border-2 border-slate-200'
-                  onPress={() => setShowMultiplierModal(false)}
-                >
-                  <Text className='text-center font-bold text-slate-500'>
-                    Cancel
-                  </Text>
-                </Pressable>
-                <Pressable
-                  className='flex-2 py-4 rounded-2xl active:opacity-85'
-                  style={{backgroundColor: Colors.vendor, flex: 2}}
-                  onPress={handleSaveMultipliers}
-                >
-                  <Text className='text-center text-white font-extrabold text-lg'>
-                    Save Rules
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
     </View>
   )
 }

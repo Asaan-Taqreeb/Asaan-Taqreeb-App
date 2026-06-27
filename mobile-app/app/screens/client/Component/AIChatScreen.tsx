@@ -1,7 +1,7 @@
 import { router } from 'expo-router'
 import { ArrowLeft, Send, Sparkles, Trash2, MessageSquare, Bot } from 'lucide-react-native'
 import { useState, useRef, useEffect } from 'react'
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Keyboard } from 'react-native'
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Keyboard, FlatList } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors } from '@/app/_constants/theme'
 import { getChatById, addMessageToChat, Message, deleteChat } from '@/app/_utils/chatStorage'
@@ -15,7 +15,7 @@ const AI_CHAT_NAME = 'Event Concierge'
 
 export default function AIChatScreen() {
     const insets = useSafeAreaInsets()
-    const scrollViewRef = useRef<ScrollView>(null)
+    const flatListRef = useRef<FlatList<Message>>(null)
     const [message, setMessage] = useState('')
     const [messages, setMessages] = useState<Message[]>([])
     const [isLoading, setIsLoading] = useState(true)
@@ -51,7 +51,7 @@ export default function AIChatScreen() {
     const loadChatHistory = async () => {
         const chat = await getChatById(AI_CHAT_ID)
         if (chat && chat.messages.length > 0) {
-            setMessages(chat.messages)
+            setMessages([...chat.messages].reverse())
         } else {
             // Initial welcome message
             const welcomeMessage: Message = {
@@ -99,22 +99,7 @@ export default function AIChatScreen() {
         )
     }
 
-    useEffect(() => {
-        if (!isLoading) {
-            scrollViewRef.current?.scrollToEnd({ animated: true })
-        }
-    }, [messages, isLoading])
-
-    useEffect(() => {
-        const showSubscription = Keyboard.addListener('keyboardDidShow', () => {
-            setTimeout(() => {
-                scrollViewRef.current?.scrollToEnd({ animated: true })
-            }, 100)
-        })
-        return () => {
-            showSubscription.remove()
-        }
-    }, [])
+    // Auto-scroll is handled natively by the inverted FlatList container
 
     const handleSend = async () => {
         if (message.trim() && !isTyping) {
@@ -126,7 +111,7 @@ export default function AIChatScreen() {
                 timestamp: new Date()
             }
             
-            setMessages(prev => [...prev, newMessage])
+            setMessages(prev => [newMessage, ...prev])
             setMessage('')
             setIsTyping(true)
 
@@ -137,7 +122,8 @@ export default function AIChatScreen() {
             })
 
             // Prepare history for AI (convert to Groq format)
-            const history: ChatMessage[] = messages.slice(-5).map(m => ({
+            // Note: Since messages is reversed (newest first), we slice the first 5 elements and reverse them back
+            const history: ChatMessage[] = [...messages].slice(0, 5).reverse().map(m => ({
                 role: m.sender === 'user' ? 'user' : 'assistant',
                 content: m.text
             }))
@@ -153,7 +139,7 @@ export default function AIChatScreen() {
                     timestamp: new Date()
                 }
 
-                setMessages(prev => [...prev, aiResponse])
+                setMessages(prev => [aiResponse, ...prev])
                 
                 // Save AI response
                 await addMessageToChat(AI_CHAT_ID, aiResponse, {
@@ -288,23 +274,14 @@ export default function AIChatScreen() {
             </View>
 
             {/* Messages */}
-            <ScrollView
-                ref={scrollViewRef}
-                className='flex-1'
-                contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 24 }}
+            <FlatList
+                ref={flatListRef}
+                data={messages}
+                keyExtractor={(item) => String(item.id)}
+                inverted
                 showsVerticalScrollIndicator={false}
-                onContentSizeChange={() => {
-                    setTimeout(() => {
-                        scrollViewRef.current?.scrollToEnd({ animated: true })
-                    }, 50)
-                }}
-                onLayout={() => {
-                    setTimeout(() => {
-                        scrollViewRef.current?.scrollToEnd({ animated: true })
-                    }, 50)
-                }}
-            >
-                {messages.map((msg) => (
+                contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 24 }}
+                renderItem={({ item: msg }) => (
                     <View
                         key={msg.id}
                         className={`mb-6 ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
@@ -337,17 +314,16 @@ export default function AIChatScreen() {
                             </Text>
                         </View>
                     </View>
-                ))}
-                
-                {isTyping && (
+                )}
+                ListHeaderComponent={isTyping ? (
                     <View className='items-start mb-6'>
                         <View className='px-5 py-4 rounded-2xl bg-white border border-gray-100 flex-row items-center gap-3' style={{borderBottomLeftRadius: 4}}>
                             <ActivityIndicator size="small" color={Colors.primary} />
                             <Text className="text-xs font-bold text-slate-400 uppercase tracking-widest">Assistant is typing...</Text>
                         </View>
                     </View>
-                )}
-            </ScrollView>
+                ) : null}
+            />
 
             {/* Message Input */}
             <View className='px-5 py-5' style={{borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.white}}>

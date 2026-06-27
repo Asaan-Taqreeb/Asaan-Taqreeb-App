@@ -191,13 +191,16 @@ export default function VendorHomeScreen() {
 
         {/* Info Box */}
         <View 
-          className='rounded-2xl p-5 mt-6 mb-4'
-          style={{backgroundColor: '#dbeafe', borderWidth: 1, borderColor: '#93c5fd'}}
+          className='rounded-2xl p-5 mt-6 mb-4 border'
+          style={{
+            backgroundColor: Colors.lightGray,
+            borderColor: Colors.border
+          }}
         >
-          <Text className='text-base font-bold mb-2' style={{color: Colors.info}}>
+          <Text className='text-base font-extrabold mb-2' style={{color: Colors.primary}}>
             💡 Getting Started
           </Text>
-          <Text className='text-sm leading-relaxed' style={{color: Colors.info}}>
+          <Text className='text-sm font-medium leading-relaxed' style={{color: Colors.textSecondary}}>
             Select your service category to fill in your business details, create packages, and start receiving booking requests from clients.
           </Text>
         </View>

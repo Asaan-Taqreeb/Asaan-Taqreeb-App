@@ -1,13 +1,58 @@
-import { Alert, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
-import React, { useCallback, useState } from 'react'
+import { Alert, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, ActivityIndicator } from 'react-native'
+import React, { useCallback, useState, useRef } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Calculator, Calendar, CheckCircle, Edit2, Plus, Trash2, X } from 'lucide-react-native'
 import { router } from 'expo-router'
 import { Colors, Shadows, Spacing } from '@/app/_constants/theme'
 import { getPlanner, updatePlannerDetails, addPlannerTask, updatePlannerTask, deletePlannerTask, PlannerData, PlannerTask } from '@/app/_utils/plannerApi'
+import { getMyBookings, ClientBookingItem } from '@/app/_utils/bookingsApi'
 import { useUser } from '@/app/_context/UserContext'
 import ClientTabHeader from '../Component/ClientTabHeader'
+
+const TEMPLATES = {
+    grandWedding: {
+        budget: 1000000,
+        tasks: [
+            { name: 'Banquet & Venue Booking', category: 'banquet', estimatedCost: 500000 },
+            { name: 'Catering & Food Service', category: 'catering', estimatedCost: 250000 },
+            { name: 'Photography & Videography Team', category: 'photo', estimatedCost: 120000 },
+            { name: 'Bridal Salon & Makeup Booking', category: 'parlor', estimatedCost: 50000 },
+            { name: 'Decorations & Floral Arrangements', category: 'other', estimatedCost: 60000 },
+            { name: 'Guest Invitation Cards', category: 'other', estimatedCost: 20000 }
+        ]
+    },
+    intimateCeremony: {
+        budget: 400000,
+        tasks: [
+            { name: 'Cozy Venue / Backyard Setup', category: 'banquet', estimatedCost: 150000 },
+            { name: 'Buffet Catering', category: 'catering', estimatedCost: 120000 },
+            { name: 'Event Portrait Photographer', category: 'photo', estimatedCost: 60000 },
+            { name: 'Makeup Artist Booking', category: 'parlor', estimatedCost: 30000 },
+            { name: 'Invitations & Digital E-cards', category: 'other', estimatedCost: 5000 },
+            { name: 'Minimal Decor & Sound System', category: 'other', estimatedCost: 35000 }
+        ]
+    },
+    basicParty: {
+        budget: 150000,
+        tasks: [
+            { name: 'Party Venue Rental', category: 'banquet', estimatedCost: 50000 },
+            { name: 'Catering & Beverages', category: 'catering', estimatedCost: 50000 },
+            { name: 'Event Photography', category: 'photo', estimatedCost: 25000 },
+            { name: 'Party Decor & Balloons', category: 'other', estimatedCost: 20000 },
+            { name: 'Digital Invitations', category: 'other', estimatedCost: 5000 }
+        ]
+    }
+}
+
+const QUICK_SUGGESTIONS = [
+    { label: 'Venue Book', name: 'Venue Booking', category: 'banquet' },
+    { label: 'Catering', name: 'Catering Service', category: 'catering' },
+    { label: 'Photo/Video', name: 'Photography', category: 'photo' },
+    { label: 'Bridal Salon', name: 'Bridal Makeup', category: 'parlor' },
+    { label: 'Decor', name: 'Decor & Flowers', category: 'other' },
+    { label: 'Invitations', name: 'Invitations', category: 'other' }
+]
 
 export default function PlannerScreen() {
     const insets = useSafeAreaInsets()
@@ -22,22 +67,87 @@ export default function PlannerScreen() {
     const [editingTask, setEditingTask] = useState<PlannerTask | null>(null)
     const [taskName, setTaskName] = useState('')
     const [taskCategory, setTaskCategory] = useState('other')
-    const [taskEstCost, setTaskEstCost] = useState('')
-    const [taskActCost, setTaskActCost] = useState('')
+ 
+    const [isPrepopulating, setIsPrepopulating] = useState(false)
+    const [bookings, setBookings] = useState<ClientBookingItem[]>([])
+
+    const mapBookingCategoryToTaskCategory = (bookingCat: string): string => {
+        const cat = bookingCat.toUpperCase()
+        if (cat === 'BANQUET_HALL') return 'banquet'
+        if (cat === 'CATERING') return 'catering'
+        if (cat === 'PHOTOGRAPHY') return 'photo'
+        if (cat === 'PARLOR_SALON') return 'parlor'
+        return 'other'
+    }
+
+    const getActiveBookingForTask = (taskCategory: string) => {
+        // Return first booking matching the category that is not rejected/cancelled
+        const match = bookings.find(b => 
+            mapBookingCategoryToTaskCategory(b.category) === taskCategory && 
+            b.status !== 'rejected'
+        )
+        return match || null
+    }
+
+    const handleApplyTemplate = async (templateKey: 'grandWedding' | 'intimateCeremony' | 'basicParty') => {
+        try {
+            setIsPrepopulating(true)
+            const template = TEMPLATES[templateKey]
+            
+            // 1. Update the total budget
+            const budgetRes = await updatePlannerDetails({ totalBudget: template.budget })
+            let currentPlanner = budgetRes.planner
+            
+            // 2. Add starter tasks sequentially
+            for (const t of template.tasks) {
+                const taskRes = await addPlannerTask(t)
+                currentPlanner = taskRes.planner
+            }
+            
+            setPlanner(currentPlanner)
+            Alert.alert('Success', 'Planner prepopulated with starter tasks!')
+        } catch (error) {
+            console.error('Failed to prepopulate:', error)
+            Alert.alert('Error', 'Failed to apply template. Please try again.')
+        } finally {
+            setIsPrepopulating(false)
+        }
+    }
+
+    const handleApplyTemplatePress = (templateKey: 'grandWedding' | 'intimateCeremony' | 'basicParty') => {
+        const hasTasks = planner && planner.tasks.length > 0
+        if (hasTasks) {
+            Alert.alert(
+                'Prepopulate Planner',
+                'This will add the template tasks to your current list. Do you want to proceed?',
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Add Tasks', onPress: () => handleApplyTemplate(templateKey) }
+                ]
+            )
+        } else {
+            handleApplyTemplate(templateKey)
+        }
+    }
 
     const loadPlanner = useCallback(async () => {
         if (user?.isGuest) {
             setPlanner(null)
+            setBookings([])
             setLoading(false)
             return
         }
 
         try {
             setLoading(true)
-            const data = await getPlanner()
-            setPlanner(data)
+            const [plannerData, bookingsData] = await Promise.all([
+                getPlanner(),
+                getMyBookings(true).catch(() => [] as ClientBookingItem[])
+            ])
+            setPlanner(plannerData)
+            setBookings(bookingsData)
         } catch (error) {
-            console.log('Failed to load planner', error)
+            console.log('Failed to load planner details', error)
         } finally {
             setLoading(false)
         }
@@ -67,22 +177,17 @@ export default function PlannerScreen() {
             return
         }
         try {
-            const est = parseInt(taskEstCost) || 0
-            const act = parseInt(taskActCost) || 0
-
             if (editingTask) {
                 const res = await updatePlannerTask(editingTask._id, {
                     name: taskName,
-                    estimatedCost: est,
-                    actualCost: act,
                 })
                 setPlanner(res.planner)
             } else {
                 const res = await addPlannerTask({
                     category: taskCategory,
                     name: taskName,
-                    estimatedCost: est,
-                    actualCost: act,
+                    estimatedCost: 0,
+                    actualCost: 0,
                 })
                 setPlanner(res.planner)
             }
@@ -126,14 +231,10 @@ export default function PlannerScreen() {
             setEditingTask(task)
             setTaskName(task.name)
             setTaskCategory(task.category)
-            setTaskEstCost(task.estimatedCost ? task.estimatedCost.toString() : '')
-            setTaskActCost(task.actualCost ? task.actualCost.toString() : '')
         } else {
             setEditingTask(null)
             setTaskName('')
             setTaskCategory('other')
-            setTaskEstCost('')
-            setTaskActCost('')
         }
         setIsTaskModalVisible(true)
     }
@@ -174,21 +275,28 @@ export default function PlannerScreen() {
     }
 
     const totalBudget = planner?.totalBudget || 0
-    let totalEstimated = 0
-    let totalActual = 0
 
-    planner?.tasks.forEach(t => {
-        totalEstimated += t.estimatedCost || 0
-        totalActual += t.actualCost || 0
-    })
+    // Compute tasks dynamically by merging booking payments/prices
+    const computedTasks = planner?.tasks.map(task => {
+        const linkedBooking = getActiveBookingForTask(task.category)
+        if (linkedBooking) {
+            return {
+                ...task,
+                estimatedCost: linkedBooking.price,
+                actualCost: linkedBooking.paidAmount,
+                linkedBooking
+            }
+        }
+        return task
+    }) || []
 
-    const totalSpentOrEstimated = planner?.tasks.reduce((sum, t) => {
+    const totalSpentOrEstimated = computedTasks.reduce((sum, t) => {
         // If task has actual cost, use it, else use estimated
         return sum + (t.actualCost > 0 ? t.actualCost : (t.estimatedCost || 0))
     }, 0) || 0
 
     const progressPercentage = totalBudget > 0 ? Math.min((totalSpentOrEstimated / totalBudget) * 100, 100) : 0
-    const isOverBudget = totalSpentOrEstimated > totalBudget && totalBudget > 0
+    const isOverBudget = totalSpentOrEstimated > totalBudget
 
     return (
         <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}>
@@ -198,41 +306,51 @@ export default function PlannerScreen() {
                 {/* Budget Overview Card */}
                 <View className='rounded-3xl p-5 mb-6' style={[{backgroundColor: Colors.white}, Shadows.medium]}>
                     <View className='flex-row justify-between items-center mb-4'>
-                        <Text className='text-base font-bold' style={{color: Colors.textPrimary}}>Total Budget</Text>
-                        <Pressable onPress={() => {
-                            setBudgetInput(totalBudget.toString())
-                            setIsEditingBudget(true)
-                        }}>
-                            <Edit2 size={16} color={Colors.primary} />
-                        </Pressable>
+                        <View>
+                            <Text className='text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1'>Total Event Budget</Text>
+                            {isEditingBudget ? (
+                                <View className='flex-row items-center gap-2'>
+                                    <TextInput
+                                        value={budgetInput}
+                                        onChangeText={setBudgetInput}
+                                        keyboardType='numeric'
+                                        className='border rounded-lg px-3 py-1.5 text-xl font-black w-32'
+                                        style={{borderColor: Colors.border, color: Colors.textPrimary}}
+                                        autoFocus
+                                    />
+                                    <Pressable 
+                                        className='px-3 py-2 rounded-lg'
+                                        style={{backgroundColor: Colors.primary}}
+                                        onPress={handleSaveBudget}
+                                    >
+                                        <Text className='text-white font-bold text-xs'>Save</Text>
+                                    </Pressable>
+                                </View>
+                            ) : (
+                                <View className='flex-row items-center gap-2'>
+                                    <Text className='text-2xl font-black' style={{color: Colors.primary}}>
+                                        PKR {totalBudget.toLocaleString()}
+                                    </Text>
+                                    <Pressable onPress={() => {
+                                        setBudgetInput(totalBudget.toString())
+                                        setIsEditingBudget(true)
+                                    }}>
+                                        <Edit2 size={14} color={Colors.primary} />
+                                    </Pressable>
+                                </View>
+                            )}
+                        </View>
+                        
+                        <View className='items-end'>
+                            <Text className='text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1'>Actual Cost Spent</Text>
+                            <Text className='text-2xl font-black' style={{color: Colors.textPrimary}}>
+                                PKR {totalSpentOrEstimated.toLocaleString()}
+                            </Text>
+                        </View>
                     </View>
 
-                    {isEditingBudget ? (
-                        <View className='flex-row items-center gap-2 mb-4'>
-                            <TextInput
-                                value={budgetInput}
-                                onChangeText={setBudgetInput}
-                                keyboardType='numeric'
-                                className='flex-1 border rounded-lg px-3 py-2 text-base font-bold'
-                                style={{borderColor: Colors.border, color: Colors.textPrimary}}
-                                autoFocus
-                            />
-                            <Pressable 
-                                className='bg-primary px-4 py-2.5 rounded-lg'
-                                style={{backgroundColor: Colors.primary}}
-                                onPress={handleSaveBudget}
-                            >
-                                <Text className='text-white font-bold'>Save</Text>
-                            </Pressable>
-                        </View>
-                    ) : (
-                        <Text className='text-3xl font-extrabold mb-4' style={{color: Colors.primary}}>
-                            PKR {totalBudget.toLocaleString()}
-                        </Text>
-                    )}
-
                     {/* Progress Bar */}
-                    <View className='h-3 rounded-full mb-2 overflow-hidden' style={{backgroundColor: Colors.lightGray}}>
+                    <View className='h-3 rounded-full mb-3 overflow-hidden' style={{backgroundColor: Colors.lightGray}}>
                         <View 
                             className='h-full rounded-full' 
                             style={{
@@ -243,10 +361,13 @@ export default function PlannerScreen() {
                     </View>
                     <View className='flex-row justify-between items-center'>
                         <Text className='text-xs font-semibold' style={{color: Colors.textSecondary}}>
-                            Planned/Spent: PKR {totalSpentOrEstimated.toLocaleString()}
+                            Status: {isOverBudget ? 'Over Budget' : 'On Track'}
                         </Text>
-                        <Text className='text-xs font-semibold' style={{color: isOverBudget ? Colors.error : Colors.textSecondary}}>
-                            {isOverBudget ? 'Over Budget!' : `Remaining: PKR ${(totalBudget - totalSpentOrEstimated).toLocaleString()}`}
+                        <Text className='text-xs font-semibold' style={{color: isOverBudget ? Colors.error : Colors.success}}>
+                            {isOverBudget 
+                                ? `Over Budget by: PKR ${(totalSpentOrEstimated - totalBudget).toLocaleString()}` 
+                                : `Remaining: PKR ${(totalBudget - totalSpentOrEstimated).toLocaleString()}`
+                            }
                         </Text>
                     </View>
                 </View>
@@ -265,40 +386,102 @@ export default function PlannerScreen() {
                 </View>
 
                 {/* Tasks List */}
-                {planner?.tasks.map(task => (
-                    <View key={task._id} className='rounded-2xl p-4 mb-3 flex-row items-center gap-3' style={[{backgroundColor: Colors.white, borderWidth: 1, borderColor: task.isCompleted ? Colors.border : Colors.white}, Shadows.small]}>
-                        <Pressable onPress={() => toggleTaskCompletion(task)}>
-                            <CheckCircle 
-                                size={24} 
-                                color={task.isCompleted ? Colors.success : Colors.textTertiary} 
-                                fill={task.isCompleted ? Colors.success + '20' : 'transparent'} 
-                            />
-                        </Pressable>
-                        
-                        <View className='flex-1'>
-                            <Text className={`text-base font-bold mb-1 ${task.isCompleted ? 'line-through opacity-60' : ''}`} style={{color: Colors.textPrimary}}>
-                                {task.name}
-                            </Text>
-                            <View className='flex-row items-center gap-3'>
-                                <Text className='text-xs font-medium uppercase' style={{color: Colors.textTertiary}}>{task.category}</Text>
-                            </View>
-                        </View>
-
-                        <View className='items-end mr-2'>
-                            <Text className='text-xs font-medium' style={{color: Colors.textSecondary}}>Est: {task.estimatedCost.toLocaleString()}</Text>
-                            <Text className='text-sm font-extrabold' style={{color: task.actualCost > 0 ? Colors.primary : Colors.textTertiary}}>
-                                Act: {task.actualCost > 0 ? task.actualCost.toLocaleString() : '-'}
-                            </Text>
-                        </View>
-
-                        <Pressable className='p-2' onPress={() => openTaskModal(task)}>
-                            <Edit2 size={16} color={Colors.textSecondary} />
-                        </Pressable>
-                        <Pressable className='p-2 pl-0' onPress={() => handleDeleteTask(task._id)}>
-                            <Trash2 size={16} color={Colors.error} />
-                        </Pressable>
+                {isPrepopulating ? (
+                    <View className="py-12 items-center justify-center">
+                        <ActivityIndicator size="small" color={Colors.primary} />
+                        <Text className="text-xs font-semibold text-slate-400 mt-2">Generating starter templates...</Text>
                     </View>
-                ))}
+                ) : computedTasks && computedTasks.length > 0 ? (
+                    computedTasks.map(task => (
+                        <View key={task._id} className='rounded-2xl p-4 mb-3 flex-row items-center gap-3' style={[{backgroundColor: Colors.white, borderWidth: 1, borderColor: task.isCompleted ? Colors.border : Colors.white}, Shadows.small]}>
+                            <Pressable onPress={() => toggleTaskCompletion(task)}>
+                                <CheckCircle 
+                                    size={24} 
+                                    color={task.isCompleted ? Colors.success : Colors.textTertiary} 
+                                    fill={task.isCompleted ? Colors.success + '20' : 'transparent'} 
+                                />
+                            </Pressable>
+                            
+                            <View className='flex-1'>
+                                <Text className={`text-base font-bold mb-1 ${task.isCompleted ? 'line-through opacity-60' : ''}`} style={{color: Colors.textPrimary}}>
+                                    {task.name}
+                                </Text>
+                                <View className='flex-row items-center gap-2 flex-wrap'>
+                                    <Text className='text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-100 text-slate-500' style={{color: Colors.textSecondary}}>{task.category}</Text>
+                                    {(task as any).linkedBooking && (
+                                        <View className="flex-row items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+                                            <View className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                            <Text className="text-[10px] font-black text-emerald-700 uppercase">
+                                                Linked: {(task as any).linkedBooking.vendorName} ({(task as any).linkedBooking.status})
+                                            </Text>
+                                        </View>
+                                    )}
+                                </View>
+                            </View>
+
+                            <View className='items-end mr-2'>
+                                <Text className='text-xs font-medium' style={{color: Colors.textSecondary}}>Est: {task.estimatedCost.toLocaleString()}</Text>
+                                <Text className='text-sm font-extrabold' style={{color: task.actualCost > 0 ? Colors.primary : Colors.textTertiary}}>
+                                    Act: {task.actualCost > 0 ? task.actualCost.toLocaleString() : '-'}
+                                </Text>
+                            </View>
+
+                            <Pressable className='p-2' onPress={() => openTaskModal(task)}>
+                                <Edit2 size={16} color={Colors.textSecondary} />
+                            </Pressable>
+                            <Pressable className='p-2 pl-0' onPress={() => handleDeleteTask(task._id)}>
+                                <Trash2 size={16} color={Colors.error} />
+                            </Pressable>
+                        </View>
+                    ))
+                ) : (
+                    <View className="rounded-3xl p-6 bg-slate-50 border border-dashed border-slate-200 items-center justify-center">
+                        <Text className="text-base font-bold text-center mb-1" style={{ color: Colors.textPrimary }}>
+                            No Tasks Added Yet
+                        </Text>
+                        <Text className="text-xs font-medium text-center text-slate-400 mb-5 max-w-[260px] leading-relaxed">
+                            Simplify planning! Prepopulate with a curated budget & task template:
+                        </Text>
+                        
+                        <View className="w-full gap-3">
+                            <Pressable 
+                                onPress={() => handleApplyTemplatePress('grandWedding')}
+                                className="p-4 rounded-2xl bg-white border border-slate-100 flex-row justify-between items-center active:opacity-80"
+                                style={Shadows.small}
+                            >
+                                <View className="flex-1 mr-4">
+                                    <Text className="font-extrabold text-sm" style={{ color: Colors.textPrimary }}>Grand Wedding Starter</Text>
+                                    <Text className="text-[10px] font-semibold text-slate-400 mt-0.5">6 core tasks • Budget: PKR 1,000,000</Text>
+                                </View>
+                                <Plus size={16} color={Colors.primary} />
+                            </Pressable>
+                            
+                            <Pressable 
+                                onPress={() => handleApplyTemplatePress('intimateCeremony')}
+                                className="p-4 rounded-2xl bg-white border border-slate-100 flex-row justify-between items-center active:opacity-80"
+                                style={Shadows.small}
+                            >
+                                <View className="flex-1 mr-4">
+                                    <Text className="font-extrabold text-sm" style={{ color: Colors.textPrimary }}>Intimate Ceremony Starter</Text>
+                                    <Text className="text-[10px] font-semibold text-slate-400 mt-0.5">6 core tasks • Budget: PKR 400,000</Text>
+                                </View>
+                                <Plus size={16} color={Colors.primary} />
+                            </Pressable>
+                            
+                            <Pressable 
+                                onPress={() => handleApplyTemplatePress('basicParty')}
+                                className="p-4 rounded-2xl bg-white border border-slate-100 flex-row justify-between items-center active:opacity-80"
+                                style={Shadows.small}
+                            >
+                                <View className="flex-1 mr-4">
+                                    <Text className="font-extrabold text-sm" style={{ color: Colors.textPrimary }}>Basic Party/Event Starter</Text>
+                                    <Text className="text-[10px] font-semibold text-slate-400 mt-0.5">5 core tasks • Budget: PKR 150,000</Text>
+                                </View>
+                                <Plus size={16} color={Colors.primary} />
+                            </Pressable>
+                        </View>
+                    </View>
+                )}
             </ScrollView>
 
             {/* Task Modal */}
@@ -326,17 +509,44 @@ export default function PlannerScreen() {
                             </Pressable>
                         </View>
 
+                        {editingTask && (computedTasks.find(t => t._id === editingTask._id) as any)?.linkedBooking && (
+                            <View className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl mb-4">
+                                <Text className="text-xs font-bold text-emerald-800">
+                                    Syncing with Booking: {(computedTasks.find(t => t._id === editingTask._id) as any).linkedBooking.vendorName}
+                                </Text>
+                                <Text className="text-[10px] text-emerald-600 mt-0.5 leading-relaxed">
+                                    The estimated cost and actual cost are synced automatically with your booking price and recorded live payment.
+                                </Text>
+                            </View>
+                        )}
+
                         <Text className='text-sm font-bold mb-2' style={{color: Colors.textPrimary}}>Task Name</Text>
                         <TextInput
                             value={taskName}
                             onChangeText={setTaskName}
                             placeholder="e.g. Venue Booking"
-                            className='border rounded-xl px-4 py-3 mb-4 text-base'
+                            className='border rounded-xl px-4 py-3 mb-3 text-base'
                             style={{borderColor: Colors.border, color: Colors.textPrimary}}
                         />
 
+                        <Text className='text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest'>Quick Suggestions</Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
+                            {QUICK_SUGGESTIONS.map((s, idx) => (
+                                <Pressable
+                                    key={idx}
+                                    onPress={() => {
+                                        setTaskName(s.name);
+                                        setTaskCategory(s.category);
+                                    }}
+                                    className="px-3.5 py-2 rounded-full border border-slate-200 bg-slate-50 mr-2 active:opacity-70"
+                                >
+                                    <Text className="text-xs font-semibold text-slate-500">{s.label}</Text>
+                                </Pressable>
+                            ))}
+                        </ScrollView>
+
                         <Text className='text-sm font-bold mb-2' style={{color: Colors.textPrimary}}>Category</Text>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} className='mb-4'>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} className='mb-6'>
                             {['banquet', 'catering', 'photo', 'parlor', 'other'].map(cat => (
                                 <Pressable 
                                     key={cat}
@@ -353,31 +563,6 @@ export default function PlannerScreen() {
                                 </Pressable>
                             ))}
                         </ScrollView>
-
-                        <View className='flex-row gap-4 mb-6'>
-                            <View className='flex-1'>
-                                <Text className='text-sm font-bold mb-2' style={{color: Colors.textPrimary}}>Estimated Cost</Text>
-                                <TextInput
-                                    value={taskEstCost}
-                                    onChangeText={setTaskEstCost}
-                                    keyboardType='numeric'
-                                    placeholder="0"
-                                    className='border rounded-xl px-4 py-3 text-base'
-                                    style={{borderColor: Colors.border, color: Colors.textPrimary}}
-                                />
-                            </View>
-                            <View className='flex-1'>
-                                <Text className='text-sm font-bold mb-2' style={{color: Colors.textPrimary}}>Actual Cost</Text>
-                                <TextInput
-                                    value={taskActCost}
-                                    onChangeText={setTaskActCost}
-                                    keyboardType='numeric'
-                                    placeholder="0"
-                                    className='border rounded-xl px-4 py-3 text-base'
-                                    style={{borderColor: Colors.border, color: Colors.textPrimary}}
-                                />
-                            </View>
-                        </View>
 
                         <Pressable 
                             className='py-4 rounded-xl active:opacity-85'

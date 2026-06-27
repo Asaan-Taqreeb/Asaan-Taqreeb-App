@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors } from '@/app/_constants/theme'
 import { useUnreadNotificationCount, useUnreadMessageCount } from '@/app/_context/NotificationContext'
 import { useUser } from '@/app/_context/UserContext'
-import { Home, NotebookPen, Calendar, MessageSquare, Heart } from 'lucide-react-native'
+import { Home, NotebookPen, Calendar, MessageCircle, Heart } from 'lucide-react-native'
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
 import * as Location from 'expo-location'
 import LocationPermissionScreen from '../Component/LocationPermissionScreen'
@@ -34,7 +34,7 @@ function ClientTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
       case 'PlannerScreen':
         return <NotebookPen color={focused && !isGuest ? Colors.accent : isGuest ? '#CBD5E1' : '#94A3B8'} size={22} strokeWidth={2.2} />
       case 'MessagesScreen':
-        return <MessageSquare color={focused && !isGuest ? Colors.accent : isGuest ? '#CBD5E1' : '#94A3B8'} size={22} strokeWidth={2.2} />
+        return <MessageCircle color={focused && !isGuest ? Colors.accent : isGuest ? '#CBD5E1' : '#94A3B8'} size={22} strokeWidth={2.2} />
       default:
         return <Home color={focused ? Colors.accent : '#94A3B8'} size={22} strokeWidth={2.2} />
     }

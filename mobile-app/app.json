@@ -5,6 +5,10 @@
     "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
+    "notification": {
+      "icon": "./assets/images/icon.png",
+      "color": "#111808"
+    },
     "scheme": "asaantaqreeb",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,

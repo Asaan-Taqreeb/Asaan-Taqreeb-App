@@ -3,70 +3,70 @@
 
 export const Colors = {
   // ─── Brand Colors ───────────────────────────────────────────────
-  primary: '#0F172A',       // Deep Navy  — buttons, nav bar, headers
-  primaryLight: '#1E293B',  // Navy Shade — hover, pressed states
-  primaryDark: '#020617',   // Deep Midnight — extra emphasis
-  primaryMuted: '#E8EBF0',  // Icy Navy Tint — chip backgrounds
+  primary: '#111808',       // Green Waterloo — buttons, nav bar, headers
+  primaryLight: '#263219',  // Softer Green Waterloo — hover, pressed states
+  primaryDark: '#090C04',   // Darker Green Waterloo
+  primaryMuted: '#EAE3D2',  // Warm cream-gray tint — chip backgrounds
 
-  // ─── Secondary / Vendor (Champagne Gold) ────────────────────────
-  vendor: '#0F172A',        // Deep Navy  (vendor portal primary)
-  vendorLight: '#1E293B',
+  // ─── Secondary / Vendor ─────────────────────────────────────────
+  vendor: '#111808',        
+  vendorLight: '#263219',
   vendorAccent: '#D4AF37',  // Champagne Gold — vendor highlights
 
-  // ─── Accent (Champagne Gold) ────────────────────────────────────
-  accent: '#D4AF37',        // Champagne Gold — CTAs, premium badges
-  accentLight: '#EDD87A',   // Lighter Gold
-  accentMuted: '#FBF5DC',   // Pale Gold Tint
+  // ─── Accent ─────────────────────────────────────────────────────
+  accent: '#111808',        // CTA buttons
+  accentLight: '#263219',
+  accentMuted: '#FFF0BA',   // Colonial White
 
   // ─── Teal Accent ─────────────────────────────────────────────────
   teal: '#14B8A6',          // Available status, success, interactive
   tealLight: '#CCFBF1',     // Soft Teal background
 
   // ─── Background Colors ───────────────────────────────────────────
-  background: '#F8FAFC',   // Soft White — main app background
-  white: '#FFFFFF',
-  lightGray: '#F1F5F9',
+  background: '#F9F6F0',   // Soft Off-White / Cream
+  white: '#FFFDF9',
+  lightGray: '#F5EFE0',
 
   // ─── Text Colors ─────────────────────────────────────────────────
-  textPrimary: '#0F172A',    // Deep Navy  — headlines
-  textSecondary: '#1E293B',  // Dark Gray  — body text
-  textTertiary: '#64748B',   // Medium Gray — captions, placeholders
-  textLight: '#F8FAFC',
+  textPrimary: '#111808',    // Green Waterloo — headlines
+  textSecondary: '#2D3525',  // Darker Waterloo tone — body text
+  textTertiary: '#6B7462',   // Muted Green Waterloo — captions
+  textLight: '#FFF0BA',      // Colonial White text for dark BG
 
   // ─── Status Colors ────────────────────────────────────────────────
-  success: '#14B8A6',        // Teal  → Available
+  success: '#14B8A6',        
   successLight: '#CCFBF1',
-  warning: '#D4AF37',        // Gold  → Pending
+  warning: '#D4AF37',        
   warningLight: '#FBF5DC',
-  error: '#EF4444',          // Red   → Booked / Cancelled
+  error: '#EF4444',          
   errorLight: '#FEE2E2',
-  info: '#14B8A6',           // Teal  → info notifications
+  info: '#14B8A6',           
   infoLight: '#CCFBF1',
 
   // ─── Category Colors ─────────────────────────────────────────────
-  banquet: '#0F172A',        // Deep Navy
-  catering: '#D97706',       // Warm Amber
-  photo: '#4F46E5',          // Royal Indigo
-  parlor: '#DB2777',         // Bridal Pink
+  banquet: '#111808',        // Green Waterloo
+  catering: '#D97706',       
+  photo: '#4F46E5',          
+  parlor: '#DB2777',         
 
   // ─── Rating ──────────────────────────────────────────────────────
-  rating: '#D4AF37',         // Gold star rating
+  rating: '#D4AF37',         
 
   // ─── Border & Shadow ─────────────────────────────────────────────
-  border: '#E2E8F0',
-  borderDark: '#94A3B8',
-  shadow: '#0F172A',
+  border: '#E5DEC9',
+  borderDark: '#9E9783',
+  shadow: '#111808',
 
   // ─── Overlay ─────────────────────────────────────────────────────
-  overlay: 'rgba(15, 23, 42, 0.55)',
-  overlayLight: 'rgba(15, 23, 42, 0.25)',
+  overlay: 'rgba(17, 24, 8, 0.55)',
+  overlayLight: 'rgba(17, 24, 8, 0.25)',
 }
 
 // Luxury Gradients
 export const Gradients = {
-  luxury: ['#0F172A', '#D4AF37'],   // Navy → Champagne Gold (hero gradients)
-  gold: ['#D4AF37', '#EDD87A'],     // Gold shimmer
-  teal: ['#14B8A6', '#0F172A'],     // Teal → Navy (success / CTA)
+  luxury: ['#111808', '#FFF0BA'],   // Green Waterloo → Colonial White
+  gold: ['#BF953F', '#FCF6BA', '#B38728', '#FBF5B7', '#AA771C'],     // Metallic gold shimmer
+  teal: ['#14B8A6', '#111808'],     // Teal → Waterloo
 }
 
 // Category color helper
@@ -162,21 +162,35 @@ export const Shadows = {
 
 export const lightColors = {
   ...Colors,
-  surface: '#FFFFFF',
-  background: '#F8FAFC',
-  textPrimary: '#0F172A',
-  textSecondary: '#1E293B',
-  textTertiary: '#64748B',
-  border: '#E2E8F0',
+  surface: '#FFF0BA',       // Colonial White primary container cards
+  background: '#F9F6F0',    // Soft Off-White / Cream background canvas
+  textPrimary: '#111808',   // Green Waterloo
+  textSecondary: '#2D3525',
+  textTertiary: '#6B7462',
+  border: '#E5DEC9',
 };
 
 export const darkColors = {
   ...Colors,
-  surface: '#1E293B',
-  background: '#0F172A',
-  textPrimary: '#F8FAFC',
-  textSecondary: '#E2E8F0',
-  textTertiary: '#94A3B8',
-  border: '#334155',
+  primary: '#FFF0BA',       // Colonial White typography & accents
+  primaryLight: '#FFF5D1',
+  primaryDark: '#E6D8A0',
+  primaryMuted: '#223010',
+  accent: '#FFF0BA',        // Colonial White for CTA buttons
+  accentLight: '#FFF5D1',
+  accentMuted: '#223010',
+  background: '#111808',    // Green Waterloo background canvas
+  surface: '#1D2612',       // Lighter forest-gray shade container cards
+  white: '#1D2612',         // Cards are surface
+  lightGray: '#263219',
+  textPrimary: '#FFF0BA',   // Colonial White typography
+  textSecondary: '#EAE3D2',
+  textTertiary: '#9D9783',
+  textLight: '#111808',     // Green Waterloo text on Colonial White buttons
+  border: '#2E3A20',
+  borderDark: '#556345',
+  shadow: '#000000',
+  overlay: 'rgba(0, 0, 0, 0.6)',
+  overlayLight: 'rgba(0, 0, 0, 0.3)',
 };
 

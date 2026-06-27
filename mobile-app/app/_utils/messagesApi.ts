@@ -9,6 +9,7 @@ export type Message = {
   receiverId: { _id: string; name: string; email: string };
   text: string;
   imageUrl?: string;
+  audioUrl?: string;
   isSending?: boolean;
   isRead: boolean;
   createdAt: string;
@@ -74,12 +75,13 @@ export const sendMessage = async (
   text: string,
   bookingId?: string,
   imageUrl?: string,
-  imageUri?: string
+  imageUri?: string,
+  audioUri?: string
 ): Promise<Message> => {
   const url = MESSAGE_ENDPOINTS.sendMessage;
   try {
-    const hasLocalImage = Boolean(imageUri);
-    const body = hasLocalImage
+    const hasLocalFile = Boolean(imageUri || audioUri);
+    const body = hasLocalFile
       ? (() => {
           const formData = new FormData();
           formData.append('chatId', chatId);
@@ -88,10 +90,17 @@ export const sendMessage = async (
           if (bookingId) formData.append('bookingId', bookingId);
           if (imageUrl) formData.append('imageUrl', imageUrl);
 
-          const filename = imageUri!.split('/').pop() || `image_${Date.now()}.jpg`;
-          const match = /\.(\w+)$/.exec(filename);
-          const type = match ? `image/${match[1].toLowerCase()}` : 'image/jpeg';
-          formData.append('image', { uri: imageUri, type, name: filename } as any);
+          if (imageUri) {
+            const filename = imageUri.split('/').pop() || `image_${Date.now()}.jpg`;
+            const match = /\.(\w+)$/.exec(filename);
+            const type = match ? `image/${match[1].toLowerCase()}` : 'image/jpeg';
+            formData.append('image', { uri: imageUri, type, name: filename } as any);
+          } else if (audioUri) {
+            const filename = audioUri.split('/').pop() || `audio_${Date.now()}.m4a`;
+            const match = /\.(\w+)$/.exec(filename);
+            const type = match ? `audio/${match[1].toLowerCase()}` : 'audio/m4a';
+            formData.append('image', { uri: audioUri, type, name: filename } as any);
+          }
           return formData;
         })()
       : JSON.stringify({ chatId, receiverId, text, bookingId, imageUrl });
@@ -116,6 +125,7 @@ export const sendMessage = async (
     const saved = {
       ...response,
       imageUrl: response.imageUrl || (response as any).image || (response as any).image_url || imageUrl || '',
+      audioUrl: response.audioUrl || (response as any).audio || (response as any).audio_url || '',
     };
     
     try {

@@ -18,6 +18,15 @@ interface Package {
   items: string[];
 }
 
+interface Branch {
+  id: string;
+  name: string;
+  location: string;
+  latitude?: number;
+  longitude?: number;
+  operatingHours: { from: string; to: string };
+}
+
 export default function ParlorServiceForm() {
   const insets = useSafeAreaInsets();
   const { user } = useUser();
@@ -32,6 +41,8 @@ export default function ParlorServiceForm() {
   const [nearbyLandmark, setNearbyLandmark] = useState("");
   const [about, setAbout] = useState("");
   const [images, setImages] = useState<string[]>([]);
+  const [isOnSite, setIsOnSite] = useState(false);
+  const [onSiteFee, setOnSiteFee] = useState("");
   const [isInitialLoading, setIsInitialLoading] = useState(isEditMode);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -47,6 +58,9 @@ export default function ParlorServiceForm() {
   const [optionalServices, setOptionalServices] = useState<{id: string; name: string; price: string}[]>([
     { id: "1", name: "", price: "" }
   ]);
+  
+  // Branches list
+  const [branches, setBranches] = useState<Branch[]>([]);
 
   useEffect(() => {
     if (isEditMode) {
@@ -81,6 +95,8 @@ export default function ParlorServiceForm() {
         setImages(data.images || []);
         if (data.latitude) setLatitude(data.latitude);
         if (data.longitude) setLongitude(data.longitude);
+        setIsOnSite(data.isOnSite || false);
+        setOnSiteFee(data.onSiteFee ? data.onSiteFee.toString() : "");
         
         if (data.packages && data.packages.length > 0) {
           setPackages(data.packages.map((pkg, idx) => ({
@@ -96,6 +112,20 @@ export default function ParlorServiceForm() {
             id: (idx + 1).toString(),
             name: s.name,
             price: s.price.toString()
+          })));
+        }
+
+        if (data.branches && data.branches.length > 0) {
+          setBranches(data.branches.map((b, idx) => ({
+            id: b.id || (idx + 1).toString(),
+            name: b.name,
+            location: b.location,
+            latitude: b.latitude,
+            longitude: b.longitude,
+            operatingHours: {
+              from: b.operatingHours?.from || "09:00 AM",
+              to: b.operatingHours?.to || "09:00 PM"
+            }
           })));
         }
       }
@@ -173,6 +203,33 @@ export default function ParlorServiceForm() {
     ));
   };
 
+  // Branches handlers
+  const addBranch = () => {
+    const newId = Math.random().toString(36).substring(2, 9);
+    setBranches([...branches, {
+      id: newId,
+      name: "",
+      location: "",
+      operatingHours: { from: "09:00 AM", to: "09:00 PM" }
+    }]);
+  };
+
+  const removeBranch = (id: string) => {
+    setBranches(branches.filter(b => b.id !== id));
+  };
+
+  const updateBranchField = (id: string, field: keyof Branch, value: any) => {
+    setBranches(prev => prev.map(b => 
+      b.id === id ? { ...b, [field]: value } : b
+    ));
+  };
+
+  const updateBranchFields = (id: string, updates: Partial<Branch>) => {
+    setBranches(prev => prev.map(b => 
+      b.id === id ? { ...b, ...updates } : b
+    ));
+  };
+
   const handleSubmit = async () => {
     // Validation
     if (!placeName.trim()) {
@@ -187,6 +244,10 @@ export default function ParlorServiceForm() {
       Alert.alert("Error", "Please provide information about your parlor/salon");
       return;
     }
+    if (isOnSite && !onSiteFee.trim()) {
+      Alert.alert("Error", "Please enter your travel / on-site service fee");
+      return;
+    }
     
     setIsSubmitting(true);
     
@@ -194,6 +255,15 @@ export default function ParlorServiceForm() {
     for (const pkg of packages) {
       if (!pkg.packageName.trim() || !pkg.price.trim()) {
         Alert.alert("Error", "Please complete all package details");
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
+    // Validate branches
+    for (const b of branches) {
+      if (!b.name.trim() || !b.location.trim()) {
+        Alert.alert("Error", "Please complete all branch names and locations");
         setIsSubmitting(false);
         return;
       }
@@ -214,6 +284,8 @@ export default function ParlorServiceForm() {
       latitude,
       longitude,
       images,
+      isOnSite,
+      onSiteFee: isOnSite ? parseFloat(onSiteFee) || 0 : 0,
       packages: packages.map(pkg => ({
         packageName: pkg.packageName,
         price: parseFloat(pkg.price),
@@ -224,7 +296,15 @@ export default function ParlorServiceForm() {
         .map(service => ({
           name: service.name,
           price: parseFloat(service.price)
-        }))
+        })),
+      branches: branches.map(b => ({
+        id: b.id,
+        name: b.name,
+        location: b.location,
+        latitude: b.latitude,
+        longitude: b.longitude,
+        operatingHours: b.operatingHours
+      }))
     };
 
     try {
@@ -354,6 +434,126 @@ export default function ParlorServiceForm() {
             numberOfLines={4}
             textAlignVertical="top"
           />
+
+          <View className='flex-row justify-between items-center mt-5 p-3 rounded-xl border border-slate-100 bg-slate-50'>
+              <View className='flex-1 pr-4'>
+                  <Text className='text-sm font-extrabold' style={{color: Colors.textPrimary}}>
+                      Offer On-Site (Home/Venue) Services?
+                  </Text>
+                  <Text className='text-[10px] font-semibold text-slate-400 mt-0.5'>
+                      Check this if you travel to the client's location for beauty services.
+                  </Text>
+              </View>
+              <Pressable
+                  onPress={() => setIsOnSite(!isOnSite)}
+                  className='px-4 py-2 rounded-xl'
+                  style={{ backgroundColor: isOnSite ? Colors.parlor : Colors.lightGray }}
+              >
+                  <Text className='text-xs font-bold text-white' style={{ color: isOnSite ? Colors.white : Colors.textSecondary }}>
+                      {isOnSite ? "YES" : "NO"}
+                  </Text>
+              </Pressable>
+          </View>
+
+          {isOnSite && (
+              <View className='mt-4'>
+                  <Text className='text-sm font-semibold mb-2' style={{color: Colors.textSecondary}}>
+                      On-Site / Travel Additional Fee (PKR) *
+                  </Text>
+                  <TextInput
+                      style={[styles.input, {borderColor: Colors.border, color: Colors.textPrimary}]}
+                      placeholder="e.g., 5000"
+                      placeholderTextColor={Colors.textTertiary}
+                      value={onSiteFee}
+                      onChangeText={setOnSiteFee}
+                      keyboardType="numeric"
+                  />
+              </View>
+          )}
+        </View>
+
+        {/* Salon Branches */}
+        <View className='rounded-2xl p-5 mb-4' style={[{backgroundColor: Colors.white}, Shadows.medium]}>
+          <View className='flex-row justify-between items-center mb-4'>
+            <View className='flex-1 pr-2'>
+              <Text className='text-lg font-extrabold' style={{color: Colors.textPrimary}}>Salon Branches / Outlets</Text>
+              <Text className='text-[10px] font-medium text-slate-400 mt-0.5'>Add other branch locations for in-salon booking selection</Text>
+            </View>
+            <Pressable 
+              className='flex-row items-center gap-2 px-4 py-2 rounded-lg active:opacity-70'
+              style={{backgroundColor: Colors.parlor}}
+              onPress={addBranch}
+            >
+              <Plus size={18} color={Colors.white} />
+              <Text className='text-sm font-bold' style={{color: Colors.white}}>Add Branch</Text>
+            </Pressable>
+          </View>
+
+          {branches.length === 0 ? (
+            <View className='p-4 rounded-xl border border-dashed justify-center items-center' style={{borderColor: Colors.border, backgroundColor: Colors.background}}>
+              <Text className='text-xs font-semibold' style={{color: Colors.textTertiary}}>No additional branches added yet</Text>
+            </View>
+          ) : (
+            branches.map((b, bIdx) => (
+              <View key={b.id} className='mb-4 p-4 rounded-xl' style={{backgroundColor: Colors.background, borderWidth: 1, borderColor: Colors.border}}>
+                <View className='flex-row justify-between items-center mb-3'>
+                  <Text className='text-base font-bold' style={{color: Colors.textPrimary}}>Branch {bIdx + 1}</Text>
+                  <Pressable onPress={() => removeBranch(b.id)} className='p-2 rounded-lg active:opacity-70' style={{backgroundColor: '#ff000020'}}>
+                    <Trash2 size={18} color="#ff0000" />
+                  </Pressable>
+                </View>
+
+                <Text className='text-sm font-semibold mb-2' style={{color: Colors.textSecondary}}>Branch Name *</Text>
+                <TextInput
+                  style={[styles.input, {borderColor: Colors.border, color: Colors.textPrimary}]}
+                  placeholder="e.g., Clifton Branch, DHA Outlet"
+                  placeholderTextColor={Colors.textTertiary}
+                  value={b.name}
+                  onChangeText={(val) => updateBranchField(b.id, 'name', val)}
+                />
+
+                <Text className='text-sm font-semibold mb-2 mt-3' style={{color: Colors.textSecondary}}>Branch Location *</Text>
+                <LocationPicker 
+                  initialLocation={{
+                    address: b.location,
+                    latitude: b.latitude,
+                    longitude: b.longitude
+                  }}
+                  onLocationSelect={(loc) => {
+                    updateBranchFields(b.id, {
+                      location: loc.address,
+                      latitude: loc.latitude,
+                      longitude: loc.longitude
+                    });
+                  }}
+                />
+
+                <Text className='text-sm font-semibold mb-2 mt-3' style={{color: Colors.textSecondary}}>Operating Hours</Text>
+                <View className='flex-row gap-3'>
+                  <View className='flex-1'>
+                    <Text className='text-xs font-semibold mb-1' style={{color: Colors.textTertiary}}>Start Time</Text>
+                    <TextInput
+                      style={[styles.input, {borderColor: Colors.border, color: Colors.textPrimary}]}
+                      placeholder="09:00 AM"
+                      placeholderTextColor={Colors.textTertiary}
+                      value={b.operatingHours.from}
+                      onChangeText={(val) => updateBranchField(b.id, 'operatingHours', { ...b.operatingHours, from: val })}
+                    />
+                  </View>
+                  <View className='flex-1'>
+                    <Text className='text-xs font-semibold mb-1' style={{color: Colors.textTertiary}}>End Time</Text>
+                    <TextInput
+                      style={[styles.input, {borderColor: Colors.border, color: Colors.textPrimary}]}
+                      placeholder="09:00 PM"
+                      placeholderTextColor={Colors.textTertiary}
+                      value={b.operatingHours.to}
+                      onChangeText={(val) => updateBranchField(b.id, 'operatingHours', { ...b.operatingHours, to: val })}
+                    />
+                  </View>
+                </View>
+              </View>
+            ))
+          )}
         </View>
 
         <ImageUploader

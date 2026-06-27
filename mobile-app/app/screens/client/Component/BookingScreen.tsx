@@ -10,6 +10,8 @@ import { getVendorAvailability, type VendorAvailabilityDay } from '@/app/_utils/
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useUser } from '@/app/_context/UserContext'
 
+
+
 type BookingAddon = {
     id: number
     name: string
@@ -92,6 +94,8 @@ const generateHourlyIntervals = (fromStr: string, toStr: string) => {
     return intervals;
 }
 
+
+
 export default function BookingScreen() {
     const insets = useSafeAreaInsets()
     const params = useLocalSearchParams()
@@ -118,6 +122,8 @@ export default function BookingScreen() {
     const requiresGuestCount = normalizedCategory === 'banquet' || normalizedCategory === 'catering'
     const vendorAvailabilityId = bookingData?.vendorId || bookingData?.serviceId
 
+
+
     const [selectedDate, setSelectedDate] = useState('')
     const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
     const [customStartHour, setCustomStartHour] = useState('')
@@ -131,6 +137,7 @@ export default function BookingScreen() {
     const [selectedAddons, setSelectedAddons] = useState<{[key: number]: boolean}>({})
     const [expandedAddons, setExpandedAddons] = useState<{[key: number]: boolean}>({})
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [isHomeService, setIsHomeService] = useState(false)
     const [availabilityDays, setAvailabilityDays] = useState<VendorAvailabilityDay[]>([])
     const [isLoadingAvailability, setIsLoadingAvailability] = useState(false)
 
@@ -140,6 +147,8 @@ export default function BookingScreen() {
         { id: 'evening', label: 'Evening', time: '9 PM to 12 AM' }
     ])
     const [operatingHours, setOperatingHours] = useState<{ from: string; to: string } | null>(null)
+
+
 
     useEffect(() => {
         const loadTimeOptions = async () => {
@@ -215,12 +224,16 @@ export default function BookingScreen() {
 
     const packagePrice = Number(bookingData.price) || 0
     const guestMultiplier = requiresGuestCount ? (Number(bookingData.guestCount) || 1) : 1
-    const totalPrice = (packagePrice * guestMultiplier) + addonsTotal
+    const travelFeeTotal = (normalizedCategory === 'parlor' && isHomeService) ? (Number(bookingData.onSiteFee) || 0) : 0
+    const totalPrice = (packagePrice * guestMultiplier) + addonsTotal + travelFeeTotal
     const advancePayment = Math.round(totalPrice * 0.5) // 50% advance
 
     // Get today's date for min date
     const today = new Date()
-    const minDate = today.toISOString().split('T')[0]
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
+    const minDate = `${year}-${month}-${day}`
 
     useEffect(() => {
         let mounted = true
@@ -329,21 +342,22 @@ export default function BookingScreen() {
     }, [availabilityDays])
 
     const markedDates = useMemo(() => {
-        const result: Record<string, any> = {}
-
+        const result: Record<string, any> = {};
+        const min = new Date(minDate);
         for (const [date, status] of Object.entries(dayStatusMap)) {
-            const ranges = unavailableRangesMap[date] || []
+            const ranges = unavailableRangesMap[date] || [];
             
             // A date is only disabled if:
             // 1. It's blocked for the full day
             // 2. A specific time is selected AND that time overlaps with ANY booked or blocked range
-            const isFullDayBlocked = status.isFullDayBlocked || (ranges.length > 0 && ranges.some(r => r.from === 0 && r.to === 1440 && r.type === 'blocked'))
+            const isFullDayBlocked = status.isFullDayBlocked || (ranges.length > 0 && ranges.some(r => r.from === 0 && r.to === 1440 && r.type === 'blocked'));
             
             const isBlockedBySelection = Boolean(
                 selectedTimeRange && ranges.some((range) => rangesOverlap(selectedTimeRange, range))
             )
             
-            const shouldDisable = isFullDayBlocked || isBlockedBySelection
+            const isPast = new Date(date) < min;
+            const shouldDisable = isFullDayBlocked || isBlockedBySelection || isPast;
 
             result[date] = {
                 disabled: shouldDisable,
@@ -352,13 +366,13 @@ export default function BookingScreen() {
                 dotColor: shouldDisable ? Colors.error : (status.hasBookings ? Colors.primary : Colors.textTertiary),
                 customStyles: {
                     container: {
-                        backgroundColor: shouldDisable ? '#fee2e2' : (status.hasBookings || status.hasBlocks ? `${Colors.primary}10` : 'transparent'),
+                        backgroundColor: shouldDisable ? '#d1d5db' : (status.hasBookings || status.hasBlocks ? `${Colors.primary}10` : 'transparent'),
                         borderRadius: 12,
                         borderWidth: (status.hasBookings || status.hasBlocks) && !shouldDisable ? 1 : 0,
                         borderColor: `${Colors.primary}30`,
                     },
                     text: {
-                        color: shouldDisable ? Colors.error : Colors.textPrimary,
+                        color: shouldDisable ? Colors.textTertiary : Colors.textPrimary,
                         fontWeight: shouldDisable ? '700' : '600',
                     },
                 },
@@ -378,7 +392,7 @@ export default function BookingScreen() {
         }
 
         return result
-    }, [categoryColor, selectedDate, selectedTimeRange, unavailableRangesMap, dayStatusMap])
+    }, [categoryColor, selectedDate, selectedTimeRange, unavailableRangesMap, dayStatusMap, minDate])
 
     useEffect(() => {
         if (selectedDate && selectedSlot) {
@@ -434,8 +448,13 @@ export default function BookingScreen() {
             return false
         }
 
-        if ((bookingData.category === 'catering' || bookingData.category === 'photo') && !location.trim()) {
-            Alert.alert('Missing Location', 'Please provide the event location.')
+        const locationRequired = 
+            bookingData.category === 'catering' || 
+            bookingData.category === 'photo' || 
+            (normalizedCategory === 'parlor' && isHomeService);
+
+        if (locationRequired && !location.trim()) {
+            Alert.alert('Missing Location', 'Please provide the address details properly.')
             return false
         }
 
@@ -462,6 +481,11 @@ export default function BookingScreen() {
         try {
             setIsSubmitting(true)
 
+            const travelNotes = (normalizedCategory === 'parlor' && isHomeService) 
+                ? `[On-Site/Home Service Requested - Travel Fee: PKR ${travelFeeTotal.toLocaleString()}]\n` 
+                : '';
+            const finalSpecialRequests = travelNotes + specialRequests.trim();
+
             await createBooking({
                 serviceId: bookingData.serviceId,
                 vendorId: bookingData.vendorId,
@@ -470,8 +494,10 @@ export default function BookingScreen() {
                 eventDate: selectedDate,
                 eventTime: getSelectedTime(),
                 ...(bookingData.guestCount != null ? { guestCount: bookingData.guestCount } : {}),
-                location: location.trim() || bookingData.vendorLocation,
-                specialRequests: specialRequests.trim(),
+                location: (normalizedCategory === 'parlor' && !isHomeService)
+                    ? bookingData.vendorLocation
+                    : (location.trim() || bookingData.vendorLocation),
+                specialRequests: finalSpecialRequests,
                 addons: selectedAddonsList,
                 totalAmount: totalPrice,
                 advancePayment,
@@ -493,8 +519,8 @@ export default function BookingScreen() {
   return (
     <KeyboardAvoidingView
         style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={insets.top}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 60 : 0}
     >
         {/* Header */}
         <View className='flex-row items-center gap-4 px-5 py-5' style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
@@ -546,6 +572,8 @@ export default function BookingScreen() {
                 </View>
             </View>
 
+
+
             {/* Date Selection */}
             <View className='px-5 mb-6'>
                 <Text className='text-xl font-extrabold mb-4' style={{color: Colors.textPrimary}}>Select Date</Text>
@@ -555,18 +583,27 @@ export default function BookingScreen() {
                 <View className='rounded-2xl overflow-hidden' style={[{backgroundColor: Colors.lightGray}, Shadows.medium]}>
                     <Calendar 
                         onDayPress={day => {
-                            const state = dayStatusMap[day.dateString]
+                            const selected = new Date(day.dateString);
+                            const min = new Date(minDate);
+                            if (selected < min) {
+                                return;
+                            }
+                            if (day.dateString < minDate) {
+                                return;
+                            }
+                            const state = dayStatusMap[day.dateString];
 
                             if (state?.isFullDayBlocked) {
-                                Alert.alert('Date Not Available', 'Vendor has blocked this date.')
-                                return
+                                Alert.alert('Date Not Available', 'Vendor has blocked this date.');
+                                return;
                             }
 
-                            setSelectedDate(day.dateString)
+                            setSelectedDate(day.dateString);
                         }}
                         markingType={'custom'}
                         markedDates={markedDates}
                         minDate={minDate}
+                        disableAllTouchEventsForDisabledDays={true}
                         theme={{
                             todayTextColor: categoryColor,
                             arrowColor: Colors.textPrimary,
@@ -576,7 +613,8 @@ export default function BookingScreen() {
                             textMonthFontWeight: '800',
                             monthTextColor: Colors.textPrimary,
                             textDayFontWeight: '500',
-                            textDayStyle: {color: Colors.textPrimary}
+                            textDayStyle: {color: Colors.textPrimary},
+                            textDisabledColor: Colors.textTertiary,
                         }}
                         style={{
                             margin: 12,
@@ -710,16 +748,53 @@ export default function BookingScreen() {
                 )}
             </View>
 
-            {/* Location Input - Only for Catering & Photographer */}
-            {(bookingData.category === 'catering' || bookingData.category === 'photo') && (
+            {/* Travel Toggle for Parlor */}
+            {normalizedCategory === 'parlor' && bookingData.isOnSite && (
+                <View className='px-5 mb-6'>
+                    <Text className='text-xl font-extrabold mb-4' style={{color: Colors.textPrimary}}>Service Location</Text>
+                    <View className='rounded-2xl p-4 flex-row gap-3' style={[{backgroundColor: Colors.white, borderWidth: 2, borderColor: Colors.border}, Shadows.medium]}>
+                        <Pressable 
+                            className='flex-1 py-3.5 px-4 rounded-xl border flex-row items-center justify-center gap-2 active:opacity-80'
+                            style={{
+                                borderColor: !isHomeService ? categoryColor : Colors.border,
+                                backgroundColor: !isHomeService ? `${categoryColor}10` : 'transparent'
+                            }}
+                            onPress={() => setIsHomeService(false)}
+                        >
+                            <Circle size={16} color={!isHomeService ? categoryColor : Colors.borderDark} fill={!isHomeService ? categoryColor : 'transparent'} />
+                            <Text className='font-bold text-sm' style={{color: !isHomeService ? categoryColor : Colors.textSecondary}}>Go to Salon</Text>
+                        </Pressable>
+                        <Pressable 
+                            className='flex-1 py-3.5 px-4 rounded-xl border flex-row items-center justify-center gap-2 active:opacity-80'
+                            style={{
+                                borderColor: isHomeService ? categoryColor : Colors.border,
+                                backgroundColor: isHomeService ? `${categoryColor}10` : 'transparent'
+                            }}
+                            onPress={() => setIsHomeService(true)}
+                        >
+                            <Circle size={16} color={isHomeService ? categoryColor : Colors.borderDark} fill={isHomeService ? categoryColor : 'transparent'} />
+                            <Text className='font-bold text-sm' style={{color: isHomeService ? categoryColor : Colors.textSecondary}}>At My Location</Text>
+                        </Pressable>
+                    </View>
+                </View>
+            )}
+
+
+
+            {/* Location Input - Only for Catering, Photographer & Parlor On-Site */}
+            {(bookingData.category === 'catering' || bookingData.category === 'photo' || (normalizedCategory === 'parlor' && isHomeService)) && (
                 <View className='px-5 mb-6'>
                     <Text className='text-xl font-extrabold mb-4' style={{color: Colors.textPrimary}}>
-                        {bookingData.category === 'catering' ? 'Delivery Location' : 'Event Location'}
+                        {bookingData.category === 'catering' ? 'Delivery Location' : 'Event / Home Location'}
                     </Text>
                     <View className='flex-row items-center rounded-2xl px-4 py-4' style={[{backgroundColor: Colors.white, borderWidth: 2, borderColor: Colors.border}, Shadows.medium]}>
                         <MapPin size={20} color={categoryColor} />
                         <TextInput
-                            placeholder={bookingData.category === 'catering' ? 'Enter delivery address' : 'Enter event venue address'}
+                            placeholder={
+                                bookingData.category === 'catering' ? 'Enter delivery address' :
+                                normalizedCategory === 'parlor' ? 'Enter your home/venue address properly' :
+                                'Enter event venue address'
+                            }
                             value={location}
                             onChangeText={setLocation}
                             className='flex-1 ml-3 text-sm'
@@ -829,7 +904,7 @@ export default function BookingScreen() {
                     </View>
 
                     {/* Location */}
-                    {(bookingData.category === 'catering' || bookingData.category === 'photo') && (
+                    {(bookingData.category === 'catering' || bookingData.category === 'photo' || (normalizedCategory === 'parlor' && isHomeService)) && (
                         <View className='flex-row justify-between items-start mb-3'>
                             <Text className='text-xs font-bold' style={{color: Colors.textSecondary}}>Location</Text>
                             <Text className='text-sm font-bold flex-1 text-right' style={{color: Colors.textPrimary}} numberOfLines={2}>
@@ -864,6 +939,14 @@ export default function BookingScreen() {
                                 }
                                 return null
                             })}
+                        </View>
+                    )}
+
+                    {/* Travel Fee */}
+                    {travelFeeTotal > 0 && (
+                        <View className='flex-row justify-between items-center mb-3'>
+                            <Text className='text-xs font-bold' style={{color: Colors.textSecondary}}>On-Site Travel Fee</Text>
+                            <Text className='text-sm font-bold' style={{color: Colors.textPrimary}}>PKR {travelFeeTotal.toLocaleString()}</Text>
                         </View>
                     )}
 
@@ -911,8 +994,8 @@ const styles = StyleSheet.create({
     timeGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 8,
-        justifyContent: 'flex-start',
+        justifyContent: 'space-between',
+        rowGap: 10,
     },
     gridItem: {
         width: '31%',
