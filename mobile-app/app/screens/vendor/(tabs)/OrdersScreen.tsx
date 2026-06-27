@@ -9,6 +9,7 @@ import OrderCard from '../Component/OrderCard';
 import { getVendorBookings, VendorOrderItem } from '@/app/_utils/bookingsApi';
 import { useLanguage } from '@/app/_context/LanguageContext';
 import VendorHeader from '../Component/VendorHeader';
+import { registerBookingRefreshListener, unregisterBookingRefreshListener } from '@/app/_context/SocketContext';
 
 export default function OrdersScreen() {
   const router = useRouter();
@@ -40,6 +41,16 @@ export default function OrdersScreen() {
       loadOrders()
     }, [loadOrders])
   )
+
+  // Real-time refresh: auto-reload orders list when a new booking arrives
+  React.useEffect(() => {
+    const handleNewBooking = () => {
+      console.log('📦 New booking received via socket — refreshing orders list');
+      loadOrders();
+    };
+    registerBookingRefreshListener(handleNewBooking);
+    return () => unregisterBookingRefreshListener(handleNewBooking);
+  }, [loadOrders]);
 
   const getFilteredOrders = () => {
     if (selectedFilter === 'all') {

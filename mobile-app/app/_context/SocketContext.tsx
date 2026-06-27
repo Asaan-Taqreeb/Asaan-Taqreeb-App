@@ -22,6 +22,22 @@ export const useSocket = () => useContext(SocketContext);
 // Use the live Render backend for socket connections
 const SOCKET_URL = 'https://asaantaqreeb.duckdns.org';
 
+// ---------------------------------------------------------------------------
+// Booking-refresh listener registry (module-level singleton)
+// Screens that display booking data can register a callback here.
+// When a BOOKING_UPDATE socket event arrives, all callbacks are invoked.
+// ---------------------------------------------------------------------------
+type BookingRefreshCallback = () => void;
+const bookingRefreshListeners = new Set<BookingRefreshCallback>();
+
+export function registerBookingRefreshListener(cb: BookingRefreshCallback) {
+  bookingRefreshListeners.add(cb);
+}
+
+export function unregisterBookingRefreshListener(cb: BookingRefreshCallback) {
+  bookingRefreshListeners.delete(cb);
+}
+
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -69,8 +85,17 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       });
 
       // Listen for real-time notifications
-      newSocket.on('newNotification', () => {
+      newSocket.on('newNotification', (notification: any) => {
         setUnreadNotificationCount(prev => prev + 1);
+
+        // If this is a booking update, fire all registered booking listeners
+        // so screens like VendorDashboardHome re-fetch data immediately.
+        const type = notification?.type;
+        if (type === 'BOOKING_UPDATE' || type === 'NEW_BOOKING') {
+          bookingRefreshListeners.forEach(cb => {
+            try { cb(); } catch (_) {}
+          });
+        }
       });
 
       // Listen for new message notifications (when user is NOT in the chat screen)

@@ -31,6 +31,35 @@ export const updatePushTokens = async (expoToken?: string, fcmToken?: string, we
   }
 };
 
+/**
+ * Clears all push tokens from the backend for the current user.
+ * Call this BEFORE logging out so the server stops sending notifications
+ * to this device once the user is signed out.
+ */
+export const removePushTokens = async () => {
+  try {
+    await apiFetchJson<any>(
+      NOTIFICATION_ENDPOINTS.updateToken,
+      {
+        method: 'POST',
+        auth: true,
+        body: JSON.stringify({
+          expoPushToken: null,
+          fcmToken: null,
+          webPushSubscription: null,
+        }),
+      },
+      'Failed to clear push tokens'
+    );
+    console.log('✅ Push tokens cleared on logout');
+    return true;
+  } catch (error) {
+    // Non-fatal — backend logout will also clear tokens
+    console.warn('Could not clear push tokens before logout:', error);
+    return false;
+  }
+};
+
 export const sendTestNotification = async () => {
   try {
     const { registerForPushNotificationsAsync } = require('./pushNotificationService');

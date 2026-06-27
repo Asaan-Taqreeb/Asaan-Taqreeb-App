@@ -14,6 +14,7 @@ import { useLanguage } from '@/app/_context/LanguageContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import VendorHeader from '../Component/VendorHeader';
 import { getVendorReviews } from '@/app/_utils/reviewsApi';
+import { registerBookingRefreshListener, unregisterBookingRefreshListener } from '@/app/_context/SocketContext';
 
 export default function VendorDashboardHome() {
   const router = useRouter();
@@ -102,6 +103,21 @@ export default function VendorDashboardHome() {
       loadDashboard()
     }, [loadDashboard])
   )
+
+  // -----------------------------------------------------------------------
+  // Real-time refresh: when a new booking arrives via socket, reload data
+  // without requiring the vendor to navigate away and back.
+  // -----------------------------------------------------------------------
+  React.useEffect(() => {
+    const handleNewBooking = () => {
+      console.log('📦 New booking received via socket — refreshing dashboard');
+      loadDashboard();
+    };
+    registerBookingRefreshListener(handleNewBooking);
+    return () => {
+      unregisterBookingRefreshListener(handleNewBooking);
+    };
+  }, [loadDashboard]);
 
   const sortedOrders = React.useMemo(
     () => [...orders].sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime()),

@@ -235,6 +235,14 @@ export const getCurrentUser = async () => {
 }
 
 export const logoutUser = async () => {
+  // Remove push tokens first so the server stops sending notifications to this device.
+  try {
+    const { removePushTokens } = await import('@/app/_utils/pushTokenManager');
+    await removePushTokens();
+  } catch (_) {
+    // Non-fatal
+  }
+
   try {
     await apiFetch(AUTH_ENDPOINTS.logout, {
       method: 'POST',
