@@ -29,8 +29,16 @@ export default function VendorDashboardHome() {
 
   const loadDashboard = React.useCallback(async () => {
     try {
-      const data = await getVendorBookings()
+      const data = await getVendorBookings(false)
       setOrders(data)
+      setIsLoading(false)
+
+      // Fetch fresh data in background if cached data was loaded
+      let freshData = data;
+      if ((data as any).isCache) {
+        freshData = await getVendorBookings(true)
+        setOrders(freshData)
+      }
       
       const vendorId = user?.id || user?._id;
       let apiReviews: any[] = [];

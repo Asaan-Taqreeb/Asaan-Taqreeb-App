@@ -45,7 +45,8 @@ export function useNotificationSetup() {
         console.log('🔧 Initializing Native push notifications...');
 
         // Register and get token
-        const expoToken = await registerForPushNotificationsAsync();
+        const pushTokenResult = await registerForPushNotificationsAsync();
+        const expoToken = pushTokenResult?.expoToken ?? null;
 
         // Send token to backend only when authenticated
         if (expoToken) {

@@ -41,6 +41,11 @@ export default function BookingScreen() {
         setError(null)
         const response = await getMyBookings(forceRefresh)
         setBookings(response)
+        
+        if (!forceRefresh && (response as any).isCache) {
+          const freshResponse = await getMyBookings(true)
+          setBookings(freshResponse)
+        }
       } catch (apiError: any) {
         setError(apiError?.message || t('loadingBookings'))
       } finally {

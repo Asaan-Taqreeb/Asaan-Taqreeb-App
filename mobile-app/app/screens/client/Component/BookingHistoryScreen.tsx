@@ -73,8 +73,14 @@ export default function BookingHistoryScreen() {
 
     try {
       setIsLoading(true);
-      const data = await getMyBookings();
+      const data = await getMyBookings(false);
       setBookings(data);
+      setIsLoading(false);
+
+      if ((data as any).isCache) {
+        const freshData = await getMyBookings(true);
+        setBookings(freshData);
+      }
     } catch (error) {
       console.error('Failed to fetch bookings:', error);
     } finally {

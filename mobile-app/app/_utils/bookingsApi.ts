@@ -324,7 +324,9 @@ export const getMyBookings = async (forceRefresh = false): Promise<ClientBooking
   if (cachedBookings.length > 0) {
     // Return cache immediately, allow fetch to run in the background
     fetchPromise.catch(() => {})
-    return cachedBookings
+    const result = [...cachedBookings] as any
+    result.isCache = true
+    return result
   }
 
   return fetchPromise
@@ -378,7 +380,9 @@ export const getVendorBookings = async (forceRefresh = false): Promise<VendorOrd
 
   if (cachedOrders.length > 0) {
     fetchPromise.catch(() => {})
-    return cachedOrders
+    const result = [...cachedOrders] as any
+    result.isCache = true
+    return result
   }
 
   return fetchPromise

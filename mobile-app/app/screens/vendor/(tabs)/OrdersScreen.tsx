@@ -28,6 +28,11 @@ export default function OrdersScreen() {
       setError(null)
       const response = await getVendorBookings(isRefresh)
       setOrders(response)
+      
+      if (!isRefresh && (response as any).isCache) {
+        const freshResponse = await getVendorBookings(true)
+        setOrders(freshResponse)
+      }
     } catch (apiError: any) {
       setError(apiError?.message || 'Failed to load orders')
     } finally {

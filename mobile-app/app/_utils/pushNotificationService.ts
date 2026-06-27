@@ -23,6 +23,7 @@ if (Platform.OS !== 'web') {
   // Configure notification behavior
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
+      shouldShowAlert: true,
       shouldShowBanner: true,
       shouldShowList: true,
       shouldPlaySound: true,
@@ -36,7 +37,7 @@ if (Platform.OS !== 'web') {
  */
 export async function registerForPushNotificationsAsync() {
   if (Platform.OS === 'web') {
-    return null;
+    return { expoToken: null, fcmToken: null };
   }
 
   let token;
@@ -79,13 +80,14 @@ export async function registerForPushNotificationsAsync() {
       if (Platform.OS === 'android' && Platform.Version >= 33) {
           console.log('Android 13+ detected, permission is mandatory for notifications');
       }
-      return;
+      return { expoToken: null, fcmToken: null };
     }
     
     try {
         const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
         if (!projectId) {
             console.log('Project ID not found in expo config');
+        return { expoToken: null, fcmToken: null };
         }
         token = (await Notifications.getExpoPushTokenAsync({
             projectId
@@ -98,7 +100,7 @@ export async function registerForPushNotificationsAsync() {
     console.log('Must use physical device for Push Notifications');
   }
 
-  return token;
+  return { expoToken: token ?? null, fcmToken: null };
 }
 
 /**

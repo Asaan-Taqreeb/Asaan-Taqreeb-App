@@ -63,7 +63,9 @@ export const removePushTokens = async () => {
 export const sendTestNotification = async () => {
   try {
     const { registerForPushNotificationsAsync } = require('./pushNotificationService');
-    const { expoToken, fcmToken } = await registerForPushNotificationsAsync() || {};
+    const pushTokenResult = await registerForPushNotificationsAsync();
+    const expoToken = pushTokenResult?.expoToken ?? null;
+    const fcmToken = pushTokenResult?.fcmToken ?? null;
     const token = expoToken || fcmToken;
 
     if (!token) {
