@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors, getCategoryColor, Shadows } from '@/app/_constants/theme'
 import { createBooking } from '@/app/_utils/bookingsApi'
 import { getVendorAvailability, type VendorAvailabilityDay } from '@/app/_utils/availabilityApi'
-import { parseRange, rangesOverlap, toLocalIsoDate } from '@/app/_utils/calendarDateUtils'
+import { parseRange, rangesOverlap, toLocalIsoDate, toMinutes, generateHourlyIntervals } from '@/app/_utils/calendarDateUtils'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useUser } from '@/app/_context/UserContext'
 
@@ -34,9 +34,14 @@ export default function BookingScreen() {
     
     if (params.bookingData) {
         try {
-            bookingData = JSON.parse(params.bookingData as string)
-        } catch {
-            console.log('Error parsing booking data')
+            const rawData = params.bookingData.toString();
+            bookingData = JSON.parse(
+                rawData.startsWith('{')
+                    ? rawData
+                    : decodeURIComponent(rawData)
+            );
+        } catch (err) {
+            console.log('Error parsing booking data', err)
         }
     }
 
@@ -621,7 +626,7 @@ export default function BookingScreen() {
                             </Text>
                         ) : (
                             <View style={styles.timeGrid}>
-                                {intervals.map((interval) => {
+                                {intervals.map((interval: { label: string; value: string }) => {
                                     const isSelected = selectedSlot === interval.value
                                     const blocked = isTimeBlockedOnSelectedDate(interval.value)
 

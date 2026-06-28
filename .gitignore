@@ -15,3 +15,7 @@ mobile-app/.env
 .DS_Store
 Thumbs.db
 node_modules
+
+# --- Firebase Configuration ---
+mobile-app/google-services.json
+mobile-app/GoogleService-Info.plist

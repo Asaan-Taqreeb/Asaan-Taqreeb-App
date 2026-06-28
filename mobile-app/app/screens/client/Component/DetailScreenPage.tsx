@@ -44,7 +44,12 @@ export default function DetailScreenPage() {
     let vendor: any = null
     if (params.vendor) {
         try {
-            vendor = JSON.parse(params.vendor as string)
+            const rawData = params.vendor.toString();
+            vendor = JSON.parse(
+                rawData.startsWith('{')
+                    ? rawData
+                    : decodeURIComponent(rawData)
+            )
         } catch {
             vendor = null
         }
@@ -633,7 +638,7 @@ export default function DetailScreenPage() {
                                         }
                                         router.push({
                                             pathname: "/screens/client/Component/BookingScreen",
-                                            params: { bookingData: JSON.stringify(bookingData) }
+                                            params: { bookingData: encodeURIComponent(JSON.stringify(bookingData)) }
                                         })
                                     }}
                                 >
@@ -790,7 +795,7 @@ export default function DetailScreenPage() {
                                     router.push({
                                         pathname: "/screens/client/Component/BookingScreen",
                                         params: {
-                                            bookingData: JSON.stringify(customBookingData)
+                                            bookingData: encodeURIComponent(JSON.stringify(customBookingData))
                                         }
                                     })
                                 }}
@@ -827,7 +832,7 @@ export default function DetailScreenPage() {
 
                 router.push({
                     pathname: "/screens/client/Component/VendorChatScreen",
-                    params: { vendor: JSON.stringify(vendor) }
+                    params: { vendor: encodeURIComponent(JSON.stringify(vendor)) }
                 })
             }}
         >

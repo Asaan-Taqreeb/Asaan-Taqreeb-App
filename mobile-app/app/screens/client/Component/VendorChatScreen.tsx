@@ -234,7 +234,12 @@ export default function VendorChatScreen() {
     let vendor = null
     if (params.vendor) {
         try {
-            vendor = JSON.parse(params.vendor as string)
+            const rawData = params.vendor.toString();
+            vendor = JSON.parse(
+                rawData.startsWith('{')
+                    ? rawData
+                    : decodeURIComponent(rawData)
+            )
         } catch {
             vendor = null
         }

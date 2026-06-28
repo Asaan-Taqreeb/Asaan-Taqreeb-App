@@ -100,7 +100,7 @@ export default function MessagesScreen() {
     router.push({
         pathname: '/screens/client/Component/VendorChatScreen',
         params: { 
-            vendor: JSON.stringify(vendor),
+            vendor: encodeURIComponent(JSON.stringify(vendor)),
             chatId: chat.chatId 
         }
     })

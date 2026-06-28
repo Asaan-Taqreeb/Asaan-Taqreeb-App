@@ -63,11 +63,20 @@ export default function VendorCalendarScreen() {
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null)
   const [showCustomTime, setShowCustomTime] = useState(false)
 
-  const blockOptions = useMemo(() => {
+  const blockOptions = useMemo<TimeSlot[]>(() => {
     if (category === 'banquet') {
       return slots
     } else if (operatingHours) {
-      return generateHourlyIntervals(operatingHours.from, operatingHours.to)
+      const intervals = generateHourlyIntervals(operatingHours.from, operatingHours.to)
+      return intervals.map((interval, index) => {
+        const [fromVal, toVal] = interval.value.split(/\s+to\s+/i)
+        return {
+          id: `hourly_${index}`,
+          label: interval.label,
+          from: fromVal || '',
+          to: toVal || '',
+        }
+      })
     }
     return []
   }, [category, slots, operatingHours])

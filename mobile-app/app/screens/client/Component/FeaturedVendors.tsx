@@ -203,7 +203,7 @@ export default function FeaturedVendors() {
               return (
               <Pressable className="mb-4 active:opacity-90" onPress={() => router.push({
                 pathname: "/screens/client/Component/DetailScreenPage",
-                params: { vendor: JSON.stringify(item), category: item.key }
+                params: { vendor: encodeURIComponent(JSON.stringify(item)), category: item.key }
               })}>
                 <View 
                   className="rounded-3xl p-4 flex-row items-center gap-4" 
