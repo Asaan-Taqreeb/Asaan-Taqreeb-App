@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator, Alert, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft } from 'lucide-react-native';
 import { Colors } from '@/app/_constants/theme';
@@ -27,7 +27,10 @@ export default function LocationPermissionScreen({ onPermissionGranted, onBack }
         Alert.alert(
           'Location Required',
           'We need your location to show nearby event organizers, catering, and venues. Please enable it in settings.',
-          [{ text: 'OK' }]
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Linking.openSettings() }
+          ]
         );
       }
     } catch (error) {

@@ -118,9 +118,10 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
     const [isLocating, setIsLocating] = useState(false);
     const [isMapReady, setIsMapReady] = useState(false);
     const [suggestions, setSuggestions] = useState<{label: string, lat: number, lon: number}[]>([]);
+    const shouldFetchSuggestions = useRef(false);
 
     useEffect(() => {
-        if (searchQuery.trim().length < 3) {
+        if (!shouldFetchSuggestions.current || searchQuery.trim().length < 3) {
             setSuggestions([]);
             return;
         }
@@ -175,6 +176,8 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
     const handleSearch = async () => {
         if (!searchQuery.trim()) return;
         setIsSearching(true);
+        setSuggestions([]);
+        shouldFetchSuggestions.current = false;
         
         let geocodeQuery = searchQuery.trim();
         if (!geocodeQuery.toLowerCase().includes('karachi')) {
@@ -200,22 +203,40 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
                 throw new Error("No results");
             }
         } catch (error) {
-            // Local fallback match to resolve "no internet / Google Services" issues in Karachi
-            const lower = searchQuery.toLowerCase();
-            const matched = KARACHI_FALLBACKS.find(item => 
-                item.keys.some(k => lower.includes(k))
-            );
-            
-            if (matched) {
-                // Move map to the matched area, but KEEP their custom typed search query as the address!
-                animateToRegion(matched.latitude, matched.longitude);
-                setMarkerPosition({ latitude: matched.latitude, longitude: matched.longitude });
-                setTempAddress(searchQuery);
-            } else {
-                // Fallback to Karachi center, but KEEP their custom typed search query as the address!
-                animateToRegion(24.8607, 67.0011);
-                setMarkerPosition({ latitude: 24.8607, longitude: 67.0011 });
-                setTempAddress(searchQuery);
+            // Try Nominatim search fallback if native geocoding fails
+            try {
+                const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(geocodeQuery)}&format=json&limit=1`;
+                const res = await fetch(url, {
+                    headers: { 'User-Agent': 'AsaanTaqreebApp/1.0' }
+                });
+                const data = await res.json();
+                if (Array.isArray(data) && data.length > 0) {
+                    const lat = parseFloat(data[0].lat);
+                    const lon = parseFloat(data[0].lon);
+                    animateToRegion(lat, lon);
+                    setMarkerPosition({ latitude: lat, longitude: lon });
+                    setTempAddress(data[0].display_name || searchQuery);
+                } else {
+                    throw new Error("Nominatim fallback failed");
+                }
+            } catch (fallbackErr) {
+                // Local fallback match to resolve "no internet / Google Services" issues in Karachi
+                const lower = searchQuery.toLowerCase();
+                const matched = KARACHI_FALLBACKS.find(item => 
+                    item.keys.some(k => lower.includes(k))
+                );
+                
+                if (matched) {
+                    // Move map to the matched area, but KEEP their custom typed search query as the address!
+                    animateToRegion(matched.latitude, matched.longitude);
+                    setMarkerPosition({ latitude: matched.latitude, longitude: matched.longitude });
+                    setTempAddress(searchQuery);
+                } else {
+                    // Fallback to Karachi center, but KEEP their custom typed search query as the address!
+                    animateToRegion(24.8607, 67.0011);
+                    setMarkerPosition({ latitude: 24.8607, longitude: 67.0011 });
+                    setTempAddress(searchQuery);
+                }
             }
         } finally {
             setIsSearching(false);
@@ -228,6 +249,7 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
         
         if (latitude === undefined || longitude === undefined) return;
 
+        shouldFetchSuggestions.current = false;
         setMarkerPosition({ latitude, longitude });
         setSearchQuery("Loading address...");
         try {
@@ -238,17 +260,32 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
                 setTempAddress(formatted);
                 setSearchQuery(formatted);
             } else {
+                throw new Error("No native reverse geocode result");
+            }
+        } catch (error) {
+            // Try Nominatim fallback
+            try {
+                const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
+                const res = await fetch(url, {
+                    headers: { 'User-Agent': 'AsaanTaqreebApp/1.0' }
+                });
+                const data = await res.json();
+                if (data && data.display_name) {
+                    setTempAddress(data.display_name);
+                    setSearchQuery(data.display_name);
+                } else {
+                    throw new Error("Nominatim failed");
+                }
+            } catch (err) {
                 setTempAddress(`Pinned Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)}), Karachi`);
                 setSearchQuery(`Pinned Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)}), Karachi`);
             }
-        } catch (error) {
-            setTempAddress(`Pinned Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)}), Karachi`);
-            setSearchQuery(`Pinned Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)}), Karachi`);
         }
     };
 
     const getCurrentLocation = async () => {
         setIsLocating(true);
+        shouldFetchSuggestions.current = false;
         try {
             const { status: existingStatus } = await Location.getForegroundPermissionsAsync();
             let finalStatus = existingStatus;
@@ -276,12 +313,35 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
             setMarkerPosition({ latitude, longitude });
             
             // Get address
-            const results = await Location.reverseGeocodeAsync({ latitude, longitude });
-            if (results.length > 0) {
-                const addr = results[0];
-                const formatted = [addr.name, addr.street, addr.district, addr.city].filter(Boolean).join(', ');
-                setTempAddress(formatted);
-                setSearchQuery(formatted);
+            setSearchQuery("Loading address...");
+            try {
+                const results = await Location.reverseGeocodeAsync({ latitude, longitude });
+                if (results.length > 0) {
+                    const addr = results[0];
+                    const formatted = [addr.name, addr.street, addr.district, addr.city].filter(Boolean).join(', ');
+                    setTempAddress(formatted);
+                    setSearchQuery(formatted);
+                } else {
+                    throw new Error("No native reverse geocode result");
+                }
+            } catch (geocodeError) {
+                console.log("Native reverse geocoding failed in getCurrentLocation, trying Nominatim fallback:", geocodeError);
+                try {
+                    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
+                    const res = await fetch(url, {
+                        headers: { 'User-Agent': 'AsaanTaqreebApp/1.0' }
+                    });
+                    const data = await res.json();
+                    if (data && data.display_name) {
+                        setTempAddress(data.display_name);
+                        setSearchQuery(data.display_name);
+                    } else {
+                        throw new Error("Nominatim failed");
+                    }
+                } catch (err) {
+                    setTempAddress(`Pinned Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)}), Karachi`);
+                    setSearchQuery(`Pinned Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)}), Karachi`);
+                }
             }
         } catch (error) {
             console.error("Location error:", error);
@@ -342,7 +402,10 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
                             style={styles.modalSearchInput as TextStyle}
                             placeholder="Search area, landmark or city..."
                             value={searchQuery}
-                            onChangeText={setSearchQuery}
+                            onChangeText={(text) => {
+                                shouldFetchSuggestions.current = true;
+                                setSearchQuery(text);
+                            }}
                             onSubmitEditing={handleSearch}
                             placeholderTextColor="#9CA3AF"
                         />
@@ -350,7 +413,11 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
                             <ActivityIndicator size="small" color={Colors.primary} />
                         ) : (
                             searchQuery.length > 0 && (
-                                <TouchableOpacity onPress={() => { setSearchQuery(''); setSuggestions([]); }}>
+                                <TouchableOpacity onPress={() => { 
+                                    shouldFetchSuggestions.current = false;
+                                    setSearchQuery(''); 
+                                    setSuggestions([]); 
+                                }}>
                                     <X size={16} color="#9CA3AF" />
                                 </TouchableOpacity>
                             )
@@ -367,6 +434,7 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
                                     key={index}
                                     style={styles.suggestionItem as ViewStyle}
                                     onPress={() => {
+                                        shouldFetchSuggestions.current = false;
                                         setMarkerPosition({ latitude: item.lat, longitude: item.lon });
                                         setTempAddress(item.label);
                                         setSearchQuery(item.label);

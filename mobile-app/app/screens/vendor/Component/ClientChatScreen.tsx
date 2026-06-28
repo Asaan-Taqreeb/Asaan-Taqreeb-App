@@ -232,7 +232,7 @@ export default function ClientChatScreen() {
     // Params will include the client's info
     const clientId = params.clientId as string
     const clientName = params.clientName as string || "Client"
-    const { socket } = useSocket()
+    const { socket, isConnected } = useSocket()
     const { user } = useUser()
 
     const chatId = (params.chatId as string) || (user?.id && clientId ? `chat_${clientId}_${user.id}` : '')
@@ -263,11 +263,9 @@ export default function ClientChatScreen() {
     }, [loadChatHistory])
 
     useEffect(() => {
-        if (!socket || !chatId) return
+        if (!socket || !chatId || !isConnected) return
 
-        socket.emit('joinChat', chatId)
-
-        socket.on('receiveMessage', (newMessage: Message) => {
+        const handleReceiveMessage = (newMessage: Message) => {
             const normalizedMessage = normalizeMessage(newMessage)
             setMessages((prev) => {
                 // If it's from me, I already handled it optimistically
@@ -277,20 +275,24 @@ export default function ClientChatScreen() {
                 return [normalizedMessage, ...prev];
             })
             markChatAsRead(chatId)
-        })
+        }
 
-        socket.on('typing', ({ userId, isTyping }) => {
+        const handleTyping = ({ userId, isTyping }: { userId: string; isTyping: boolean }) => {
             if (userId !== user?.id) {
                 setIsOpponentTyping(isTyping)
             }
-        })
+        }
+
+        socket.emit('joinChat', chatId)
+        socket.on('receiveMessage', handleReceiveMessage)
+        socket.on('typing', handleTyping)
 
         return () => {
             socket.emit('leaveChat', chatId)
-            socket.off('receiveMessage')
-            socket.off('typing')
+            socket.off('receiveMessage', handleReceiveMessage)
+            socket.off('typing', handleTyping)
         }
-    }, [socket, chatId, user])
+    }, [socket, chatId, user, isConnected])
 
     // Auto-scroll is handled natively by the inverted FlatList container
 

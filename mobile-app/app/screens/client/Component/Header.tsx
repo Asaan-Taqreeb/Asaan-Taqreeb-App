@@ -19,6 +19,9 @@ const Header = () => {
   const { t } = useLanguage()
   
   const location = Array.isArray(result) ? result[0] : result
+  const formattedLocation = location
+    ? ([location.district, location.city].map(s => String(s || '').trim()).filter(Boolean).join(', ') || location.name || 'Karachi, Pakistan')
+    : '';
 
   const handleSearchSubmit = (text: string) => {
     const normalized = text.trim()
@@ -46,7 +49,7 @@ const Header = () => {
             {location ? (
               <View className='flex flex-row items-center gap-1 mt-0.5'>
                 <MapPin size={13} color={Colors.accent} />          
-                <Text className='text-sm font-bold' style={{color: Colors.textPrimary}} numberOfLines={1}>{location.district}, {location.city}</Text>
+                <Text className='text-sm font-bold' style={{color: Colors.textPrimary}} numberOfLines={1}>{formattedLocation}</Text>
               </View>
             ) : error ? (
               <View className='flex flex-row items-center gap-1.5 mt-0.5'>

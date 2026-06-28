@@ -1,6 +1,6 @@
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { User, Store, ChevronRight } from "lucide-react-native"
+import { User, Store, ChevronRight, Compass } from "lucide-react-native"
 import { useRouter } from "expo-router";
 import { Colors, Shadows } from "@/app/_constants/theme";
 import AppLogo from "./client/Component/AppLogo";
@@ -55,81 +55,86 @@ export default function WelcomeScreen() {
 
   return (
     <View style={[style.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]} >
-      <View className="flex-1 justify-center px-6">
-        <View className="items-center mb-16">
-          <AppLogo size="large" />
-          <Pressable
-            onPress={() => setShowLanguagePicker(true)}
-            className="mt-5 px-4 py-2 rounded-full"
-            style={{ backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border }}
-          >
-            <Text className="text-xs font-bold uppercase tracking-widest" style={{ color: Colors.textPrimary }}>
-              {t('appLanguage')}: {languageLabel}
-            </Text>
-          </Pressable>
-        </View>
-
-        <View className="gap-5">
-          {roles.map(role => (
-            <Pressable 
-              key={role.keyRole} 
-              onPress={() => router.push(role.link)}
-              className="active:opacity-90"
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingVertical: 20 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="px-6">
+          <View className="items-center mb-10">
+            <AppLogo size="large" />
+            <Pressable
+              onPress={() => setShowLanguagePicker(true)}
+              className="mt-5 px-4 py-2 rounded-full"
+              style={{ backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border }}
             >
-              <View 
-                className="flex-row items-center p-6 rounded-[24px]"
-                style={[style.cardShadow, { backgroundColor: Colors.white }]}
+              <Text className="text-xs font-bold uppercase tracking-widest" style={{ color: Colors.textPrimary }}>
+                {t('appLanguage')}: {languageLabel}
+              </Text>
+            </Pressable>
+          </View>
+
+          <View className="gap-5 mb-6">
+            {roles.map(role => (
+              <Pressable 
+                key={role.keyRole} 
+                onPress={() => router.push(role.link)}
+                className="active:opacity-90"
               >
                 <View 
-                  className="w-16 h-16 rounded-2xl items-center justify-center" 
-                  style={{ backgroundColor: role.bgColor }} 
+                  className="flex-row items-center p-6 rounded-[24px]"
+                  style={[style.cardShadow, { backgroundColor: Colors.white }]}
                 >
-                  <role.icon color={role.color} size={30} />
+                  <View 
+                    className="w-16 h-16 rounded-2xl items-center justify-center" 
+                    style={{ backgroundColor: role.bgColor }} 
+                  >
+                    <role.icon color={role.color} size={30} />
+                  </View>
+                  
+                  <View className="flex-1 ml-5">
+                    <Text className="text-xl font-extrabold" style={{ color: Colors.textPrimary }}>
+                      {role.title}
+                    </Text>
+                    <Text className="text-sm font-medium mt-1" style={{ color: Colors.textSecondary }}>
+                      {role.subText}
+                    </Text>
+                  </View>
+
+                  <ChevronRight size={20} color={Colors.textTertiary} />
                 </View>
-                
+              </Pressable>
+            ))}
+
+            <Pressable
+              onPress={handleContinueAsGuest}
+              className="active:opacity-90"
+            >
+              <View
+                className="flex-row items-center p-6 rounded-[24px] border border-dashed"
+                style={[style.cardShadow, { backgroundColor: '#F8FAFC', borderColor: Colors.border }]}
+              >
+                <View
+                  className="w-16 h-16 rounded-2xl items-center justify-center"
+                  style={{ backgroundColor: '#E0F2FE' }}
+                >
+                  <Compass color={Colors.primary} size={30} />
+                </View>
+
                 <View className="flex-1 ml-5">
                   <Text className="text-xl font-extrabold" style={{ color: Colors.textPrimary }}>
-                    {role.title}
+                    {t('continueAsGuest')}
                   </Text>
                   <Text className="text-sm font-medium mt-1" style={{ color: Colors.textSecondary }}>
-                    {role.subText}
+                    {t('guestDescription')}
                   </Text>
                 </View>
 
                 <ChevronRight size={20} color={Colors.textTertiary} />
               </View>
             </Pressable>
-          ))}
-
-          <Pressable
-            onPress={handleContinueAsGuest}
-            className="active:opacity-90"
-          >
-            <View
-              className="flex-row items-center p-6 rounded-[24px] border border-dashed"
-              style={[style.cardShadow, { backgroundColor: '#F8FAFC', borderColor: Colors.border }]}
-            >
-              <View
-                className="w-16 h-16 rounded-2xl items-center justify-center"
-                style={{ backgroundColor: '#E0F2FE' }}
-              >
-                <User color={Colors.primary} size={30} />
-              </View>
-
-              <View className="flex-1 ml-5">
-                <Text className="text-xl font-extrabold" style={{ color: Colors.textPrimary }}>
-                  {t('continueAsGuest')}
-                </Text>
-                <Text className="text-sm font-medium mt-1" style={{ color: Colors.textSecondary }}>
-                  {t('guestDescription')}
-                </Text>
-              </View>
-
-              <ChevronRight size={20} color={Colors.textTertiary} />
-            </View>
-          </Pressable>
+          </View>
         </View>
-      </View>
+      </ScrollView>
 
       <Text className="text-center text-xs font-bold mb-4 uppercase tracking-widest" style={{ color: Colors.textTertiary }}>
         Asaan Taqreeb • Premium

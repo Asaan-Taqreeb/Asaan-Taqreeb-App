@@ -251,7 +251,7 @@ export default function VendorChatScreen() {
     const categoryColor = vendor ? getCategoryColor(vendor.category) : Colors.primary
     const targetUserId = vendor?.userId || vendor?.vendorId;
 
-    const { socket } = useSocket()
+    const { socket, isConnected } = useSocket()
     const { user } = useUser()
     const isGuest = Boolean(user?.isGuest)
 
@@ -293,11 +293,9 @@ export default function VendorChatScreen() {
     }, [loadChatHistory])
 
     useEffect(() => {
-        if (isGuest || !socket || !chatId) return
+        if (isGuest || !socket || !chatId || !isConnected) return
 
-        socket.emit('joinChat', chatId)
-
-        socket.on('receiveMessage', (newMessage: Message) => {
+        const handleReceiveMessage = (newMessage: Message) => {
             const normalizedMessage = normalizeMessage(newMessage)
             console.log('Received message from socket:', normalizedMessage)
             
@@ -321,20 +319,24 @@ export default function VendorChatScreen() {
                 return [normalizedMessage, ...prev];
             })
             markChatAsRead(chatId)
-        })
+        }
 
-        socket.on('typing', ({ userId, isTyping }) => {
+        const handleTyping = ({ userId, isTyping }: { userId: string; isTyping: boolean }) => {
             if (userId !== user?.id) {
                 setIsOpponentTyping(isTyping)
             }
-        })
+        }
+
+        socket.emit('joinChat', chatId)
+        socket.on('receiveMessage', handleReceiveMessage)
+        socket.on('typing', handleTyping)
 
         return () => {
             socket.emit('leaveChat', chatId)
-            socket.off('receiveMessage')
-            socket.off('typing')
+            socket.off('receiveMessage', handleReceiveMessage)
+            socket.off('typing', handleTyping)
         }
-    }, [socket, chatId, user, isGuest])
+    }, [socket, chatId, user, isGuest, isConnected])
 
     // Auto-scroll is handled natively by the inverted FlatList container
 

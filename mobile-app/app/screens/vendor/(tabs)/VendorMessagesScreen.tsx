@@ -58,11 +58,17 @@ export default function VendorMessagesScreen() {
 
   useEffect(() => {
     if (!socket) return;
-    socket.on('receiveMessage', () => fetchChats());
-    socket.on('newMessageNotification', () => fetchChats());
+    
+    const handleSocketMessage = () => {
+      fetchChats();
+    };
+
+    socket.on('receiveMessage', handleSocketMessage);
+    socket.on('newMessageNotification', handleSocketMessage);
+
     return () => {
-      socket.off('receiveMessage');
-      socket.off('newMessageNotification');
+      socket.off('receiveMessage', handleSocketMessage);
+      socket.off('newMessageNotification', handleSocketMessage);
     };
   }, [socket, fetchChats]);
 

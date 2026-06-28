@@ -84,6 +84,14 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setIsConnected(false);
       });
 
+      newSocket.on('connect_error', (error) => {
+        console.warn('Socket connection error:', error.message);
+      });
+
+      newSocket.on('error', (error) => {
+        console.warn('Socket error:', error);
+      });
+
       // Listen for real-time notifications
       newSocket.on('newNotification', (notification: any) => {
         setUnreadNotificationCount(prev => prev + 1);

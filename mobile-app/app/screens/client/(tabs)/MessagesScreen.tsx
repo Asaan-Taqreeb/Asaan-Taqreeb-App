@@ -60,8 +60,18 @@ export default function MessagesScreen() {
 
   useEffect(() => {
     if (!socket) return;
-    socket.on('receiveMessage', () => loadChats());
-    return () => { socket.off('receiveMessage'); };
+    
+    const handleSocketMessage = () => {
+      loadChats();
+    };
+
+    socket.on('receiveMessage', handleSocketMessage);
+    socket.on('newMessageNotification', handleSocketMessage);
+
+    return () => {
+      socket.off('receiveMessage', handleSocketMessage);
+      socket.off('newMessageNotification', handleSocketMessage);
+    };
   }, [socket]);
 
   const onRefresh = async () => {
