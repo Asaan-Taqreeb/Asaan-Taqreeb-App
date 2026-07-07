@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, View, Pressable, TextInput, Alert, RefreshControl } from 'react-native'
+import { ScrollView, StyleSheet, Text, View, Pressable, TextInput, Alert, RefreshControl, Platform } from 'react-native'
 import { useEffect, useState, useCallback } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -131,6 +131,29 @@ export default function BookingScreen() {
   }
 
   const handleCancelBooking = (bookingId: string | number) => {
+    if (Platform.OS === 'web') {
+      const confirmCancel = window.confirm("Are you sure you want to cancel this booking request? This will retract your reservation request to the vendor.");
+      if (confirmCancel) {
+        (async () => {
+          try {
+            setIsLoading(true)
+            const success = await cancelBooking(bookingId)
+            if (success) {
+              window.alert("Your booking request has been successfully cancelled.")
+              await loadBookings(true)
+            } else {
+              window.alert("Failed to cancel booking request. Please try again.")
+            }
+          } catch (err: any) {
+            window.alert(err.message || "Failed to cancel booking request.")
+          } finally {
+            setIsLoading(false)
+          }
+        })()
+      }
+      return
+    }
+
     Alert.alert(
       "Cancel Booking Request",
       "Are you sure you want to cancel this booking request? This will retract your reservation request to the vendor.",

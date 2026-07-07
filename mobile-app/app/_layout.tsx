@@ -69,7 +69,7 @@ function AppContent({ stackContent }: { stackContent: React.ReactNode }) {
       />
       {Platform.OS === 'web' ? (
         <View style={[styles.webContainer, { backgroundColor: isDark ? '#090C04' : '#F1F5F9' }]}>
-          <View style={[styles.webContent, { backgroundColor: colors.background, zoom: webZoom as any }]}>
+          <View style={[styles.webContent, { backgroundColor: colors.background, zoom: webZoom } as any]}>
             {stackContent}
           </View>
         </View>

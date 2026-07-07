@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, Alert, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, Calendar, Clock, MapPin, Phone, MessageSquare, Info, CreditCard, DollarSign, Star } from 'lucide-react-native';
@@ -68,6 +68,23 @@ export default function BookingDetailScreen() {
   };
 
   const handleCancelBooking = () => {
+    if (Platform.OS === 'web') {
+      const confirmCancel = window.confirm('Are you sure you want to cancel this booking request?');
+      if (confirmCancel) {
+        (async () => {
+          try {
+            await cancelBooking(booking.id);
+            window.alert('Your booking request has been successfully cancelled.');
+            router.back();
+          } catch (error: any) {
+            console.error('Failed to cancel booking:', error);
+            window.alert(error.message || 'Failed to cancel booking. Please try again.');
+          }
+        })();
+      }
+      return;
+    }
+
     Alert.alert(
       'Cancel Booking Request',
       'Are you sure you want to cancel this booking request?',

@@ -327,11 +327,11 @@ const GoogleMapView = React.forwardRef<GoogleMapMethods, GoogleMapViewProps>((pr
 
     if (Platform.OS === 'web') {
         return (
-            <View style={[styles.container, style]}>
+            <View style={[styles.container, style]} pointerEvents={scrollEnabled ? 'auto' : 'none'}>
                 <iframe
                     ref={iframeRef}
                     srcDoc={mapHtml}
-                    style={{ border: 'none', width: '100%', height: '100%', background: '#F3F4F6' }}
+                    style={{ border: 'none', width: '100%', height: '100%', background: '#F3F4F6', pointerEvents: scrollEnabled ? 'auto' : 'none' }}
                     sandbox="allow-scripts allow-same-origin"
                 />
             </View>
