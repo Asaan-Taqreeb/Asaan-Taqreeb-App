@@ -318,26 +318,32 @@ export default function VendorChatScreen() {
     useEffect(() => {
         if (isGuest || !socket || !chatId || !isConnected) return
 
+        const refreshChat = async () => {
+            try {
+                const history = await getChatHistory(chatId)
+                setMessages(history.map(normalizeMessage).reverse())
+                await markChatAsRead(chatId)
+            } catch (error) {
+                console.warn('Failed to refresh chat after socket event:', error)
+            }
+        }
+
         const handleReceiveMessage = (newMessage: Message) => {
             const normalizedMessage = normalizeMessage(newMessage)
             console.log('Received message from socket:', normalizedMessage)
-            
-            // Validate the message structure
+
             if (!normalizedMessage || typeof normalizedMessage !== 'object') {
                 console.warn('Invalid message received from socket:', normalizedMessage)
                 return
             }
-            
+
             if (!normalizedMessage._id || !normalizedMessage.senderId || !normalizedMessage.receiverId) {
                 console.warn('Message missing required fields:', normalizedMessage)
                 return
             }
-            
+
             setMessages((prev) => {
-                // If it's from me, I already handled it optimistically
                 if (normalizedMessage.senderId._id === user?.id) return prev;
-                
-                // Check if we already have it (safety check)
                 if (prev.some((msg) => msg._id === normalizedMessage._id)) return prev;
                 return [normalizedMessage, ...prev];
             })
@@ -352,11 +358,13 @@ export default function VendorChatScreen() {
 
         socket.emit('joinChat', chatId)
         socket.on('receiveMessage', handleReceiveMessage)
+        socket.on('newMessageNotification', refreshChat)
         socket.on('typing', handleTyping)
 
         return () => {
             socket.emit('leaveChat', chatId)
             socket.off('receiveMessage', handleReceiveMessage)
+            socket.off('newMessageNotification', refreshChat)
             socket.off('typing', handleTyping)
         }
     }, [socket, chatId, user, isGuest, isConnected])

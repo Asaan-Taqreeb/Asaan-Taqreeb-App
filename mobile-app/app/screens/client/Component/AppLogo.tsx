@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet, Image, useWindowDimensions } from 'react-native';
 import { Colors, Shadows } from '@/app/_constants/theme';
 import Svg, { Rect, Circle, Text as SvgText, Defs, LinearGradient, Stop } from 'react-native-svg';
 
@@ -11,8 +11,11 @@ interface AppLogoProps {
 }
 
 export default function AppLogo({ size = 'medium', showText = true, light = false, useMonogram = false }: AppLogoProps) {
-  const boxSize = size === 'small' ? 48 : size === 'medium' ? 100 : 200;
-  const fontSize = size === 'small' ? 'text-lg' : size === 'medium' ? 'text-3xl' : 'text-5xl';
+  const { width } = useWindowDimensions();
+  const screenScale = width < 360 ? 0.88 : width < 768 ? 0.95 : 1;
+  const baseBoxSize = size === 'small' ? 48 : size === 'medium' ? 100 : 200;
+  const boxSize = Math.round(baseBoxSize * screenScale);
+  const fontSize = size === 'small' ? 'text-lg' : size === 'medium' ? (screenScale < 1 ? 'text-2xl' : 'text-3xl') : (screenScale < 1 ? 'text-4xl' : 'text-5xl');
   const borderRadius = boxSize * 0.22; // Proportional rounded corners (similar to squircle iOS icons)
   
   // Use icon.png for small size (where big logo doesn't fit), and logo.png for medium/large sizes

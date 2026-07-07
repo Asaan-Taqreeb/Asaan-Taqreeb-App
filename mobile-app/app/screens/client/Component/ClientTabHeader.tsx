@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Text, StyleSheet, Pressable } from 'react-native'
+import { View, Text, StyleSheet, Pressable, useWindowDimensions } from 'react-native'
 import { Colors } from '@/app/_constants/theme'
 import { useUser } from '@/app/_context/UserContext'
 import { router } from 'expo-router'
@@ -13,17 +13,19 @@ interface ClientTabHeaderProps {
 
 export default function ClientTabHeader({ title, subtitle }: ClientTabHeaderProps) {
   const { user } = useUser()
+  const { width } = useWindowDimensions()
+  const compact = width < 380
 
   return (
     <View style={styles.container}>
-      <View style={styles.content}>
+      <View style={[styles.content, compact ? styles.contentCompact : null]}>
         <View style={styles.titleContainer}>
-          <Text style={styles.title}>{title}</Text>
+          <Text style={[styles.title, compact ? styles.titleCompact : null]}>{title}</Text>
           {/* Luxury gold accent indicator */}
-          <View style={styles.accentBar} />
-          {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+          <View style={[styles.accentBar, compact ? styles.accentBarCompact : null]} />
+          {subtitle ? <Text style={[styles.subtitle, compact ? styles.subtitleCompact : null]}>{subtitle}</Text> : null}
         </View>
-        <View style={styles.actions}>
+        <View style={[styles.actions, compact ? styles.actionsCompact : null]}>
           <NotificationBell userId={user?.id} userRole="client" />
           <Pressable 
             style={styles.avatarPressable} 
@@ -52,6 +54,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
   },
+  contentCompact: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
   titleContainer: {
     flex: 1,
     alignItems: 'flex-start',
@@ -63,6 +69,9 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins',
     letterSpacing: -0.5,
   },
+  titleCompact: {
+    fontSize: 18,
+  },
   accentBar: {
     width: 24,
     height: 3,
@@ -71,16 +80,27 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: 4,
   },
+  accentBarCompact: {
+    width: 20,
+    marginTop: 3,
+    marginBottom: 3,
+  },
   subtitle: {
     fontSize: 12,
     fontWeight: '500',
     color: Colors.textTertiary,
     fontFamily: 'Inter',
   },
+  subtitleCompact: {
+    fontSize: 11,
+  },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  actionsCompact: {
+    gap: 6,
   },
   avatarPressable: {
     marginLeft: 4,

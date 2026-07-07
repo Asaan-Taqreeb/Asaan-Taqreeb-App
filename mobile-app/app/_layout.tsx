@@ -51,7 +51,15 @@ import { useWindowDimensions } from 'react-native';
 function AppContent({ stackContent }: { stackContent: React.ReactNode }) {
   const { isDark, colors } = useTheme();
   const { width } = useWindowDimensions();
-  const isDesktop = width > 480;
+  const webZoom = Platform.OS === 'web'
+    ? width < 360
+      ? 0.88
+      : width < 768
+        ? 0.92
+        : width < 1200
+          ? 0.96
+          : 1
+    : 1;
 
   return (
     <>
@@ -59,9 +67,9 @@ function AppContent({ stackContent }: { stackContent: React.ReactNode }) {
         style={isDark ? 'light' : 'dark'} 
         backgroundColor={colors.background} 
       />
-      {Platform.OS === 'web' && isDesktop ? (
+      {Platform.OS === 'web' ? (
         <View style={[styles.webContainer, { backgroundColor: isDark ? '#090C04' : '#F1F5F9' }]}>
-          <View style={[styles.webContent, { backgroundColor: colors.background }]}>
+          <View style={[styles.webContent, { backgroundColor: colors.background, zoom: webZoom as any }]}>
             {stackContent}
           </View>
         </View>
@@ -110,7 +118,7 @@ const styles = StyleSheet.create({
   },
   webContent: {
     width: '100%',
-    maxWidth: 480,
+    maxWidth: 1200,
     height: '100%',
     backgroundColor: '#FFFFFF',
     shadowColor: '#0F172A',

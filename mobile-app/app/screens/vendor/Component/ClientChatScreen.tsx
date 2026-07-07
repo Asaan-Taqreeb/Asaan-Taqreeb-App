@@ -290,6 +290,16 @@ export default function ClientChatScreen() {
     useEffect(() => {
         if (!socket || !chatId || !isConnected) return
 
+        const refreshChat = async () => {
+            try {
+                const history = await getChatHistory(chatId)
+                setMessages(history.map(normalizeMessage).reverse())
+                await markChatAsRead(chatId)
+            } catch (error) {
+                console.warn('Failed to refresh chat after socket event:', error)
+            }
+        }
+
         const handleReceiveMessage = (newMessage: Message) => {
             const normalizedMessage = normalizeMessage(newMessage)
             setMessages((prev) => {
@@ -310,11 +320,13 @@ export default function ClientChatScreen() {
 
         socket.emit('joinChat', chatId)
         socket.on('receiveMessage', handleReceiveMessage)
+        socket.on('newMessageNotification', refreshChat)
         socket.on('typing', handleTyping)
 
         return () => {
             socket.emit('leaveChat', chatId)
             socket.off('receiveMessage', handleReceiveMessage)
+            socket.off('newMessageNotification', refreshChat)
             socket.off('typing', handleTyping)
         }
     }, [socket, chatId, user, isConnected])

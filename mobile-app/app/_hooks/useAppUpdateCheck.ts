@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import Constants from 'expo-constants'
+import { Platform } from 'react-native'
 import { APP_ENDPOINTS } from '@/app/_constants/apiEndpoints'
 import { ApiError, apiFetch } from '@/app/_utils/apiClient'
 
@@ -53,6 +54,19 @@ export function useAppUpdateCheck() {
   })
 
   useEffect(() => {
+    if (Platform.OS === 'web') {
+      setState({
+        checking: false,
+        updateAvailable: false,
+        currentVersion,
+        latestVersion: null,
+        apkUrl: null,
+        forceUpdate: false,
+        releaseNotes: null,
+      })
+      return
+    }
+
     let cancelled = false
 
     const checkForUpdate = async () => {

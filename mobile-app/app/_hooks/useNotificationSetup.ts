@@ -1,14 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { InteractionManager, Platform } from 'react-native';
-import Constants from 'expo-constants';
 import {
   registerForPushNotificationsAsync,
   handleNotificationResponse,
 } from '@/app/_utils/pushNotificationService';
-import {
-  registerPWAServiceWorker,
-  subscribeToWebPush,
-} from '@/app/_utils/pwaNotificationRegister';
 import { updatePushTokens } from '@/app/_utils/pushTokenManager';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';

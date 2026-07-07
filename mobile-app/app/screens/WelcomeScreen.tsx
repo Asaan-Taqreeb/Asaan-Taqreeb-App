@@ -1,5 +1,6 @@
 import { Alert, Pressable, StyleSheet, Text, View, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useWindowDimensions } from "react-native";
 import { User, Store, ChevronRight, Compass } from "lucide-react-native"
 import { useRouter } from "expo-router";
 import { Colors, Shadows } from "@/app/_constants/theme";
@@ -12,10 +13,12 @@ import { useState } from "react";
 
 export default function WelcomeScreen() {
   const insets = useSafeAreaInsets()
+  const { width } = useWindowDimensions()
   const router = useRouter()
   const { setUser } = useUser()
   const { language, languageLabel, languageOptions, setLanguage, t } = useLanguage()
   const [showLanguagePicker, setShowLanguagePicker] = useState(false)
+  const compact = width < 380
 
   const roles = [
     {
@@ -56,15 +59,15 @@ export default function WelcomeScreen() {
   return (
     <View style={[style.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]} >
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingVertical: 20 }}
+        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingVertical: compact ? 12 : 20 }}
         showsVerticalScrollIndicator={false}
       >
         <View className="px-6">
-          <View className="items-center mb-10">
+          <View className={compact ? "items-center mb-8" : "items-center mb-10"}>
             <AppLogo size="large" />
             <Pressable
               onPress={() => setShowLanguagePicker(true)}
-              className="mt-5 px-4 py-2 rounded-full"
+              className={compact ? "mt-4 px-3 py-2 rounded-full" : "mt-5 px-4 py-2 rounded-full"}
               style={{ backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border }}
             >
               <Text className="text-xs font-bold uppercase tracking-widest" style={{ color: Colors.textPrimary }}>
@@ -73,7 +76,7 @@ export default function WelcomeScreen() {
             </Pressable>
           </View>
 
-          <View className="gap-5 mb-6">
+          <View className={compact ? "gap-4 mb-5" : "gap-5 mb-6"}>
             {roles.map(role => (
               <Pressable 
                 key={role.keyRole} 
@@ -81,21 +84,21 @@ export default function WelcomeScreen() {
                 className="active:opacity-90"
               >
                 <View 
-                  className="flex-row items-center p-6 rounded-[24px]"
+                    className={compact ? "flex-row items-center p-5 rounded-[24px]" : "flex-row items-center p-6 rounded-[24px]"}
                   style={[style.cardShadow, { backgroundColor: Colors.white }]}
                 >
                   <View 
-                    className="w-16 h-16 rounded-2xl items-center justify-center" 
+                      className={compact ? "w-14 h-14 rounded-2xl items-center justify-center" : "w-16 h-16 rounded-2xl items-center justify-center"} 
                     style={{ backgroundColor: role.bgColor }} 
                   >
-                    <role.icon color={role.color} size={30} />
+                      <role.icon color={role.color} size={compact ? 26 : 30} />
                   </View>
                   
                   <View className="flex-1 ml-5">
-                    <Text className="text-xl font-extrabold" style={{ color: Colors.textPrimary }}>
+                      <Text className={compact ? "text-lg font-extrabold" : "text-xl font-extrabold"} style={{ color: Colors.textPrimary }}>
                       {role.title}
                     </Text>
-                    <Text className="text-sm font-medium mt-1" style={{ color: Colors.textSecondary }}>
+                      <Text className={compact ? "text-xs font-medium mt-1" : "text-sm font-medium mt-1"} style={{ color: Colors.textSecondary }}>
                       {role.subText}
                     </Text>
                   </View>
@@ -110,21 +113,21 @@ export default function WelcomeScreen() {
               className="active:opacity-90"
             >
               <View
-                className="flex-row items-center p-6 rounded-[24px] border border-dashed"
+                className={compact ? "flex-row items-center p-5 rounded-[24px] border border-dashed" : "flex-row items-center p-6 rounded-[24px] border border-dashed"}
                 style={[style.cardShadow, { backgroundColor: '#F8FAFC', borderColor: Colors.border }]}
               >
                 <View
-                  className="w-16 h-16 rounded-2xl items-center justify-center"
+                  className={compact ? "w-14 h-14 rounded-2xl items-center justify-center" : "w-16 h-16 rounded-2xl items-center justify-center"}
                   style={{ backgroundColor: '#E0F2FE' }}
                 >
-                  <Compass color={Colors.primary} size={30} />
+                  <Compass color={Colors.primary} size={compact ? 26 : 30} />
                 </View>
 
                 <View className="flex-1 ml-5">
-                  <Text className="text-xl font-extrabold" style={{ color: Colors.textPrimary }}>
+                  <Text className={compact ? "text-lg font-extrabold" : "text-xl font-extrabold"} style={{ color: Colors.textPrimary }}>
                     {t('continueAsGuest')}
                   </Text>
-                  <Text className="text-sm font-medium mt-1" style={{ color: Colors.textSecondary }}>
+                  <Text className={compact ? "text-xs font-medium mt-1" : "text-sm font-medium mt-1"} style={{ color: Colors.textSecondary }}>
                     {t('guestDescription')}
                   </Text>
                 </View>
@@ -136,7 +139,7 @@ export default function WelcomeScreen() {
         </View>
       </ScrollView>
 
-      <Text className="text-center text-xs font-bold mb-4 uppercase tracking-widest" style={{ color: Colors.textTertiary }}>
+      <Text className={compact ? "text-center text-[10px] font-bold mb-4 uppercase tracking-widest" : "text-center text-xs font-bold mb-4 uppercase tracking-widest"} style={{ color: Colors.textTertiary }}>
         Asaan Taqreeb • Premium
       </Text>
 

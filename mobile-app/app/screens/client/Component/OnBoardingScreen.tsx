@@ -30,7 +30,8 @@ const DATA = [
 export default function OnBoadingScreen() {
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const appWidth = Math.min(windowWidth, 480);
+  const appWidth = Math.max(320, Math.min(windowWidth, 960));
+  const compact = windowWidth < 380;
   const scrollViewRef = useRef<ScrollView>(null);
   const currentIndexRef = useRef(0);
   const { user } = useUser();
@@ -78,7 +79,7 @@ export default function OnBoadingScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom, maxWidth: 480, alignSelf: 'center', width: '100%' }]}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom, maxWidth: 960, alignSelf: 'center', width: '100%' }]}> 
       <ScrollView
         ref={scrollViewRef}
         horizontal
@@ -93,32 +94,32 @@ export default function OnBoadingScreen() {
         showsHorizontalScrollIndicator={false}
       >
         {DATA.map((item, idx) => (
-          <View key={idx} style={{ width: appWidth, paddingHorizontal: 40 }} className='justify-center'>
+          <View key={idx} style={{ width: appWidth, paddingHorizontal: compact ? 20 : 40 }} className='justify-center'>
             <View 
               className='rounded-3xl overflow-hidden mb-10' 
-              style={[{ width: "100%", height: Math.min(windowHeight * 0.4, 300) }, Shadows.medium]}
+              style={[{ width: "100%", height: Math.min(windowHeight * 0.4, 320) }, Shadows.medium]}
             >
               <Image source={item.imgSource} 
                 style={{ width: "100%", height: "100%" }} 
                 resizeMode='cover' />
             </View>
             <View>
-              <Text className='text-3xl font-extrabold text-center mb-4' style={{ color: Colors.textPrimary }}>{item.title}</Text>
-              <Text className='text-base text-center leading-relaxed font-medium' style={{ color: Colors.textSecondary }}>{item.headline}</Text>
+              <Text className={compact ? 'text-2xl font-extrabold text-center mb-3' : 'text-3xl font-extrabold text-center mb-4'} style={{ color: Colors.textPrimary }}>{item.title}</Text>
+              <Text className={compact ? 'text-sm text-center leading-relaxed font-medium' : 'text-base text-center leading-relaxed font-medium'} style={{ color: Colors.textSecondary }}>{item.headline}</Text>
             </View>
           </View>
         ))}
       </ScrollView>
 
-      <View className='px-10 pb-12' style={{ width: '100%' }}>
+      <View className={compact ? 'px-6 pb-10' : 'px-10 pb-12'} style={{ width: '100%' }}>
         <Pressable 
           className='py-4 rounded-2xl active:opacity-90 flex-row items-center justify-center' 
           style={[{ backgroundColor: Colors.primary }, Shadows.small]}
           onPress={handleContinue}
         >
-          <Text className='text-lg font-bold text-white'>Get Started</Text>
+          <Text className={compact ? 'text-base font-bold text-white' : 'text-lg font-bold text-white'}>Get Started</Text>
         </Pressable>
-        <Text className='text-center mt-6 text-[10px] font-bold text-gray-400 tracking-widest'>
+        <Text className={compact ? 'text-center mt-5 text-[10px] font-bold text-gray-400 tracking-widest' : 'text-center mt-6 text-[10px] font-bold text-gray-400 tracking-widest'}>
           ASAN TAQREEB PLATFORM
         </Text>
       </View>
