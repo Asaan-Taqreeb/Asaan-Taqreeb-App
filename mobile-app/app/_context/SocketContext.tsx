@@ -58,38 +58,54 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return;
       }
 
-      const token = await getAccessToken();
-      if (!token) return;
+      console.log('🔌 SocketProvider: Initializing connection to:', SOCKET_URL);
 
+      // Initialize socket with dynamic auth callback (fetches fresh token from AsyncStorage)
       newSocket = io(SOCKET_URL, {
-        auth: { token },
+        auth: async (cb) => {
+          const token = await getAccessToken();
+          cb({ token: token ?? '' });
+        },
         transports: ['websocket', 'polling'],
         reconnection: true,
-        reconnectionAttempts: 5,
+        reconnectionAttempts: 15,
         reconnectionDelay: 2000,
+        timeout: 10000,
       });
 
       newSocket.on('connect', () => {
-        console.log('Socket connected to backend');
+        console.log('✅ Socket connected to backend. ID:', newSocket?.id);
         setIsConnected(true);
         // Join personal room for notifications
-        if (user?.id) {
-          console.log('Socket - joining room:', user.id);
-          newSocket?.emit('joinRoom', user.id);
+        if (user?.id || user?._id) {
+          const roomId = user.id || user._id;
+          console.log('Socket - joining room:', roomId);
+          newSocket?.emit('joinRoom', roomId);
         }
       });
 
-      newSocket.on('disconnect', () => {
-        console.log('Socket disconnected');
+      newSocket.on('disconnect', (reason) => {
+        console.log('❌ Socket disconnected, reason:', reason);
         setIsConnected(false);
       });
 
-      newSocket.on('connect_error', (error) => {
-        console.warn('Socket connection error:', error.message);
-      });
+      newSocket.on('connect_error', async (error) => {
+        console.warn('⚠️ Socket connection error:', error.message);
+        setIsConnected(false);
 
-      newSocket.on('error', (error) => {
-        console.warn('Socket error:', error);
+        // If the error is related to authentication, fetch a fresh token immediately and reconnect
+        if (
+          error.message.toLowerCase().includes('auth') || 
+          error.message.toLowerCase().includes('token') ||
+          error.message.toLowerCase().includes('expired')
+        ) {
+          console.log('Socket authentication failed. Refreshing token...');
+          const freshToken = await getAccessToken();
+          if (freshToken && newSocket) {
+            newSocket.auth = { token: freshToken };
+            newSocket.connect();
+          }
+        }
       });
 
       // Listen for real-time notifications
