@@ -383,7 +383,7 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
                         console.log("Web geolocation failed in LocationPicker, trying IP fallback...", geoError);
                         fetchIpLocation();
                     },
-                    { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }
+                    { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
                 );
             } else {
                 fetchIpLocation();

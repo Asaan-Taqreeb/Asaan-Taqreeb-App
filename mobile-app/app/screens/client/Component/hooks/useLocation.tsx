@@ -165,7 +165,7 @@ const useLocation = () => {
                             console.log("Web Geolocation failed, trying IP fallback...", geoError);
                             fetchIpLocation();
                         },
-                        { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }
+                        { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
                     );
                 } else {
                     fetchIpLocation();

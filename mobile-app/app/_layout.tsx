@@ -45,8 +45,12 @@ function UpdateInitializer() {
   );
 }
 
+import { useWindowDimensions } from 'react-native';
+
 function AppContent({ stackContent }: { stackContent: React.ReactNode }) {
   const { isDark, colors } = useTheme();
+  const { width } = useWindowDimensions();
+  const isDesktop = width > 480;
 
   return (
     <>
@@ -54,7 +58,7 @@ function AppContent({ stackContent }: { stackContent: React.ReactNode }) {
         style={isDark ? 'light' : 'dark'} 
         backgroundColor={colors.background} 
       />
-      {Platform.OS === 'web' ? (
+      {Platform.OS === 'web' && isDesktop ? (
         <View style={[styles.webContainer, { backgroundColor: isDark ? '#090C04' : '#F1F5F9' }]}>
           <View style={[styles.webContent, { backgroundColor: colors.background }]}>
             {stackContent}
