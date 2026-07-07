@@ -1,6 +1,7 @@
 import { apiFetchJson } from './apiClient';
 import { MESSAGE_ENDPOINTS } from '../_constants/apiEndpoints';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 export type Message = {
   _id: string;
@@ -81,29 +82,52 @@ export const sendMessage = async (
   const url = MESSAGE_ENDPOINTS.sendMessage;
   try {
     const hasLocalFile = Boolean(imageUri || audioUri);
-    const body = hasLocalFile
-      ? (() => {
-          const formData = new FormData();
-          formData.append('chatId', chatId);
-          formData.append('receiverId', receiverId);
-          if (text) formData.append('text', text);
-          if (bookingId) formData.append('bookingId', bookingId);
-          if (imageUrl) formData.append('imageUrl', imageUrl);
+    let body: any = null;
+    if (hasLocalFile) {
+      const formData = new FormData();
+      formData.append('chatId', chatId);
+      formData.append('receiverId', receiverId);
+      if (text) formData.append('text', text);
+      if (bookingId) formData.append('bookingId', bookingId);
+      if (imageUrl) formData.append('imageUrl', imageUrl);
 
-          if (imageUri) {
-            const filename = imageUri.split('/').pop() || `image_${Date.now()}.jpg`;
-            const match = /\.(\w+)$/.exec(filename);
-            const type = match ? `image/${match[1].toLowerCase()}` : 'image/jpeg';
-            formData.append('image', { uri: imageUri, type, name: filename } as any);
-          } else if (audioUri) {
-            const filename = audioUri.split('/').pop() || `audio_${Date.now()}.m4a`;
-            const match = /\.(\w+)$/.exec(filename);
-            const type = match ? `audio/${match[1].toLowerCase()}` : 'audio/m4a';
-            formData.append('image', { uri: audioUri, type, name: filename } as any);
+      if (imageUri) {
+        const filename = imageUri.split('/').pop() || `image_${Date.now()}.jpg`;
+        if (Platform.OS === 'web') {
+          try {
+            const res = await fetch(imageUri);
+            const blob = await res.blob();
+            formData.append('image', blob, filename);
+          } catch (e) {
+            console.error('Failed to convert image URI to blob on web:', e);
+            formData.append('image', { uri: imageUri, type: 'image/jpeg', name: filename } as any);
           }
-          return formData;
-        })()
-      : JSON.stringify({ chatId, receiverId, text, bookingId, imageUrl });
+        } else {
+          const match = /\.(\w+)$/.exec(filename);
+          const type = match ? `image/${match[1].toLowerCase()}` : 'image/jpeg';
+          formData.append('image', { uri: imageUri, type, name: filename } as any);
+        }
+      } else if (audioUri) {
+        const filename = audioUri.split('/').pop() || `audio_${Date.now()}.m4a`;
+        if (Platform.OS === 'web') {
+          try {
+            const res = await fetch(audioUri);
+            const blob = await res.blob();
+            formData.append('image', blob, filename);
+          } catch (e) {
+            console.error('Failed to convert audio URI to blob on web:', e);
+            formData.append('image', { uri: audioUri, type: 'audio/m4a', name: filename } as any);
+          }
+        } else {
+          const match = /\.(\w+)$/.exec(filename);
+          const type = match ? `audio/${match[1].toLowerCase()}` : 'audio/m4a';
+          formData.append('image', { uri: audioUri, type, name: filename } as any);
+        }
+      }
+      body = formData;
+    } else {
+      body = JSON.stringify({ chatId, receiverId, text, bookingId, imageUrl });
+    }
 
     const response = await apiFetchJson<Message>(url, {
       method: 'POST',

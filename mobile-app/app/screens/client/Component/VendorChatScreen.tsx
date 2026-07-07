@@ -245,15 +245,38 @@ export default function VendorChatScreen() {
         }
     }
 
-    const vendorName = vendor?.name || "Vendor"
+    const [dynamicVendorName, setDynamicVendorName] = useState('')
+    const [dynamicTargetUserId, setDynamicTargetUserId] = useState('')
+
+    const vendorName = vendor?.name || (params.vendorName as string) || dynamicVendorName || "Vendor"
     const vendorCategory = vendor?.category || ""
     const vendorLocation = vendor?.location || ""
     const categoryColor = vendor ? getCategoryColor(vendor.category) : Colors.primary
-    const targetUserId = vendor?.userId || vendor?.vendorId;
+    const targetUserId = vendor?.userId || vendor?.vendorId || (params.vendorId as string) || dynamicTargetUserId;
 
     const { socket, isConnected } = useSocket()
     const { user } = useUser()
     const isGuest = Boolean(user?.isGuest)
+
+    useEffect(() => {
+        if (messages.length > 0 && user?.id) {
+            const oppMsg = messages.find(m => m.senderId._id !== user.id)
+            if (oppMsg) {
+                if (oppMsg.senderId.name && oppMsg.senderId.name !== 'Vendor') {
+                    setDynamicVendorName(oppMsg.senderId.name);
+                }
+                setDynamicTargetUserId(oppMsg.senderId._id);
+            } else {
+                const myMsg = messages.find(m => m.senderId._id === user.id)
+                if (myMsg && myMsg.receiverId) {
+                    if (myMsg.receiverId.name && myMsg.receiverId.name !== 'Vendor') {
+                        setDynamicVendorName(myMsg.receiverId.name);
+                    }
+                    setDynamicTargetUserId(myMsg.receiverId._id);
+                }
+            }
+        }
+    }, [messages, user?.id])
 
     useEffect(() => {
         ImagePicker.requestMediaLibraryPermissionsAsync().catch((error) => {

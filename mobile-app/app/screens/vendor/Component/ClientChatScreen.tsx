@@ -229,13 +229,38 @@ export default function ClientChatScreen() {
         })
     }, [])
 
+    const [dynamicClientName, setDynamicClientName] = useState('')
+    const [dynamicClientId, setDynamicClientId] = useState('')
+
     // Params will include the client's info
-    const clientId = params.clientId as string
-    const clientName = params.clientName as string || "Client"
+    const clientId = (params.clientId as string) || dynamicClientId
+    const clientName = (params.clientName as string) === 'Customer' || (params.clientName as string) === 'Client' || !(params.clientName as string)
+        ? (dynamicClientName || (params.clientName as string) || "Client")
+        : (params.clientName as string)
     const { socket, isConnected } = useSocket()
     const { user } = useUser()
 
     const chatId = (params.chatId as string) || (user?.id && clientId ? `chat_${clientId}_${user.id}` : '')
+
+    useEffect(() => {
+        if (messages.length > 0 && user?.id) {
+            const oppMsg = messages.find(m => m.senderId._id !== user.id)
+            if (oppMsg) {
+                if (oppMsg.senderId.name && oppMsg.senderId.name !== 'Customer' && oppMsg.senderId.name !== 'Client') {
+                    setDynamicClientName(oppMsg.senderId.name);
+                }
+                setDynamicClientId(oppMsg.senderId._id);
+            } else {
+                const myMsg = messages.find(m => m.senderId._id === user.id)
+                if (myMsg && myMsg.receiverId) {
+                    if (myMsg.receiverId.name && myMsg.receiverId.name !== 'Customer' && myMsg.receiverId.name !== 'Client') {
+                        setDynamicClientName(myMsg.receiverId.name);
+                    }
+                    setDynamicClientId(myMsg.receiverId._id);
+                }
+            }
+        }
+    }, [messages, user?.id])
 
     const normalizeMessage = useCallback((msg: Message) => {
         const raw = msg as Message & { image?: string; image_url?: string }

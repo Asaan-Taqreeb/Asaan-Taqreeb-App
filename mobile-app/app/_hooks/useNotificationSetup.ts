@@ -63,6 +63,14 @@ export function useNotificationSetup() {
           handleNotificationResponse(response, router, user?.role);
         });
 
+        // Handle cold start notifications (getLastNotificationResponseAsync)
+        Notifications.getLastNotificationResponseAsync().then(response => {
+          if (response && !cancelled) {
+            console.log('Cold start notification response:', response);
+            handleNotificationResponse(response, router, user?.role);
+          }
+        });
+
         unsubscribesRef.current.push(
           () => foregroundSub.remove(),
           () => responseSub.remove()

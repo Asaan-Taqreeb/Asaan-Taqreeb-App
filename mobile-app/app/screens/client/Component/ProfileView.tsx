@@ -147,7 +147,7 @@ export default function ProfileView() {
                     <Pressable 
                         className='px-5 flex-row items-center rounded-2xl gap-4 active:opacity-80 py-4' 
                         style={styles.menuItem}
-                        onPress={() => router.push('/screens/client/Component/BookingHistoryScreen')}
+                        onPress={() => router.push('/screens/client/BookingScreen')}
                     >
                         <View className='p-2.5 rounded-xl' style={{backgroundColor: Colors.warningLight}}>
                             <Calendar size={20} color={Colors.warning} />

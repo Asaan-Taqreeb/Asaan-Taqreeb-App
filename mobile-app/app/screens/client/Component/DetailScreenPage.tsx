@@ -67,7 +67,28 @@ export default function DetailScreenPage() {
             
             if (!hasCoords && vendor.location && vendor.location !== 'Location not set') {
                 try {
-                    const results = await ExpoLocation.geocodeAsync(vendor.location);
+                    let results: any[] = [];
+                    try {
+                        results = await ExpoLocation.geocodeAsync(vendor.location);
+                    } catch (nativeGeocodeErr) {
+                        console.log("Native geocoding failed for vendor in DetailScreenPage, trying Nominatim search fallback:", nativeGeocodeErr);
+                        let query = vendor.location;
+                        if (!query.toLowerCase().includes('karachi')) {
+                            query += ', Karachi, Pakistan';
+                        }
+                        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
+                        const res = await fetch(url, {
+                            headers: { 'User-Agent': 'AsaanTaqreebApp/1.0' }
+                        });
+                        const data = await res.json();
+                        if (Array.isArray(data) && data.length > 0) {
+                            results = [{
+                                latitude: parseFloat(data[0].lat),
+                                longitude: parseFloat(data[0].lon)
+                            }];
+                        }
+                    }
+
                     if (results && results.length > 0) {
                         setFallbackCoords({
                             latitude: results[0].latitude,
@@ -75,7 +96,7 @@ export default function DetailScreenPage() {
                         });
                     }
                 } catch (error) {
-                    console.log("Geocoding fallback failed:", error);
+                    console.log("Geocoding fallback failed in DetailScreenPage:", error);
                 }
             }
         };

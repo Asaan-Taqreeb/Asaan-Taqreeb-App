@@ -286,6 +286,71 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
     const getCurrentLocation = async () => {
         setIsLocating(true);
         shouldFetchSuggestions.current = false;
+
+        if (Platform.OS === 'web') {
+            const fetchIpLocation = async () => {
+                try {
+                    const res = await fetch('https://ipapi.co/json/');
+                    const data = await res.json();
+                    if (data && data.latitude && data.longitude) {
+                        const latVal = Number(data.latitude);
+                        const lonVal = Number(data.longitude);
+                        setMarkerPosition({ latitude: latVal, longitude: lonVal });
+                        if (isMapReady) {
+                            animateToRegion(latVal, lonVal);
+                        }
+                        const formatted = `${data.city}, ${data.region}, ${data.country_name}`;
+                        setTempAddress(formatted);
+                        setSearchQuery(formatted);
+                    }
+                } catch (e) {
+                    console.log("Web IP fallback failed in LocationPicker:", e);
+                    Alert.alert("Location Error", "Could not retrieve your location.");
+                } finally {
+                    setIsLocating(false);
+                }
+            };
+
+            if (typeof window !== 'undefined' && window.navigator && window.navigator.geolocation) {
+                window.navigator.geolocation.getCurrentPosition(
+                    async (position) => {
+                        const { latitude, longitude } = position.coords;
+                        setMarkerPosition({ latitude, longitude });
+                        if (isMapReady) {
+                            animateToRegion(latitude, longitude);
+                        }
+                        setSearchQuery("Loading address...");
+                        try {
+                            const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
+                            const res = await fetch(url, {
+                                headers: { 'User-Agent': 'AsaanTaqreebApp/1.0' }
+                            });
+                            const data = await res.json();
+                            if (data && data.display_name) {
+                                setTempAddress(data.display_name);
+                                setSearchQuery(data.display_name);
+                            } else {
+                                throw new Error("reverse geocode empty");
+                            }
+                        } catch (err) {
+                            setTempAddress(`Pinned Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`);
+                            setSearchQuery(`Pinned Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`);
+                        } finally {
+                            setIsLocating(false);
+                        }
+                    },
+                    (geoError) => {
+                        console.log("Web geolocation failed in LocationPicker, trying IP fallback...", geoError);
+                        fetchIpLocation();
+                    },
+                    { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }
+                );
+            } else {
+                fetchIpLocation();
+            }
+            return;
+        }
+
         try {
             const { status: existingStatus } = await Location.getForegroundPermissionsAsync();
             let finalStatus = existingStatus;
@@ -299,12 +364,43 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
                 return Alert.alert("Permission Denied", "Please enable location services in your device settings.");
             }
             
-            // Get current location with high accuracy
-            const loc = await Location.getCurrentPositionAsync({
-                accuracy: Location.Accuracy.Balanced,
-            });
+            // Get current location with high accuracy, falling back to last known position on timeout/error
+            let coords = null;
+            try {
+                const positionPromise = Location.getCurrentPositionAsync({
+                    accuracy: Location.Accuracy.Balanced,
+                });
 
-            const { latitude, longitude } = loc.coords;
+                const timeoutPromise = new Promise<null>((resolve) => 
+                    setTimeout(() => resolve(null), 6000)
+                );
+
+                const locationObj = await Promise.race([positionPromise, timeoutPromise]);
+                if (locationObj) {
+                    coords = locationObj.coords;
+                } else {
+                    console.log("getCurrentPositionAsync timed out in LocationPicker, trying getLastKnownPositionAsync...");
+                }
+            } catch (posError) {
+                console.log("getCurrentPositionAsync failed in LocationPicker, trying getLastKnownPositionAsync...", posError);
+            }
+
+            if (!coords) {
+                try {
+                    const lastKnown = await Location.getLastKnownPositionAsync();
+                    if (lastKnown) {
+                        coords = lastKnown.coords;
+                    }
+                } catch (lastKnownError) {
+                    console.log("getLastKnownPositionAsync failed in LocationPicker:", lastKnownError);
+                }
+            }
+
+            if (!coords) {
+                throw new Error("Could not retrieve coordinates from GPS");
+            }
+
+            const { latitude, longitude } = coords;
             
             // Update map and marker
             if (isMapReady) {

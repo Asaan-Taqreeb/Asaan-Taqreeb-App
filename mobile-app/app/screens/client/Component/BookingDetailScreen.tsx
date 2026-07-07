@@ -141,9 +141,16 @@ export default function BookingDetailScreen() {
                   return
                 }
 
+                const chatVendorObj = {
+                  userId: booking.vendorId,
+                  name: booking.vendorName
+                };
                 router.push({
                   pathname: '/screens/client/Component/VendorChatScreen',
-                  params: { vendorId: booking.vendorId, vendorName: booking.vendorName }
+                  params: { 
+                    chatId: user?.id ? `chat_${user.id}_${booking.vendorId}` : undefined,
+                    vendor: encodeURIComponent(JSON.stringify(chatVendorObj))
+                  }
                 })
               }}
               className="w-12 h-12 rounded-full bg-blue-50 items-center justify-center"

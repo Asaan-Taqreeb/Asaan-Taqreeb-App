@@ -78,29 +78,25 @@ export default function NotificationsScreen() {
                                 style={{borderWidth: 1, borderColor: Colors.border}}
                                 onPress={() => {
                                     handleMarkAsRead(notification.id)
-                                    if (notification.type === 'NEW_MESSAGE' && notification.data?.chatId) {
-                                        const isVendor = notification.data?.clientId !== undefined; // If it has clientId, it was sent to vendor
-                                        if (isVendor) {
-                                            router.push({
-                                                pathname: '/screens/vendor/Component/ClientChatScreen',
-                                                params: { 
-                                                    chatId: notification.data.chatId,
-                                                    clientId: notification.data.senderId || notification.data.clientId,
-                                                    clientName: 'Customer'
+                                    
+                                    const { handleNotificationResponse } = require('@/app/_utils/pushNotificationService');
+                                    const dummyResponse = {
+                                        notification: {
+                                            request: {
+                                                content: {
+                                                    data: {
+                                                        ...notification.data,
+                                                        bookingId: notification.bookingId || notification.data?.bookingId,
+                                                        chatId: notification.data?.chatId,
+                                                        vendorId: notification.data?.vendorId,
+                                                        clientId: notification.data?.clientId
+                                                    }
                                                 }
-                                            });
-                                        } else {
-                                            router.push({
-                                                pathname: '/screens/client/Component/VendorChatScreen',
-                                                params: { 
-                                                    chatId: notification.data.chatId,
-                                                    vendorId: notification.data.senderId || notification.data.vendorId
-                                                }
-                                            });
+                                            }
                                         }
-                                    } else if (notification.type === 'BOOKING_UPDATE' && notification.data?.bookingId) {
-                                        // Logic for booking navigation
-                                    }
+                                    } as any;
+                                    
+                                    handleNotificationResponse(dummyResponse, router, 'client');
                                 }}
                             >
                                 <View className='mt-1'>

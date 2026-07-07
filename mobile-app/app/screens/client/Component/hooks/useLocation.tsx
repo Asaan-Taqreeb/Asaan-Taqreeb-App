@@ -52,6 +52,37 @@ const useLocation = () => {
             const hasCached = await getCachedLocation()
             
             if (Platform.OS === 'web') {
+                const fetchIpLocation = async () => {
+                    try {
+                        const res = await fetch('https://ipapi.co/json/');
+                        const data = await res.json();
+                        if (data && data.latitude && data.longitude) {
+                            const latVal = Number(data.latitude);
+                            const lonVal = Number(data.longitude);
+                            setLatitude(latVal);
+                            setLongitude(lonVal);
+                            const response = [{
+                                city: data.city || "",
+                                district: data.region || "",
+                                country: data.country_name || "",
+                                name: data.org || ""
+                            }];
+                            setResult(response);
+                            await cacheLocation(latVal, lonVal, response);
+                            setError("");
+                        } else {
+                            throw new Error("Invalid IP location data");
+                        }
+                    } catch (e) {
+                        console.log("Web IP location fallback failed:", e);
+                        if (!hasCached) {
+                            setError("Location permission denied or unavailable");
+                        }
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+
                 if (typeof window !== 'undefined' && window.navigator && window.navigator.geolocation) {
                     window.navigator.geolocation.getCurrentPosition(
                         async (position) => {
@@ -92,19 +123,13 @@ const useLocation = () => {
                             }
                         },
                         (geoError) => {
-                            console.log("Web Geolocation failed:", geoError);
-                            if (!hasCached) {
-                                setError("Location permission denied or unavailable");
-                            }
-                            setLoading(false);
+                            console.log("Web Geolocation failed, trying IP fallback...", geoError);
+                            fetchIpLocation();
                         },
                         { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }
                     );
                 } else {
-                    if (!hasCached) {
-                        setError("Geolocation not supported by browser");
-                    }
-                    setLoading(false);
+                    fetchIpLocation();
                 }
                 return;
             }
@@ -118,25 +143,35 @@ const useLocation = () => {
                 return
             }
 
-            // Get fresh location with a 6-second timeout to prevent infinite hanging
-            const positionPromise = Location.getCurrentPositionAsync({
-                accuracy: Location.Accuracy.Balanced
-            });
-
-            const timeoutPromise = new Promise<null>((resolve) => 
-                setTimeout(() => resolve(null), 6000)
-            );
-
-            const locationObj = await Promise.race([positionPromise, timeoutPromise]);
             let coords = null;
+            try {
+                // Get fresh location with a 6-second timeout to prevent infinite hanging
+                const positionPromise = Location.getCurrentPositionAsync({
+                    accuracy: Location.Accuracy.Balanced
+                });
 
-            if (locationObj) {
-                coords = locationObj.coords;
-            } else {
-                console.log("getCurrentPositionAsync timed out, trying getLastKnownPositionAsync...");
-                const lastKnown = await Location.getLastKnownPositionAsync();
-                if (lastKnown) {
-                    coords = lastKnown.coords;
+                const timeoutPromise = new Promise<null>((resolve) => 
+                    setTimeout(() => resolve(null), 6000)
+                );
+
+                const locationObj = await Promise.race([positionPromise, timeoutPromise]);
+                if (locationObj) {
+                    coords = locationObj.coords;
+                } else {
+                    console.log("getCurrentPositionAsync timed out, trying getLastKnownPositionAsync...");
+                }
+            } catch (posError) {
+                console.log("getCurrentPositionAsync failed, trying getLastKnownPositionAsync...", posError);
+            }
+
+            if (!coords) {
+                try {
+                    const lastKnown = await Location.getLastKnownPositionAsync();
+                    if (lastKnown) {
+                        coords = lastKnown.coords;
+                    }
+                } catch (lastKnownError) {
+                    console.log("getLastKnownPositionAsync failed:", lastKnownError);
                 }
             }
 
@@ -185,7 +220,14 @@ const useLocation = () => {
                 } catch (geocodeError) {
                     console.log("Geocoding service unavailable:", geocodeError)
                     if (!hasCached) {
-                        setError("Location service unavailable")
+                        const fallbackResponse = [{
+                            city: "Karachi",
+                            district: "Karachi",
+                            country: "Pakistan",
+                            name: `Pinned Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`
+                        }];
+                        setResult(fallbackResponse);
+                        setError("");
                     }
                 }
             } else {

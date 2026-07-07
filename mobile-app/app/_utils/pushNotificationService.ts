@@ -131,7 +131,7 @@ export function handleNotificationResponse(response: any, router: any, userRole?
     if (userRole === 'vendor') {
         router.push('/screens/vendor/OrdersScreen');
     } else {
-        router.push('/screens/client/Component/BookingHistoryScreen');
+        router.push('/screens/client/BookingScreen');
     }
   }
 }
