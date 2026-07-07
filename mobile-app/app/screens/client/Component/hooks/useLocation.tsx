@@ -53,33 +53,72 @@ const useLocation = () => {
             
             if (Platform.OS === 'web') {
                 const fetchIpLocation = async () => {
-                    try {
-                        const res = await fetch('https://ipapi.co/json/');
-                        const data = await res.json();
-                        if (data && data.latitude && data.longitude) {
-                            const latVal = Number(data.latitude);
-                            const lonVal = Number(data.longitude);
-                            setLatitude(latVal);
-                            setLongitude(lonVal);
-                            const response = [{
+                    const apis = [
+                        {
+                            url: 'https://freeipapi.com/api/json',
+                            parse: (data: any) => ({
+                                latitude: Number(data.latitude),
+                                longitude: Number(data.longitude),
+                                city: data.cityName || "",
+                                region: data.regionName || "",
+                                country: data.countryName || "",
+                                org: data.zipCode || ""
+                            })
+                        },
+                        {
+                            url: 'https://ipapi.co/json/',
+                            parse: (data: any) => ({
+                                latitude: Number(data.latitude),
+                                longitude: Number(data.longitude),
                                 city: data.city || "",
-                                district: data.region || "",
+                                region: data.region || "",
                                 country: data.country_name || "",
-                                name: data.org || ""
-                            }];
-                            setResult(response);
-                            await cacheLocation(latVal, lonVal, response);
-                            setError("");
-                        } else {
-                            throw new Error("Invalid IP location data");
+                                org: data.org || ""
+                            })
+                        },
+                        {
+                            url: 'https://ipinfo.io/json',
+                            parse: (data: any) => {
+                                const [lat, lon] = String(data.loc || '').split(',');
+                                return {
+                                    latitude: Number(lat),
+                                    longitude: Number(lon),
+                                    city: data.city || "",
+                                    region: data.region || "",
+                                    country: data.country || "",
+                                    org: data.org || ""
+                                };
+                            }
                         }
-                    } catch (e) {
-                        console.log("Web IP location fallback failed:", e);
-                        if (!hasCached) {
-                            setError("Location permission denied or unavailable");
+                    ];
+
+                    for (const api of apis) {
+                        try {
+                            const res = await fetch(api.url);
+                            if (!res.ok) continue;
+                            const data = await res.json();
+                            const parsed = api.parse(data);
+                            if (parsed.latitude && parsed.longitude) {
+                                setLatitude(parsed.latitude);
+                                setLongitude(parsed.longitude);
+                                const response = [{
+                                    city: parsed.city,
+                                    district: parsed.region,
+                                    country: parsed.country,
+                                    name: parsed.org || "IP Location"
+                                }];
+                                setResult(response);
+                                await cacheLocation(parsed.latitude, parsed.longitude, response);
+                                setError("");
+                                return;
+                            }
+                        } catch (err) {
+                            console.log(`Failed to fetch IP location from ${api.url}:`, err);
                         }
-                    } finally {
-                        setLoading(false);
+                    }
+
+                    if (!hasCached) {
+                        setError("Location permission denied or unavailable");
                     }
                 };
 

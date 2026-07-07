@@ -289,26 +289,66 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
 
         if (Platform.OS === 'web') {
             const fetchIpLocation = async () => {
-                try {
-                    const res = await fetch('https://ipapi.co/json/');
-                    const data = await res.json();
-                    if (data && data.latitude && data.longitude) {
-                        const latVal = Number(data.latitude);
-                        const lonVal = Number(data.longitude);
-                        setMarkerPosition({ latitude: latVal, longitude: lonVal });
-                        if (isMapReady) {
-                            animateToRegion(latVal, lonVal);
+                const apis = [
+                    {
+                        url: 'https://freeipapi.com/api/json',
+                        parse: (data: any) => ({
+                            latitude: Number(data.latitude),
+                            longitude: Number(data.longitude),
+                            city: data.cityName || "",
+                            region: data.regionName || "",
+                            country: data.countryName || ""
+                        })
+                    },
+                    {
+                        url: 'https://ipapi.co/json/',
+                        parse: (data: any) => ({
+                            latitude: Number(data.latitude),
+                            longitude: Number(data.longitude),
+                            city: data.city || "",
+                            region: data.region || "",
+                            country: data.country_name || ""
+                        })
+                    },
+                    {
+                        url: 'https://ipinfo.io/json',
+                        parse: (data: any) => {
+                            const [lat, lon] = String(data.loc || '').split(',');
+                            return {
+                                latitude: Number(lat),
+                                longitude: Number(lon),
+                                city: data.city || "",
+                                region: data.region || "",
+                                country: data.country || ""
+                            };
                         }
-                        const formatted = `${data.city}, ${data.region}, ${data.country_name}`;
-                        setTempAddress(formatted);
-                        setSearchQuery(formatted);
                     }
-                } catch (e) {
-                    console.log("Web IP fallback failed in LocationPicker:", e);
-                    Alert.alert("Location Error", "Could not retrieve your location.");
-                } finally {
-                    setIsLocating(false);
+                ];
+
+                for (const api of apis) {
+                    try {
+                        const res = await fetch(api.url);
+                        if (!res.ok) continue;
+                        const data = await res.json();
+                        const parsed = api.parse(data);
+                        if (parsed.latitude && parsed.longitude) {
+                            setMarkerPosition({ latitude: parsed.latitude, longitude: parsed.longitude });
+                            if (isMapReady) {
+                                animateToRegion(parsed.latitude, parsed.longitude);
+                            }
+                            const formatted = [parsed.city, parsed.region, parsed.country].filter(Boolean).join(', ');
+                            setTempAddress(formatted);
+                            setSearchQuery(formatted);
+                            setIsLocating(false);
+                            return;
+                        }
+                    } catch (err) {
+                        console.log(`Failed to fetch IP location in picker from ${api.url}:`, err);
+                    }
                 }
+
+                Alert.alert("Location Error", "Could not retrieve your location.");
+                setIsLocating(false);
             };
 
             if (typeof window !== 'undefined' && window.navigator && window.navigator.geolocation) {
