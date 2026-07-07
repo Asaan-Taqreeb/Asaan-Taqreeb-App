@@ -391,11 +391,18 @@ export default function BookingScreen() {
 
     const handleRequestBooking = async () => {
         if (user?.isGuest) {
-            Alert.alert('Guest Mode', 'Sign in to request a booking.', [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Sign In', onPress: () => router.push('/screens/client/Component/LoginScreen') },
-            ])
-            return
+            if (Platform.OS === 'web') {
+                const confirmSignIn = window.confirm('Guest Mode: Sign in to request a booking.');
+                if (confirmSignIn) {
+                    router.push('/screens/client/Component/LoginScreen');
+                }
+            } else {
+                Alert.alert('Guest Mode', 'Sign in to request a booking.', [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Sign In', onPress: () => router.push('/screens/client/Component/LoginScreen') },
+                ]);
+            }
+            return;
         }
 
         if (!validateBooking() || isSubmitting) {
@@ -431,14 +438,23 @@ export default function BookingScreen() {
                 advancePayment,
             })
 
-            Alert.alert('Success', 'Booking request sent to vendor successfully.', [
-                {
-                    text: 'OK',
-                    onPress: () => router.replace('/screens/client/BookingScreen'),
-                },
-            ])
+            if (Platform.OS === 'web') {
+                alert('Booking request sent to vendor successfully.');
+                router.replace('/screens/client/BookingScreen');
+            } else {
+                Alert.alert('Success', 'Booking request sent to vendor successfully.', [
+                    {
+                        text: 'OK',
+                        onPress: () => router.replace('/screens/client/BookingScreen'),
+                    },
+                ]);
+            }
         } catch (error: any) {
-            Alert.alert('Booking Failed', error?.message || 'Unable to submit booking. Please try again.')
+            if (Platform.OS === 'web') {
+                alert(error?.message || 'Unable to submit booking. Please try again.');
+            } else {
+                Alert.alert('Booking Failed', error?.message || 'Unable to submit booking. Please try again.');
+            }
         } finally {
             setIsSubmitting(false)
         }
