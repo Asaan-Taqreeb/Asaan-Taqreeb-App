@@ -53,7 +53,7 @@ export type VendorOrderItem = {
   eventDay: string
   eventTime: string
   guestCount: number
-  status: 'pending' | 'accepted' | 'rejected' | 'confirmed'
+  status: 'pending' | 'accepted' | 'rejected' | 'confirmed' | 'cancelled'
   orderDate?: string
   specialRequests?: string
   optionalItems?: { name: string; price: number }[]
@@ -207,7 +207,7 @@ const mapSingleVendorBookingToUi = (item: any, index = Date.now()): VendorOrderI
     eventDay: day,
     eventTime: displayTime,
     guestCount: toNumber(firstDefined(item?.guestCount, 0), 0),
-    status: normalizedStatus === 'APPROVED' ? 'accepted' : normalizedStatus === 'CONFIRMED' ? 'confirmed' : normalizedStatus === 'REJECTED' ? 'rejected' : 'pending',
+    status: normalizedStatus === 'APPROVED' ? 'accepted' : normalizedStatus === 'CONFIRMED' ? 'confirmed' : normalizedStatus === 'REJECTED' ? 'rejected' : normalizedStatus === 'CANCELLED' ? 'cancelled' : 'pending',
     orderDate,
     specialRequests: item?.specialRequests || undefined,
     optionalItems,

@@ -30,6 +30,8 @@ export default function OrderCard({ order, onPress }: OrderCardProps) {
         return Colors.success;
       case 'rejected':
         return Colors.error;
+      case 'cancelled':
+        return '#9CA3AF';
       case 'pending':
         return Colors.warning;
       default:

@@ -191,8 +191,8 @@ export default function VendorCalendarScreen() {
         setAvailabilityDays(availability)
 
         const normalizedBookings = vendorBookings.reduce<Record<string, BookingDetail[]>>((acc, booking, index) => {
-          // Ignore rejected bookings in the calendar view
-          if (booking.status === 'rejected') return acc
+          // Ignore rejected and cancelled bookings in the calendar view
+          if (booking.status === 'rejected' || booking.status === 'cancelled') return acc
 
 
 

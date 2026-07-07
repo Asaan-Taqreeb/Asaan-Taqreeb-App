@@ -123,6 +123,11 @@ export default function OrdersScreen() {
             value="rejected"
             count={orders.filter((order) => order.status === 'rejected').length}
           />
+          <FilterButton
+            label="Cancelled"
+            value="cancelled"
+            count={orders.filter((order) => order.status === 'cancelled').length}
+          />
         </ScrollView>
         <TouchableOpacity
           className="w-10 h-10 rounded-xl items-center justify-center border border-slate-100"

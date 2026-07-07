@@ -192,6 +192,8 @@ export default function OrderDetailScreen() {
         return '#059669';
       case 'rejected':
         return '#EF4444';
+      case 'cancelled':
+        return '#6B7280';
       case 'pending':
         return '#F59E0B';
       default:
@@ -207,6 +209,8 @@ export default function OrderDetailScreen() {
         return 'Confirmed (Fully Paid)';
       case 'rejected':
         return 'Rejected';
+      case 'cancelled':
+        return 'Cancelled by Client';
       case 'pending':
         return 'Pending Approval';
       default:
