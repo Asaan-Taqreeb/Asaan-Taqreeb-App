@@ -407,7 +407,10 @@ export default function BookingScreen() {
                           <Pressable 
                             className='py-3.5 rounded-xl active:opacity-80 border'
                             style={{borderColor: Colors.error, backgroundColor: Colors.white}}
-                            onPress={() => handleCancelBooking(booking.id)}
+                            onPress={(event) => {
+                              event.stopPropagation()
+                              handleCancelBooking(booking.id)
+                            }}
                           >
                             <Text className='text-center font-bold text-xs' style={{color: Colors.error}}>
                               Cancel Booking Request

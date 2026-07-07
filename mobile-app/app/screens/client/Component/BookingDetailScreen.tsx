@@ -16,6 +16,12 @@ export default function BookingDetailScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
   const { user } = useUser();
+
+  const buildChatId = (firstUserId: string | number, secondUserId: string | number) => {
+    const first = String(firstUserId)
+    const second = String(secondUserId)
+    return first.localeCompare(second) <= 0 ? `chat_${first}_${second}` : `chat_${second}_${first}`
+  }
   
   const booking = params.booking 
     ? JSON.parse(
@@ -148,7 +154,7 @@ export default function BookingDetailScreen() {
                 router.push({
                   pathname: '/screens/client/Component/VendorChatScreen',
                   params: { 
-                    chatId: user?.id ? `chat_${user.id}_${booking.vendorId}` : undefined,
+                    chatId: user?.id ? buildChatId(user.id, booking.vendorId) : undefined,
                     vendor: encodeURIComponent(JSON.stringify(chatVendorObj))
                   }
                 })

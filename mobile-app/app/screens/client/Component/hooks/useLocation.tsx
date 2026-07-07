@@ -4,6 +4,7 @@ import { Platform } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
 const LOCATION_CACHE_KEY = '@user_location_cache'
+const WEB_GEOLOCATION_SOURCE = 'browser-geolocation'
 
 const useLocation = () => {
     const [error, setError] = useState("")
@@ -17,6 +18,10 @@ const useLocation = () => {
             const cached = await AsyncStorage.getItem(LOCATION_CACHE_KEY)
             if (cached) {
                 const cachedData = JSON.parse(cached)
+                if (Platform.OS === 'web' && cachedData.source !== WEB_GEOLOCATION_SOURCE) {
+                    await AsyncStorage.removeItem(LOCATION_CACHE_KEY)
+                    return false
+                }
                 setLatitude(cachedData.latitude)
                 setLongitude(cachedData.longitude)
                 setResult(cachedData.result)
@@ -29,13 +34,14 @@ const useLocation = () => {
         return false
     }, [])
 
-    const cacheLocation = useCallback(async (lat: number, lon: number, locationResult: any) => {
+    const cacheLocation = useCallback(async (lat: number, lon: number, locationResult: any, source?: string) => {
         try {
             const cacheData = {
                 latitude: lat,
                 longitude: lon,
                 result: locationResult,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                source: source || 'unknown',
             }
             await AsyncStorage.setItem(LOCATION_CACHE_KEY, JSON.stringify(cacheData))
             console.log("Location cached successfully")
@@ -52,76 +58,6 @@ const useLocation = () => {
             const hasCached = await getCachedLocation()
             
             if (Platform.OS === 'web') {
-                const fetchIpLocation = async () => {
-                    const apis = [
-                        {
-                            url: 'https://freeipapi.com/api/json',
-                            parse: (data: any) => ({
-                                latitude: Number(data.latitude),
-                                longitude: Number(data.longitude),
-                                city: data.cityName || "",
-                                region: data.regionName || "",
-                                country: data.countryName || "",
-                                org: data.zipCode || ""
-                            })
-                        },
-                        {
-                            url: 'https://ipapi.co/json/',
-                            parse: (data: any) => ({
-                                latitude: Number(data.latitude),
-                                longitude: Number(data.longitude),
-                                city: data.city || "",
-                                region: data.region || "",
-                                country: data.country_name || "",
-                                org: data.org || ""
-                            })
-                        },
-                        {
-                            url: 'https://ipinfo.io/json',
-                            parse: (data: any) => {
-                                const [lat, lon] = String(data.loc || '').split(',');
-                                return {
-                                    latitude: Number(lat),
-                                    longitude: Number(lon),
-                                    city: data.city || "",
-                                    region: data.region || "",
-                                    country: data.country || "",
-                                    org: data.org || ""
-                                };
-                            }
-                        }
-                    ];
-
-                    for (const api of apis) {
-                        try {
-                            const res = await fetch(api.url);
-                            if (!res.ok) continue;
-                            const data = await res.json();
-                            const parsed = api.parse(data);
-                            if (parsed.latitude && parsed.longitude) {
-                                setLatitude(parsed.latitude);
-                                setLongitude(parsed.longitude);
-                                const response = [{
-                                    city: parsed.city,
-                                    district: parsed.region,
-                                    country: parsed.country,
-                                    name: parsed.org || "IP Location"
-                                }];
-                                setResult(response);
-                                await cacheLocation(parsed.latitude, parsed.longitude, response);
-                                setError("");
-                                return;
-                            }
-                        } catch (err) {
-                            console.log(`Failed to fetch IP location from ${api.url}:`, err);
-                        }
-                    }
-
-                    if (!hasCached) {
-                        setError("Location permission denied or unavailable");
-                    }
-                };
-
                 if (typeof window !== 'undefined' && window.navigator && window.navigator.geolocation) {
                     window.navigator.geolocation.getCurrentPosition(
                         async (position) => {
@@ -147,7 +83,7 @@ const useLocation = () => {
                                         name: addr.road || addr.suburb || ""
                                     }];
                                     setResult(response);
-                                    await cacheLocation(latitude, longitude, response);
+                                    await cacheLocation(latitude, longitude, response, WEB_GEOLOCATION_SOURCE);
                                     setError("");
                                 } else {
                                     throw new Error("No reverse geocoding results found");
@@ -162,13 +98,19 @@ const useLocation = () => {
                             }
                         },
                         (geoError) => {
-                            console.log("Web Geolocation failed, trying IP fallback...", geoError);
-                            fetchIpLocation();
+                            console.log("Web Geolocation failed:", geoError);
+                            if (!hasCached) {
+                                setError("Location permission denied or unavailable");
+                            }
+                            setLoading(false);
                         },
                         { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
                     );
                 } else {
-                    fetchIpLocation();
+                    if (!hasCached) {
+                        setError("Location services unavailable in this browser");
+                    }
+                    setLoading(false);
                 }
                 return;
             }
@@ -250,7 +192,7 @@ const useLocation = () => {
                     
                     if (response && response.length > 0) {
                         setResult(response)
-                        await cacheLocation(latitude, longitude, response)
+                        await cacheLocation(latitude, longitude, response, 'native-gps')
                         console.log("Fresh location fetched: ", response)
                         setError("") // Clear any previous errors
                     } else {

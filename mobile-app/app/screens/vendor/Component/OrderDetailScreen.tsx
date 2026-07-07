@@ -35,6 +35,13 @@ export default function OrderDetailScreen() {
   const { user } = useUser();
   const { refresh: refreshNotifications } = useNotifications();
   const { order: orderParam } = useLocalSearchParams();
+
+  const buildChatId = (firstUserId: string | number, secondUserId: string | number) => {
+    const first = String(firstUserId)
+    const second = String(secondUserId)
+    return first.localeCompare(second) <= 0 ? `chat_${first}_${second}` : `chat_${second}_${first}`
+  }
+
   const parsedOrder = typeof orderParam === 'string' ? (() => {
     try {
       return JSON.parse(orderParam)
@@ -172,7 +179,7 @@ export default function OrderDetailScreen() {
       return;
     }
 
-    const chatId = `chat_${clientId}_${user?.id}`;
+    const chatId = buildChatId(clientId, user?.id || '');
 
     router.push({
       pathname: '/screens/vendor/Component/ClientChatScreen',

@@ -29,8 +29,17 @@ export default function Root({ children }: PropsWithChildren) {
 }
 
 const responsiveBackground = `
+  html, body, #root {
+    height: 100%;
+  }
+
   body {
     background-color: #F8FAFC;
+    margin: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
   }
   @media (prefers-color-scheme: dark) {
     body {

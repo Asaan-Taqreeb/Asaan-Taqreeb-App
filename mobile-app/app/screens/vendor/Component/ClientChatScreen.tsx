@@ -240,7 +240,13 @@ export default function ClientChatScreen() {
     const { socket, isConnected } = useSocket()
     const { user } = useUser()
 
-    const chatId = (params.chatId as string) || (user?.id && clientId ? `chat_${clientId}_${user.id}` : '')
+    const buildChatId = (firstUserId: string | number, secondUserId: string | number) => {
+        const first = String(firstUserId)
+        const second = String(secondUserId)
+        return first.localeCompare(second) <= 0 ? `chat_${first}_${second}` : `chat_${second}_${first}`
+    }
+
+    const chatId = (params.chatId as string) || (user?.id && clientId ? buildChatId(clientId, user.id) : '')
 
     useEffect(() => {
         if (messages.length > 0 && user?.id) {

@@ -254,6 +254,12 @@ export default function VendorChatScreen() {
     const categoryColor = vendor ? getCategoryColor(vendor.category) : Colors.primary
     const targetUserId = vendor?.userId || vendor?.vendorId || (params.vendorId as string) || dynamicTargetUserId;
 
+    const buildChatId = (firstUserId: string | number, secondUserId: string | number) => {
+        const first = String(firstUserId)
+        const second = String(secondUserId)
+        return first.localeCompare(second) <= 0 ? `chat_${first}_${second}` : `chat_${second}_${first}`
+    }
+
     const { socket, isConnected } = useSocket()
     const { user } = useUser()
     const isGuest = Boolean(user?.isGuest)
@@ -284,7 +290,7 @@ export default function VendorChatScreen() {
         })
     }, [])
 
-    const chatId = (params.chatId as string) || (user?.id && targetUserId ? `chat_${user.id}_${targetUserId}` : `vendor-${vendorName.toLowerCase().replace(/\s+/g, '-')}`)
+    const chatId = (params.chatId as string) || (user?.id && targetUserId ? buildChatId(user.id, targetUserId) : `vendor-${vendorName.toLowerCase().replace(/\s+/g, '-')}`)
 
     const normalizeMessage = useCallback((msg: Message) => {
         const raw = msg as Message & { image?: string; image_url?: string }
