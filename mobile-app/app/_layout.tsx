@@ -14,7 +14,8 @@ import { useEffect, useState } from 'react';
 
 LogBox.ignoreLogs([
   'expo-notifications: Android Push notifications',
-  'Android Push notifications (remote notifications) functionality'
+  'Android Push notifications (remote notifications) functionality',
+  'Expo AV has been deprecated and will be removed'
 ]);
 
 function NotificationInitializer() {
