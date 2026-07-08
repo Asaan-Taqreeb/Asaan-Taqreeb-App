@@ -242,6 +242,13 @@ export default function DetailScreenPage() {
     }
 
     const promptGuestRestriction = (action: string) => {
+        if (Platform.OS === 'web') {
+            const shouldSignIn = window.confirm(`Guest Mode: Sign in to ${action}. Click OK to sign in.`)
+            if (shouldSignIn) {
+                router.push('/screens/client/Component/LoginScreen')
+            }
+            return
+        }
         Alert.alert(
             'Guest Mode',
             `Sign in to ${action}.`,

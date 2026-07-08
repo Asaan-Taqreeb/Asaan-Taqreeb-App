@@ -157,10 +157,17 @@ export default function BookingDetailScreen() {
             <TouchableOpacity 
               onPress={() => {
                 if (user?.isGuest) {
-                  Alert.alert('Guest Mode', 'Sign in to chat with vendors.', [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Sign In', onPress: () => router.push('/screens/client/Component/LoginScreen') },
-                  ])
+                  if (Platform.OS === 'web') {
+                    const shouldSignIn = window.confirm('Guest Mode: Sign in to chat with vendors. Click OK to sign in.')
+                    if (shouldSignIn) {
+                      router.push('/screens/client/Component/LoginScreen')
+                    }
+                  } else {
+                    Alert.alert('Guest Mode', 'Sign in to chat with vendors.', [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Sign In', onPress: () => router.push('/screens/client/Component/LoginScreen') },
+                    ])
+                  }
                   return
                 }
 

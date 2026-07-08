@@ -1,4 +1,4 @@
-import { Alert, View, StyleSheet, ScrollView, Pressable, Text } from "react-native";
+import { Alert, View, StyleSheet, ScrollView, Pressable, Text, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Bot, Map as MapIcon } from "lucide-react-native";
@@ -16,7 +16,14 @@ export default function ClientHomeScreen() {
 
     const handleOpenAIChat = () => {
       if (user?.isGuest) {
-        Alert.alert('Guest Mode', t('signInToUseChat') || 'Sign in to use the Event Concierge.')
+        if (Platform.OS === 'web') {
+          const shouldSignIn = window.confirm((t('signInToUseChat') || 'Sign in to use the Event Concierge.') + ' Click OK to sign in.')
+          if (shouldSignIn) {
+            router.push('/screens/client/Component/LoginScreen')
+          }
+        } else {
+          Alert.alert('Guest Mode', t('signInToUseChat') || 'Sign in to use the Event Concierge.')
+        }
         return
       }
 

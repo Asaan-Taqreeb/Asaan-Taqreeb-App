@@ -43,16 +43,27 @@ function ClientTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const handlePress = (routeName: string, routeKey: string, focused: boolean) => {
     if (focused) return
 
-    if (routeName === 'BookingScreen' && isGuest) {
-      Alert.alert('Guest Mode', 'Sign in to access bookings.')
-      return
+    const guestRestrictedTabs: Record<string, string> = {
+      BookingScreen: 'bookings',
+      PlannerScreen: 'the planner',
+      MessagesScreen: 'messages',
     }
-    if (routeName === 'PlannerScreen' && isGuest) {
-      Alert.alert('Guest Mode', 'Sign in to access the planner.')
-      return
-    }
-    if (routeName === 'MessagesScreen' && isGuest) {
-      Alert.alert('Guest Mode', 'Sign in to access messages.')
+
+    if (isGuest && guestRestrictedTabs[routeName]) {
+      const feature = guestRestrictedTabs[routeName]
+      if (Platform.OS === 'web') {
+        const shouldSignIn = window.confirm(`Guest Mode: Sign in to access ${feature}. Click OK to sign in.`)
+        if (shouldSignIn) {
+          navigation.navigate('ClientHomeScreen' as never)
+          // Small delay to let navigation settle before pushing login screen
+          setTimeout(() => {
+            const router = require('expo-router').router
+            router.push('/screens/client/Component/LoginScreen')
+          }, 100)
+        }
+      } else {
+        Alert.alert('Guest Mode', `Sign in to access ${feature}.`)
+      }
       return
     }
 

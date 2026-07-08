@@ -324,6 +324,10 @@ export default function VendorChatScreen() {
     useEffect(() => {
         if (isGuest || !socket || !chatId || !isConnected) return
 
+        // Track message IDs already handled by receiveMessage to avoid
+        // redundant refreshChat calls from newMessageNotification
+        const recentlyReceivedIds = new Set<string>()
+
         const refreshChat = async () => {
             try {
                 const history = await getChatHistory(chatId)
@@ -348,12 +352,39 @@ export default function VendorChatScreen() {
                 return
             }
 
+            // Only process messages belonging to the current chat
+            if (normalizedMessage.chatId && normalizedMessage.chatId !== chatId) return
+
+            if (normalizedMessage.senderId._id === user?.id) return
+
+            // Track that we handled this message via receiveMessage
+            recentlyReceivedIds.add(normalizedMessage._id)
+            // Clean up old IDs after 10s to avoid memory buildup
+            setTimeout(() => recentlyReceivedIds.delete(normalizedMessage._id), 10000)
+
             setMessages((prev) => {
-                if (normalizedMessage.senderId._id === user?.id) return prev;
                 if (prev.some((msg) => msg._id === normalizedMessage._id)) return prev;
                 return [normalizedMessage, ...prev];
             })
             markChatAsRead(chatId)
+        }
+
+        const handleNewMessageNotification = (notificationMsg: any) => {
+            // If this notification is for a message we already handled via
+            // receiveMessage in the current chat room, skip the expensive
+            // full-refresh to avoid a race condition that can overwrite state.
+            if (notificationMsg?._id && recentlyReceivedIds.has(notificationMsg._id)) {
+                return
+            }
+            // Also skip if the notification is clearly for the current chat
+            // (receiveMessage should have already handled it)
+            const msgChatId = notificationMsg?.chatId
+            if (msgChatId && msgChatId === chatId) {
+                return
+            }
+            // For messages from other chats or unknown format, do a full refresh
+            // as a safety fallback
+            refreshChat()
         }
 
         const handleTyping = ({ userId, isTyping }: { userId: string; isTyping: boolean }) => {
@@ -364,13 +395,13 @@ export default function VendorChatScreen() {
 
         socket.emit('joinChat', chatId)
         socket.on('receiveMessage', handleReceiveMessage)
-        socket.on('newMessageNotification', refreshChat)
+        socket.on('newMessageNotification', handleNewMessageNotification)
         socket.on('typing', handleTyping)
 
         return () => {
             socket.emit('leaveChat', chatId)
             socket.off('receiveMessage', handleReceiveMessage)
-            socket.off('newMessageNotification', refreshChat)
+            socket.off('newMessageNotification', handleNewMessageNotification)
             socket.off('typing', handleTyping)
         }
     }, [socket, chatId, user, isGuest, isConnected])

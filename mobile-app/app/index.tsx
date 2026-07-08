@@ -22,6 +22,8 @@ export default function Index() {
 
     const handleDeepLink = async () => {
       if (!user?.role) return false
+      // Guests should not be deep-linked into authenticated screens
+      if (user.isGuest) return false
 
       if (chatId) {
         if (user.role === 'vendor') {

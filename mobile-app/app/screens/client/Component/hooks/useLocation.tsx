@@ -3,8 +3,42 @@ import { useEffect, useState, useCallback } from 'react'
 import { Platform } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
-const LOCATION_CACHE_KEY = '@user_location_cache'
+const LOCATION_CACHE_KEY = '@user_location_cache_v2'
 const WEB_GEOLOCATION_SOURCE = 'browser-geolocation'
+const CACHE_MAX_AGE_MS = 30 * 60 * 1000 // 30 minutes
+
+// Haversine distance in km between two lat/lon pairs
+const haversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371
+    const dLat = ((lat2 - lat1) * Math.PI) / 180
+    const dLon = ((lon2 - lon1) * Math.PI) / 180
+    const a = Math.sin(dLat / 2) ** 2 +
+              Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
+              Math.sin(dLon / 2) ** 2
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+/**
+ * Parse Nominatim reverse geocoding response into a standardised location object.
+ *
+ * Nominatim's `city_district` field for Karachi returns administrative "Towns"
+ * (e.g. "Gulshan Town") that cover very large areas and don't match what
+ * residents consider their actual neighbourhood.  `suburb` and `neighbourhood`
+ * are usually far more accurate (e.g. "North Nazimabad", "PECHS Block 6").
+ */
+const parseNominatimAddress = (addr: any) => {
+    // For Karachi, suburb/neighbourhood is the real local area name
+    const district = addr.suburb || addr.neighbourhood || addr.city_district || addr.county || addr.district || addr.state || ""
+    const city = addr.city || addr.town || addr.village || addr.municipality || ""
+    const name = addr.road || addr.neighbourhood || addr.suburb || ""
+
+    return {
+        city,
+        district,
+        country: addr.country || "",
+        name,
+    }
+}
 
 const useLocation = () => {
     const [error, setError] = useState("")
@@ -18,20 +52,30 @@ const useLocation = () => {
             const cached = await AsyncStorage.getItem(LOCATION_CACHE_KEY)
             if (cached) {
                 const cachedData = JSON.parse(cached)
+
+                // Reject cache from non-browser sources when running on web
                 if (Platform.OS === 'web' && cachedData.source !== WEB_GEOLOCATION_SOURCE) {
                     await AsyncStorage.removeItem(LOCATION_CACHE_KEY)
-                    return false
+                    return null
                 }
+
+                // Reject expired cache
+                if (cachedData.timestamp && (Date.now() - cachedData.timestamp > CACHE_MAX_AGE_MS)) {
+                    console.log("Location cache expired, fetching fresh location")
+                    await AsyncStorage.removeItem(LOCATION_CACHE_KEY)
+                    return null
+                }
+
                 setLatitude(cachedData.latitude)
                 setLongitude(cachedData.longitude)
                 setResult(cachedData.result)
                 console.log("Using cached location:", cachedData.result)
-                return true
+                return cachedData
             }
         } catch (error) {
             console.log("Error reading cached location:", error)
         }
-        return false
+        return null
     }, [])
 
     const cacheLocation = useCallback(async (lat: number, lon: number, locationResult: any, source?: string) => {
@@ -54,18 +98,29 @@ const useLocation = () => {
         try {
             setLoading(true)
             
-            // Try to load cached location first
-            const hasCached = await getCachedLocation()
+            // Try to load cached location first (returns null if expired/invalid)
+            const cachedData = await getCachedLocation()
+            const hasCached = cachedData !== null
             
             if (Platform.OS === 'web') {
                 if (typeof window !== 'undefined' && window.navigator && window.navigator.geolocation) {
                     window.navigator.geolocation.getCurrentPosition(
                         async (position) => {
                             const { latitude, longitude } = position.coords;
+
+                            // If cached location is far from the real position (>2 km),
+                            // clear it immediately so the UI updates
+                            if (cachedData && haversineDistance(
+                                cachedData.latitude, cachedData.longitude,
+                                latitude, longitude
+                            ) > 2) {
+                                console.log("Location shifted significantly from cache, updating...")
+                            }
+
                             setLatitude(latitude);
                             setLongitude(longitude);
                             try {
-                                const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
+                                const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`;
                                 const res = await fetch(url, {
                                     headers: {
                                         'User-Agent': 'Asaan-Taqreeb-App/1.0'
@@ -73,15 +128,8 @@ const useLocation = () => {
                                 });
                                 const data = await res.json();
                                 if (data && data.address) {
-                                    const addr = data.address;
-                                    const city = addr.city || addr.town || addr.village || addr.suburb || addr.municipality || "";
-                                    const district = addr.county || addr.city_district || addr.district || addr.state || "";
-                                    const response = [{
-                                        city: city,
-                                        district: district,
-                                        country: addr.country || "",
-                                        name: addr.road || addr.suburb || ""
-                                    }];
+                                    const parsed = parseNominatimAddress(data.address);
+                                    const response = [parsed];
                                     setResult(response);
                                     await cacheLocation(latitude, longitude, response, WEB_GEOLOCATION_SOURCE);
                                     setError("");
@@ -104,7 +152,11 @@ const useLocation = () => {
                             }
                             setLoading(false);
                         },
-                        { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 15000,     // 15s — mobile browsers can be slow
+                            maximumAge: 0        // Always get a fresh GPS reading
+                        }
                     );
                 } else {
                     if (!hasCached) {
@@ -170,7 +222,7 @@ const useLocation = () => {
                         })
                     } catch (nativeGeocodeErr) {
                         console.log("Native reverse geocoding failed, trying Nominatim fallback:", nativeGeocodeErr);
-                        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
+                        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
                         const res = await fetch(url, {
                             headers: {
                                 'User-Agent': 'Asaan-Taqreeb-App/1.0'
@@ -178,15 +230,7 @@ const useLocation = () => {
                         })
                         const data = await res.json()
                         if (data && data.address) {
-                            const addr = data.address
-                            const city = addr.city || addr.town || addr.village || addr.suburb || addr.municipality || ""
-                            const district = addr.county || addr.city_district || addr.district || addr.state || ""
-                            response = [{
-                                city: city,
-                                district: district,
-                                country: addr.country || "",
-                                name: addr.road || addr.suburb || ""
-                            }]
+                            response = [parseNominatimAddress(data.address)]
                         }
                     }
                     

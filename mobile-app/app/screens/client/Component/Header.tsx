@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View, Alert } from 'react-native'
+import { Pressable, StyleSheet, Text, View, Alert, Platform } from 'react-native'
 import { useState } from 'react'
 import useLocation from './hooks/useLocation'
 import SearchBar from './SearchBar'
@@ -33,7 +33,14 @@ const Header = () => {
 
   const handleOpenFavorites = () => {
     if (user?.isGuest) {
-      Alert.alert('Guest Mode', 'Sign in to access favorites.')
+      if (Platform.OS === 'web') {
+        const shouldSignIn = window.confirm('Guest Mode: Sign in to access favorites. Click OK to sign in.')
+        if (shouldSignIn) {
+          router.push('/screens/client/Component/LoginScreen')
+        }
+      } else {
+        Alert.alert('Guest Mode', 'Sign in to access favorites.')
+      }
       return
     }
     router.push("/screens/client/(tabs)/FavoritesScreen")

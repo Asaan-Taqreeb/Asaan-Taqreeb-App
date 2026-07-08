@@ -48,7 +48,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     let newSocket: Socket | null = null;
 
     const connectSocket = async () => {
-      if (!user) {
+      if (!user || user.isGuest) {
         if (socket) {
           socket.disconnect();
           setSocket(null);
