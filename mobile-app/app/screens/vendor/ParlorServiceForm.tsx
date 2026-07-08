@@ -1,8 +1,9 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert, KeyboardAvoidingView, Platform, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, Sparkles, Plus, Trash2, X } from "lucide-react-native";
 import { Colors, Shadows } from "@/app/_constants/theme";
+import { showAlert } from "@/app/_utils/alert";
 import { useState, useEffect } from "react";
 import { createVendorService, updateVendorService, getServiceById } from '@/app/_utils/servicesApi'
 import ImageUploader from "@/app/screens/vendor/Component/ImageUploader";
@@ -133,7 +134,7 @@ export default function ParlorServiceForm() {
         }
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to load service details");
+      showAlert("Error", "Failed to load service details");
       router.back();
     } finally {
       setIsInitialLoading(false);
@@ -147,7 +148,7 @@ export default function ParlorServiceForm() {
 
   const removePackage = (id: string) => {
     if (packages.length === 1) {
-      Alert.alert("Error", "At least one package is required");
+      showAlert("Error", "At least one package is required");
       return;
     }
     setPackages(packages.filter(pkg => pkg.id !== id));
@@ -194,7 +195,7 @@ export default function ParlorServiceForm() {
 
   const removeOptionalService = (id: string) => {
     if (optionalServices.length === 1) {
-      Alert.alert("Info", "Optional services section will remain. You can leave fields empty if not needed.");
+      showAlert("Info", "Optional services section will remain. You can leave fields empty if not needed.");
       return;
     }
     setOptionalServices(optionalServices.filter(service => service.id !== id));
@@ -236,19 +237,19 @@ export default function ParlorServiceForm() {
   const handleSubmit = async () => {
     // Validation
     if (!placeName.trim()) {
-      Alert.alert("Error", "Please enter your salon/parlor name");
+      showAlert("Error", "Please enter your salon/parlor name");
       return;
     }
     if (!location.trim()) {
-      Alert.alert("Error", "Please enter the location");
+      showAlert("Error", "Please enter the location");
       return;
     }
     if (!about.trim()) {
-      Alert.alert("Error", "Please provide information about your parlor/salon");
+      showAlert("Error", "Please provide information about your parlor/salon");
       return;
     }
     if (isOnSite && !onSiteFee.trim()) {
-      Alert.alert("Error", "Please enter your travel / on-site service fee");
+      showAlert("Error", "Please enter your travel / on-site service fee");
       return;
     }
     
@@ -257,7 +258,7 @@ export default function ParlorServiceForm() {
     // Validate packages
     for (const pkg of packages) {
       if (!pkg.packageName.trim() || !pkg.price.trim()) {
-        Alert.alert("Error", "Please complete all package details");
+        showAlert("Error", "Please complete all package details");
         setIsSubmitting(false);
         return;
       }
@@ -266,7 +267,7 @@ export default function ParlorServiceForm() {
     // Validate branches
     for (const b of branches) {
       if (!b.name.trim() || !b.location.trim()) {
-        Alert.alert("Error", "Please complete all branch names and locations");
+        showAlert("Error", "Please complete all branch names and locations");
         setIsSubmitting(false);
         return;
       }
@@ -274,7 +275,7 @@ export default function ParlorServiceForm() {
 
     // Validate operating hours
     if (!operatingHours.from.trim() || !operatingHours.to.trim()) {
-      Alert.alert("Error", "Please complete operating hours");
+      showAlert("Error", "Please complete operating hours");
       setIsSubmitting(false);
       return;
     }
@@ -317,7 +318,7 @@ export default function ParlorServiceForm() {
         if (user?.id) {
           await AsyncStorage.setItem('vendor_operating_hours_' + user.id, JSON.stringify(operatingHours));
         }
-        Alert.alert("Success", "Service updated successfully.", [
+        showAlert("Success", "Service updated successfully.", [
           { text: "OK", onPress: () => router.replace('/screens/vendor/Component/ManageServicesScreen') }
         ]);
       } else {
@@ -342,12 +343,12 @@ export default function ParlorServiceForm() {
           }
         }
 
-        Alert.alert("Success", "Parlor service created successfully.", [
+        showAlert("Success", "Parlor service created successfully.", [
           { text: "OK", onPress: () => router.replace('/screens/vendor/Component/ManageServicesScreen') }
         ]);
       }
     } catch (error: any) {
-      Alert.alert('Failed', error?.message || 'Unable to save service. Please try again.');
+      showAlert('Failed', error?.message || 'Unable to save service. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

@@ -5,11 +5,11 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import { showAlert } from '@/app/_utils/alert';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, Save } from 'lucide-react-native';
@@ -55,19 +55,19 @@ export default function AboutMeScreen() {
   const handleSave = async () => {
     // Validation
     if (!businessName.trim()) {
-      Alert.alert('Error', 'Please enter your business name');
+      showAlert('Error', 'Please enter your business name');
       return;
     }
     if (!phoneNumber.trim()) {
-      Alert.alert('Error', 'Please enter your phone number');
+      showAlert('Error', 'Please enter your phone number');
       return;
     }
     if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email');
+      showAlert('Error', 'Please enter your email');
       return;
     }
     if (!about.trim()) {
-      Alert.alert('Error', 'Please write something about your business');
+      showAlert('Error', 'Please write something about your business');
       return;
     }
 
@@ -93,11 +93,11 @@ export default function AboutMeScreen() {
         setUser(updatedUser?.data || updatedUser);
       }
 
-      Alert.alert('Success', 'Profile updated successfully!', [
+      showAlert('Success', 'Profile updated successfully!', [
         { text: 'OK', onPress: () => router.back() }
       ]);
     } catch (error: any) {
-      Alert.alert('Update Failed', error?.message || 'Could not save profile changes.');
+      showAlert('Update Failed', error?.message || 'Could not save profile changes.');
     } finally {
       setIsSaving(false);
     }

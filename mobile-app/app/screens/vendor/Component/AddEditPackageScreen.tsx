@@ -5,13 +5,13 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, Plus, X } from 'lucide-react-native';
+import { showAlert } from '@/app/_utils/alert';
 import { Colors } from '@/app/_constants/theme';
 import { createVendorService, getMyVendorServices } from '@/app/_utils/servicesApi';
 
@@ -49,7 +49,7 @@ export default function AddEditPackageScreen() {
 
   const removeItem = (index: number) => {
     if (items.length === 1) {
-      Alert.alert('Error', 'At least one item is required');
+      showAlert('Error', 'At least one item is required');
       return;
     }
     setItems(items.filter((_, i) => i !== index));
@@ -64,19 +64,19 @@ export default function AddEditPackageScreen() {
   const handleSave = async () => {
     // Validation
     if (!packageName.trim()) {
-      Alert.alert('Error', 'Please enter package name');
+      showAlert('Error', 'Please enter package name');
       return;
     }
     if (!price.trim()) {
-      Alert.alert('Error', 'Please enter package price');
+      showAlert('Error', 'Please enter package price');
       return;
     }
     if (!description.trim()) {
-      Alert.alert('Error', 'Please enter package description');
+      showAlert('Error', 'Please enter package description');
       return;
     }
     if (items.every(item => !item.trim())) {
-      Alert.alert('Error', 'Please add at least one item to the package');
+      showAlert('Error', 'Please add at least one item to the package');
       return;
     }
 
@@ -85,7 +85,7 @@ export default function AddEditPackageScreen() {
 
       const services = await getMyVendorServices()
       if (!services.length) {
-        Alert.alert('Error', 'No existing service found for this vendor account.')
+        showAlert('Error', 'No existing service found for this vendor account.')
         return
       }
 
@@ -96,7 +96,7 @@ export default function AddEditPackageScreen() {
       })[0]
 
       if (activeService.category === 'catering') {
-        Alert.alert('Info', 'For catering packages (pricePerHead/guestCount), please use the Catering Service form.')
+        showAlert('Info', 'For catering packages (pricePerHead/guestCount), please use the Catering Service form.')
         return
       }
 
@@ -137,13 +137,13 @@ export default function AddEditPackageScreen() {
         optionalDishes: activeService.optionalServices || [],
       })
 
-      Alert.alert(
+      showAlert(
         'Success',
         isEditMode ? 'Package updated successfully!' : 'Package created successfully!',
         [{ text: 'OK', onPress: () => router.back() }]
       )
     } catch (error: any) {
-      Alert.alert('Failed', error?.message || 'Unable to save package. Please try again.')
+      showAlert('Failed', error?.message || 'Unable to save package. Please try again.')
     } finally {
       setIsSaving(false)
     }

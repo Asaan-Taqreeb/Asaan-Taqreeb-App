@@ -5,7 +5,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -16,6 +15,7 @@ import { Colors } from '@/app/_constants/theme';
 import { useUser } from '@/app/_context/UserContext';
 import { updateUserProfile } from '@/app/_utils/authApi';
 import { ActivityIndicator } from 'react-native';
+import { showAlert } from '@/app/_utils/alert';
 
 export default function ClientAboutMeScreen() {
   const router = useRouter();
@@ -46,15 +46,15 @@ export default function ClientAboutMeScreen() {
   const handleSave = async () => {
     // Validation
     if (!fullName.trim()) {
-      Alert.alert('Error', 'Please enter your full name');
+      showAlert('Error', 'Please enter your full name');
       return;
     }
     if (!phoneNumber.trim()) {
-      Alert.alert('Error', 'Please enter your phone number');
+      showAlert('Error', 'Please enter your phone number');
       return;
     }
     if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email');
+      showAlert('Error', 'Please enter your email');
       return;
     }
 
@@ -71,11 +71,11 @@ export default function ClientAboutMeScreen() {
 
       await updateUserProfile(profileData);
       
-      Alert.alert('Success', 'Profile updated successfully!', [
+      showAlert('Success', 'Profile updated successfully!', [
         { text: 'OK', onPress: () => router.back() }
       ]);
     } catch (error: any) {
-      Alert.alert('Error', error?.message || 'Failed to update profile');
+      showAlert('Error', error?.message || 'Failed to update profile');
     } finally {
       setIsSaving(false);
     }

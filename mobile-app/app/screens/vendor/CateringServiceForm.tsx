@@ -1,8 +1,9 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert, KeyboardAvoidingView, Platform, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, Utensils, Plus, Trash2, X } from "lucide-react-native";
 import { Colors, Shadows } from "@/app/_constants/theme";
+import { showAlert } from "@/app/_utils/alert";
 import { useState, useEffect } from "react";
 import { createVendorService, updateVendorService, getServiceById } from '@/app/_utils/servicesApi'
 import ImageUploader from "@/app/screens/vendor/Component/ImageUploader";
@@ -117,7 +118,7 @@ export default function CateringServiceForm() {
         }
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to load service details");
+      showAlert("Error", "Failed to load service details");
       router.back();
     } finally {
       setIsInitialLoading(false);
@@ -139,7 +140,7 @@ export default function CateringServiceForm() {
 
   const removePackage = (id: string) => {
     if (packages.length === 1) {
-      Alert.alert("Error", "At least one package is required");
+      showAlert("Error", "At least one package is required");
       return;
     }
     setPackages(packages.filter(pkg => pkg.id !== id));
@@ -186,7 +187,7 @@ export default function CateringServiceForm() {
 
   const removeOptionalDish = (id: string) => {
     if (optionalDishes.length === 1) {
-      Alert.alert("Info", "Optional dishes section will remain. You can leave fields empty if not needed.");
+      showAlert("Info", "Optional dishes section will remain. You can leave fields empty if not needed.");
       return;
     }
     setOptionalDishes(optionalDishes.filter(dish => dish.id !== id));
@@ -201,15 +202,15 @@ export default function CateringServiceForm() {
   const handleSubmit = async () => {
     // Validation
     if (!placeName.trim()) {
-      Alert.alert("Error", "Please enter the business name");
+      showAlert("Error", "Please enter the business name");
       return;
     }
     if (!location.trim()) {
-      Alert.alert("Error", "Please enter the location");
+      showAlert("Error", "Please enter the location");
       return;
     }
     if (!about.trim()) {
-      Alert.alert("Error", "Please provide information about your catering service");
+      showAlert("Error", "Please provide information about your catering service");
       return;
     }
     
@@ -218,7 +219,7 @@ export default function CateringServiceForm() {
     // Validate packages
     for (const pkg of packages) {
       if (!pkg.packageName.trim() || !pkg.pricePerHead.trim() || !pkg.guestCount.trim()) {
-        Alert.alert("Error", "Please complete all package details");
+        showAlert("Error", "Please complete all package details");
         setIsSubmitting(false);
         return;
       }
@@ -226,7 +227,7 @@ export default function CateringServiceForm() {
 
     // Validate operating hours
     if (!operatingHours.from.trim() || !operatingHours.to.trim()) {
-      Alert.alert("Error", "Please complete operating hours");
+      showAlert("Error", "Please complete operating hours");
       setIsSubmitting(false);
       return;
     }
@@ -263,7 +264,7 @@ export default function CateringServiceForm() {
         if (user?.id) {
           await AsyncStorage.setItem('vendor_operating_hours_' + user.id, JSON.stringify(operatingHours));
         }
-        Alert.alert("Success", "Service updated successfully.", [
+        showAlert("Success", "Service updated successfully.", [
           { text: "OK", onPress: () => router.replace('/screens/vendor/Component/ManageServicesScreen') }
         ]);
       } else {
@@ -288,12 +289,12 @@ export default function CateringServiceForm() {
           }
         }
 
-        Alert.alert("Success", "Catering service created successfully.", [
+        showAlert("Success", "Catering service created successfully.", [
           { text: "OK", onPress: () => router.replace('/screens/vendor/Component/ManageServicesScreen') }
         ]);
       }
     } catch (error: any) {
-      Alert.alert('Failed', error?.message || 'Unable to save service. Please try again.');
+      showAlert('Failed', error?.message || 'Unable to save service. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
