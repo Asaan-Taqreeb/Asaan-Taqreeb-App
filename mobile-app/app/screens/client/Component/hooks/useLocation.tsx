@@ -53,12 +53,6 @@ const useLocation = () => {
             if (cached) {
                 const cachedData = JSON.parse(cached)
 
-                // Reject cache from non-browser sources when running on web
-                if (Platform.OS === 'web' && cachedData.source !== WEB_GEOLOCATION_SOURCE) {
-                    await AsyncStorage.removeItem(LOCATION_CACHE_KEY)
-                    return null
-                }
-
                 // Reject expired cache
                 if (cachedData.timestamp && (Date.now() - cachedData.timestamp > CACHE_MAX_AGE_MS)) {
                     console.log("Location cache expired, fetching fresh location")
@@ -105,8 +99,9 @@ const useLocation = () => {
         setLongitude(67.0011)
         setResult(fallbackResponse)
         setError("")
-        console.log("Applied default Karachi location fallback")
-    }, [])
+        await cacheLocation(24.8607, 67.0011, fallbackResponse, 'karachi-fallback')
+        console.log("Applied default Karachi location fallback and cached it")
+    }, [cacheLocation])
 
     const fetchIpLocationFallback = useCallback(async () => {
         const apis = [
@@ -227,6 +222,7 @@ const useLocation = () => {
                                     }];
                                     setResult(fallbackResponse);
                                     setError("");
+                                    await cacheLocation(latitude, longitude, fallbackResponse, 'browser-geolocation-fallback');
                                 }
                             } finally {
                                 setLoading(false);
@@ -350,6 +346,7 @@ const useLocation = () => {
                         }];
                         setResult(fallbackResponse);
                         setError("");
+                        await cacheLocation(latitude, longitude, fallbackResponse, 'native-gps-fallback');
                     }
                 }
             } else {
