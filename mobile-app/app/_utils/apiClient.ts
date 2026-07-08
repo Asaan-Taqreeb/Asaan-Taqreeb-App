@@ -212,6 +212,12 @@ export const apiFetch = async (url: string, options: ApiFetchOptions = {}) => {
   const { auth = true, timeout = DEFAULT_TIMEOUT, headers, ...rest } = options
   const method = String(rest.method || 'GET').toUpperCase()
 
+  let finalUrl = url
+  if (method === 'GET' && Platform.OS === 'web') {
+    const separator = url.includes('?') ? '&' : '?'
+    finalUrl = `${url}${separator}_t=${Date.now()}`
+  }
+
   const finalHeaders: Record<string, string> = {
     ...(headers as Record<string, string>),
   }
@@ -237,7 +243,7 @@ export const apiFetch = async (url: string, options: ApiFetchOptions = {}) => {
 
   try {
     response = await fetchWithTimeout(
-      url,
+      finalUrl,
       {
         ...rest,
         headers: finalHeaders,
@@ -248,7 +254,7 @@ export const apiFetch = async (url: string, options: ApiFetchOptions = {}) => {
     const isIdempotent = method === 'GET' || method === 'HEAD'
     if (error instanceof RequestTimeoutError && isIdempotent) {
       response = await fetchWithTimeout(
-        url,
+        finalUrl,
         {
           ...rest,
           headers: finalHeaders,
@@ -275,7 +281,7 @@ export const apiFetch = async (url: string, options: ApiFetchOptions = {}) => {
     throw new SessionExpiredError()
   }
 
-  const refreshedResponse = await fetchWithTimeout(url, {
+  const refreshedResponse = await fetchWithTimeout(finalUrl, {
     ...rest,
     headers: {
       ...finalHeaders,

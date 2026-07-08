@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MessageCircle, Trash2 } from 'lucide-react-native';
 import { Colors } from '@/app/_constants/theme';
 import { getUserChats, deleteChatHistory, ChatOverview } from '@/app/_utils/messagesApi';
+import { registerChatListener, unregisterChatListener } from '@/app/_utils/chatEvents';
 import { useSocket } from '@/app/_context/SocketContext';
 import { router, useFocusEffect } from 'expo-router';
 import { Alert } from 'react-native';
@@ -55,6 +56,16 @@ export default function VendorMessagesScreen() {
       fetchChats();
     }, [fetchChats])
   )
+
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchChats();
+    }
+    registerChatListener(handleRefresh);
+    return () => {
+      unregisterChatListener(handleRefresh);
+    }
+  }, [fetchChats]);
 
   useEffect(() => {
     if (!socket) return;

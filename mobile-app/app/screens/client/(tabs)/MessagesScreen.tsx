@@ -5,6 +5,7 @@ import { useFocusEffect, router } from 'expo-router'
 import { MessageCircle, Trash2 } from 'lucide-react-native'
 import { Colors } from '@/app/_constants/theme'
 import { getUserChats, deleteChatHistory, ChatOverview } from '@/app/_utils/messagesApi'
+import { registerChatListener, unregisterChatListener } from '@/app/_utils/chatEvents'
 import { useSocket } from '@/app/_context/SocketContext'
 import Avatar from '@/app/_components/Avatar'
 import { useUser } from '@/app/_context/UserContext'
@@ -57,6 +58,16 @@ export default function MessagesScreen() {
       loadChats()
     }, [])
   )
+
+  useEffect(() => {
+    const handleRefresh = () => {
+      loadChats()
+    }
+    registerChatListener(handleRefresh)
+    return () => {
+      unregisterChatListener(handleRefresh)
+    }
+  }, [])
 
   useEffect(() => {
     if (!socket) return;
