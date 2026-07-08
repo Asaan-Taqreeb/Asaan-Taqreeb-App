@@ -322,7 +322,7 @@ export default function VendorChatScreen() {
     }, [loadChatHistory])
 
     useEffect(() => {
-        if (isGuest || !socket || !chatId || !isConnected) return
+        if (isGuest || !socket || !chatId) return
 
         // Track message IDs already handled by receiveMessage to avoid
         // redundant refreshChat calls from newMessageNotification
@@ -404,7 +404,7 @@ export default function VendorChatScreen() {
             socket.off('newMessageNotification', handleNewMessageNotification)
             socket.off('typing', handleTyping)
         }
-    }, [socket, chatId, user, isGuest, isConnected])
+    }, [socket, chatId, user, isGuest])
 
     // Auto-scroll is handled natively by the inverted FlatList container
 

@@ -58,15 +58,15 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return;
       }
 
+      const token = await getAccessToken();
+
       console.log('🔌 SocketProvider: Initializing connection to:', SOCKET_URL);
 
-      // Initialize socket with dynamic auth callback (fetches fresh token from AsyncStorage)
+      // Initialize socket with token resolved synchronously.
+      // Use polling first to bypass WebSocket reverse proxy upgrade issues.
       newSocket = io(SOCKET_URL, {
-        auth: async (cb) => {
-          const token = await getAccessToken();
-          cb({ token: token ?? '' });
-        },
-        transports: ['websocket', 'polling'],
+        auth: { token: token ?? '' },
+        transports: ['polling', 'websocket'],
         reconnection: true,
         reconnectionAttempts: 15,
         reconnectionDelay: 2000,

@@ -294,7 +294,7 @@ export default function ClientChatScreen() {
     }, [loadChatHistory])
 
     useEffect(() => {
-        if (!socket || !chatId || !isConnected) return
+        if (!socket || !chatId) return
 
         // Track message IDs already handled by receiveMessage to avoid
         // redundant refreshChat calls from newMessageNotification
@@ -369,7 +369,7 @@ export default function ClientChatScreen() {
             socket.off('newMessageNotification', handleNewMessageNotification)
             socket.off('typing', handleTyping)
         }
-    }, [socket, chatId, user, isConnected])
+    }, [socket, chatId, user])
 
     // Auto-scroll is handled natively by the inverted FlatList container
 
