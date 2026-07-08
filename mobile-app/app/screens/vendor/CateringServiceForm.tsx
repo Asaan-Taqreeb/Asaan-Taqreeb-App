@@ -92,6 +92,9 @@ export default function CateringServiceForm() {
         setImages(data.images || []);
         if (data.latitude) setLatitude(data.latitude);
         if (data.longitude) setLongitude(data.longitude);
+        if (data.operatingHours) {
+          setOperatingHours(data.operatingHours);
+        }
         
         if (data.packages && data.packages.length > 0) {
           setPackages(data.packages.map((pkg, idx) => ({
@@ -236,6 +239,7 @@ export default function CateringServiceForm() {
       latitude,
       longitude,
       images,
+      operatingHours,
       packages: packages.map(pkg => ({
         packageName: pkg.packageName,
         price: parseFloat(pkg.pricePerHead),

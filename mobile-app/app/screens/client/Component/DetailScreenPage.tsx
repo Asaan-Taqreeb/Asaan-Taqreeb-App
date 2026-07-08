@@ -661,6 +661,7 @@ export default function DetailScreenPage() {
                                             vendorLocation: vendor.location,
                                             isOnSite: vendor.isOnSite,
                                             onSiteFee: vendor.onSiteFee,
+                                            operatingHours: vendor.operatingHours,
                                             optionalServices: vendor.optionalServices || [],
                                             branches: vendor.branches || []
                                         }
@@ -814,6 +815,9 @@ export default function DetailScreenPage() {
                                         vendorName: vendor.name,
                                         vendorLocation: vendor.location,
                                         isCustomPackage: true,
+                                        isOnSite: vendor.isOnSite,
+                                        onSiteFee: vendor.onSiteFee,
+                                        operatingHours: vendor.operatingHours,
                                         optionalServices: vendor.optionalServices || [],
                                         branches: vendor.branches || []
                                     }

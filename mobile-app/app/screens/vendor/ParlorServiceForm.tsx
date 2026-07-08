@@ -97,6 +97,9 @@ export default function ParlorServiceForm() {
         if (data.longitude) setLongitude(data.longitude);
         setIsOnSite(data.isOnSite || false);
         setOnSiteFee(data.onSiteFee ? data.onSiteFee.toString() : "");
+        if (data.operatingHours) {
+          setOperatingHours(data.operatingHours);
+        }
         
         if (data.packages && data.packages.length > 0) {
           setPackages(data.packages.map((pkg, idx) => ({
@@ -286,6 +289,7 @@ export default function ParlorServiceForm() {
       images,
       isOnSite,
       onSiteFee: isOnSite ? parseFloat(onSiteFee) || 0 : 0,
+      operatingHours,
       packages: packages.map(pkg => ({
         packageName: pkg.packageName,
         price: parseFloat(pkg.price),

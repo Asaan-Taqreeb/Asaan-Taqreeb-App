@@ -16,7 +16,7 @@ import { ArrowLeft, Plus, Trash2, Save } from 'lucide-react-native';
 import { Colors, Shadows } from '@/app/_constants/theme';
 import { useUser } from '@/app/_context/UserContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getMyVendorServices } from '@/app/_utils/servicesApi';
+import { getMyVendorServices, updateVendorService } from '@/app/_utils/servicesApi';
 
 export interface TimeSlot {
   id: string;
@@ -33,6 +33,7 @@ export default function TimeSlotsScreen() {
   const { user } = useUser();
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [category, setCategory] = useState<'banquet' | 'photo' | 'parlor' | 'catering' | null>(null);
+  const [serviceId, setServiceId] = useState<string | null>(null);
   const [operatingHours, setOperatingHours] = useState({ from: '09:00 AM', to: '09:00 PM' });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -49,26 +50,34 @@ export default function TimeSlotsScreen() {
       
       // Load vendor service to determine category
       const services = await getMyVendorServices();
-      const vendorCat = services && services.length > 0 ? services[0].category : 'banquet';
-      setCategory(vendorCat);
+      if (services && services.length > 0) {
+        const activeService = services[0];
+        setServiceId(activeService.id);
+        const vendorCat = activeService.category;
+        setCategory(vendorCat);
 
-      if (vendorCat === 'banquet') {
-        const saved = await AsyncStorage.getItem(STORAGE_KEY_PREFIX + user?.id);
-        if (saved) {
-          setSlots(JSON.parse(saved));
+        if (vendorCat === 'banquet') {
+          const saved = await AsyncStorage.getItem(STORAGE_KEY_PREFIX + user?.id);
+          if (saved) {
+            setSlots(JSON.parse(saved));
+          } else {
+            // Default slots for banquets if none exist
+            setSlots([
+              { id: '1', label: 'Morning', from: '10:00 AM', to: '01:00 PM' },
+              { id: '2', label: 'Afternoon', from: '03:00 PM', to: '07:00 PM' },
+              { id: '3', label: 'Evening', from: '09:00 PM', to: '12:00 AM' },
+            ]);
+          }
         } else {
-          // Default slots for banquets if none exist
-          setSlots([
-            { id: '1', label: 'Morning', from: '10:00 AM', to: '01:00 PM' },
-            { id: '2', label: 'Afternoon', from: '03:00 PM', to: '07:00 PM' },
-            { id: '3', label: 'Evening', from: '09:00 PM', to: '12:00 AM' },
-          ]);
-        }
-      } else {
-        // Service categories (photo, parlor, catering)
-        const savedHours = await AsyncStorage.getItem('vendor_operating_hours_' + user?.id);
-        if (savedHours) {
-          setOperatingHours(JSON.parse(savedHours));
+          // Service categories (photo, parlor, catering)
+          if (activeService.operatingHours) {
+            setOperatingHours(activeService.operatingHours);
+          } else {
+            const savedHours = await AsyncStorage.getItem('vendor_operating_hours_' + user?.id);
+            if (savedHours) {
+              setOperatingHours(JSON.parse(savedHours));
+            }
+          }
         }
       }
     } catch (error) {
@@ -88,6 +97,7 @@ export default function TimeSlotsScreen() {
         for (const slot of slots) {
           if (!slot.label.trim() || !slot.from.trim() || !slot.to.trim()) {
             Alert.alert('Error', 'Please fill in all fields for all slots.');
+            setIsSaving(false);
             return;
           }
         }
@@ -96,7 +106,11 @@ export default function TimeSlotsScreen() {
         // Simple validation for operating hours
         if (!operatingHours.from.trim() || !operatingHours.to.trim()) {
           Alert.alert('Error', 'Please fill in operating hours.');
+          setIsSaving(false);
           return;
+        }
+        if (serviceId) {
+          await updateVendorService(serviceId, { operatingHours });
         }
         await AsyncStorage.setItem('vendor_operating_hours_' + user.id, JSON.stringify(operatingHours));
       }

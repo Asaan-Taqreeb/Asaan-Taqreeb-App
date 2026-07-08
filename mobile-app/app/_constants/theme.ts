@@ -79,7 +79,8 @@ export const getCategoryColor = (category?: string | null): string => {
     case 'photographer':
     case 'photography': return Colors.photo
     case 'parlor':
-    case 'salon': return Colors.parlor
+    case 'salon':
+    case 'parlor_salon': return Colors.parlor
     default: return Colors.primary
   }
 }

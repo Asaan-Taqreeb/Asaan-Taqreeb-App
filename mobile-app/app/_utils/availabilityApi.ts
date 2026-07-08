@@ -72,12 +72,13 @@ const normalizeAvailabilityDays = (payload: any): VendorAvailabilityDay[] => {
         item?.booked ??
         item?.hasBooking) ||
         type === 'booked' ||
+        type === 'pending_booking' ||
         status === 'booked' ||
         status === 'reserved'
       )
 
-      // Only show as booked if type is explicitly 'booked', not 'pending_booking'
-      const displayIsBooked = type === 'booked' ? isBooked : false
+      // Show as booked if type is explicitly 'booked' or 'pending_booking'
+      const displayIsBooked = (type === 'booked' || type === 'pending_booking') ? isBooked : false
 
       return [{
         id: item?._id ? String(item._id) : undefined,
@@ -187,7 +188,7 @@ export const blockDateForVendor = async (
 
 export const unblockDateForVendor = async (date: string, options?: { vendorId?: string | number; timeSlot?: { from: string; to: string }; branchId?: string }) => {
   const body = JSON.stringify({
-    timeSlot: options?.timeSlot ?? { from: '10:00', to: '17:00' },
+    timeSlot: options?.timeSlot,
     branchId: options?.branchId,
   })
   

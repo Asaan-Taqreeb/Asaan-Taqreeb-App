@@ -93,12 +93,16 @@ export default function BookingScreen() {
                         })));
                     }
                 } else {
-                    const savedHours = await AsyncStorage.getItem('vendor_operating_hours_' + vendorAvailabilityId);
-                    if (savedHours) {
-                        setOperatingHours(JSON.parse(savedHours));
+                    if (bookingData.operatingHours) {
+                        setOperatingHours(bookingData.operatingHours);
                     } else {
-                        // Default operating hours if none configured
-                        setOperatingHours({ from: '09:00 AM', to: '09:00 PM' });
+                        const savedHours = await AsyncStorage.getItem('vendor_operating_hours_' + vendorAvailabilityId);
+                        if (savedHours) {
+                            setOperatingHours(JSON.parse(savedHours));
+                        } else {
+                            // Default operating hours if none configured
+                            setOperatingHours({ from: '09:00 AM', to: '09:00 PM' });
+                        }
                     }
                 }
             } catch (error) {
@@ -106,7 +110,7 @@ export default function BookingScreen() {
             }
         };
         loadTimeOptions();
-    }, [vendorAvailabilityId, bookingData.category]);
+    }, [vendorAvailabilityId, bookingData.category, bookingData.operatingHours]);
 
     const addons: BookingAddon[] = useMemo(() => {
         const rawOptional: any[] = Array.isArray(bookingData.optionalServices)

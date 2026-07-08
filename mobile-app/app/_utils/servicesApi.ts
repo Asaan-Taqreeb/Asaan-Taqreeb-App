@@ -65,6 +65,7 @@ export type ServiceListItem = {
   optionalServices?: { name: string; price: number }[]
   createdAt?: string
   updatedAt?: string
+  operatingHours?: { from: string; to: string }
   isOnSite?: boolean
   onSiteFee?: number
   branches?: Array<{
@@ -293,6 +294,7 @@ export const mapServiceToUi = (service: any): ServiceListItem => {
     })(),
     packages,
     optionalServices,
+    operatingHours: bi?.operatingHours || service?.operatingHours || { from: '09:00 AM', to: '09:00 PM' },
     isOnSite: bi?.isOnSite ?? service?.isOnSite ?? false,
     onSiteFee: toNumber(bi?.onSiteFee ?? service?.onSiteFee, 0),
     branches: Array.isArray(service?.branches) 
@@ -556,7 +558,8 @@ export const createVendorService = async (payload: Record<string, any>) => {
       latitude, 
       longitude,
       isOnSite: payload.isOnSite ?? false,
-      onSiteFee: toNumber(payload.onSiteFee, 0)
+      onSiteFee: toNumber(payload.onSiteFee, 0),
+      operatingHours: payload.operatingHours,
     },
     packages: normalizedPackages,
     branches: Array.isArray(payload.branches) ? payload.branches : [],
@@ -734,7 +737,7 @@ export const updateVendorService = async (serviceId: string | number, payload: R
   const about = payload.about || payload.description;
   const landmark = payload.landmark || payload.nearbyLandmark || payload.landmark;
 
-  if (name || location || landmark || about || payload.latitude !== undefined || payload.isOnSite !== undefined) {
+  if (name || location || landmark || about || payload.latitude !== undefined || payload.isOnSite !== undefined || payload.operatingHours !== undefined) {
     body.basicInfo = {
       ...(name ? { name } : {}),
       ...(location ? { location } : {}),
@@ -744,6 +747,7 @@ export const updateVendorService = async (serviceId: string | number, payload: R
       ...(payload.longitude !== undefined ? { longitude: toFiniteNumberOrUndefined(payload.longitude) } : {}),
       ...(payload.isOnSite !== undefined ? { isOnSite: payload.isOnSite } : {}),
       ...(payload.onSiteFee !== undefined ? { onSiteFee: toNumber(payload.onSiteFee, 0) } : {}),
+      ...(payload.operatingHours !== undefined ? { operatingHours: payload.operatingHours } : {}),
     }
   }
 
