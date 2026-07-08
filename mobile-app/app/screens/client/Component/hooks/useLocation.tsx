@@ -94,6 +94,86 @@ const useLocation = () => {
         }
     }, [])
 
+    const applyKarachiFallback = useCallback(async () => {
+        const fallbackResponse = [{
+            city: "Karachi",
+            district: "Karachi",
+            country: "Pakistan",
+            name: "Karachi, Pakistan (Default)"
+        }]
+        setLatitude(24.8607)
+        setLongitude(67.0011)
+        setResult(fallbackResponse)
+        setError("")
+        console.log("Applied default Karachi location fallback")
+    }, [])
+
+    const fetchIpLocationFallback = useCallback(async () => {
+        const apis = [
+            {
+                url: 'https://freeipapi.com/api/json',
+                parse: (data: any) => ({
+                    latitude: Number(data.latitude),
+                    longitude: Number(data.longitude),
+                    city: data.cityName || "",
+                    region: data.regionName || "",
+                    country: data.countryName || ""
+                })
+            },
+            {
+                url: 'https://ipapi.co/json/',
+                parse: (data: any) => ({
+                    latitude: Number(data.latitude),
+                    longitude: Number(data.longitude),
+                    city: data.city || "",
+                    region: data.region || "",
+                    country: data.country_name || ""
+                })
+            },
+            {
+                url: 'https://ipinfo.io/json',
+                parse: (data: any) => {
+                    const [lat, lon] = String(data.loc || '').split(',');
+                    return {
+                        latitude: Number(lat),
+                        longitude: Number(lon),
+                        city: data.city || "",
+                        region: data.region || "",
+                        country: data.country || ""
+                    };
+                }
+            }
+        ];
+
+        for (const api of apis) {
+            try {
+                console.log(`Trying IP location fallback from: ${api.url}`)
+                const res = await fetch(api.url)
+                if (!res.ok) continue
+                const data = await res.json()
+                const parsed = api.parse(data)
+                if (parsed.latitude && parsed.longitude) {
+                    const response = [{
+                        city: parsed.city || "Karachi",
+                        district: parsed.region || "Karachi",
+                        country: parsed.country || "Pakistan",
+                        name: [parsed.city, parsed.region].filter(Boolean).join(', ') || "IP Location"
+                    }]
+                    setLatitude(parsed.latitude)
+                    setLongitude(parsed.longitude)
+                    setResult(response)
+                    setError("")
+                    await cacheLocation(parsed.latitude, parsed.longitude, response, 'ip-geolocation')
+                    console.log("IP Geolocation fallback successful:", response)
+                    return true
+                }
+            } catch (err) {
+                console.log(`Failed to fetch IP location from ${api.url}:`, err)
+            }
+        }
+        return false
+    }, [cacheLocation])
+
     const getUserLocation = useCallback(async () => {
         try {
             setLoading(true)
@@ -152,10 +232,13 @@ const useLocation = () => {
                                 setLoading(false);
                             }
                         },
-                        (geoError) => {
-                            console.log("Web Geolocation failed:", geoError);
+                        async (geoError) => {
+                            console.log("Web Geolocation failed, trying IP fallback...", geoError);
                             if (!hasCached) {
-                                setError("Location permission denied or unavailable");
+                                const success = await fetchIpLocationFallback()
+                                if (!success) {
+                                    await applyKarachiFallback()
+                                }
                             }
                             setLoading(false);
                         },
@@ -166,8 +249,12 @@ const useLocation = () => {
                         }
                     );
                 } else {
+                    console.log("Geolocation API not available, trying IP fallback...");
                     if (!hasCached) {
-                        setError("Location services unavailable in this browser");
+                        const success = await fetchIpLocationFallback()
+                        if (!success) {
+                            await applyKarachiFallback()
+                        }
                     }
                     setLoading(false);
                 }
@@ -179,6 +266,9 @@ const useLocation = () => {
 
             if (status !== 'granted') {
                 setError("Permission denied - using cached location if available")
+                if (!hasCached) {
+                    await applyKarachiFallback()
+                }
                 setLoading(false)
                 return
             }
@@ -265,7 +355,7 @@ const useLocation = () => {
             } else {
                 console.log("Failed to retrieve coordinates from GPS/Browser");
                 if (!hasCached) {
-                    setError("Location coordinates unavailable")
+                    await applyKarachiFallback()
                 }
             }
         } catch (error) {
@@ -276,7 +366,7 @@ const useLocation = () => {
                 setLoading(false)
             }
         }
-    }, [cacheLocation, getCachedLocation])
+    }, [cacheLocation, getCachedLocation, fetchIpLocationFallback, applyKarachiFallback])
     
     useEffect(() => {
         getUserLocation()

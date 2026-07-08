@@ -237,7 +237,7 @@ export default function ClientChatScreen() {
     const clientName = (params.clientName as string) === 'Customer' || (params.clientName as string) === 'Client' || !(params.clientName as string)
         ? (dynamicClientName || (params.clientName as string) || "Client")
         : (params.clientName as string)
-    const { socket, isConnected } = useSocket()
+    const { socket, isConnected, clearNotificationCount } = useSocket()
     const { user } = useUser()
 
     const buildChatId = (firstUserId: string | number, secondUserId: string | number) => {
@@ -282,6 +282,7 @@ export default function ClientChatScreen() {
             const history = await getChatHistory(chatId)
             setMessages(history.map(normalizeMessage).reverse())
             await markChatAsRead(chatId)
+            clearNotificationCount()
         } catch (error) {
             console.log('Error loading chat history:', error)
         } finally {
@@ -332,6 +333,7 @@ export default function ClientChatScreen() {
                 return [normalizedMessage, ...prev];
             })
             markChatAsRead(chatId)
+            clearNotificationCount()
         }
 
         const handleNewMessageNotification = (notificationMsg: any) => {

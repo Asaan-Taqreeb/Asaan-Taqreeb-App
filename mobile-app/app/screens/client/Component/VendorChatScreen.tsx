@@ -260,7 +260,7 @@ export default function VendorChatScreen() {
         return first.localeCompare(second) <= 0 ? `chat_${first}_${second}` : `chat_${second}_${first}`
     }
 
-    const { socket, isConnected } = useSocket()
+    const { socket, isConnected, clearNotificationCount } = useSocket()
     const { user } = useUser()
     const isGuest = Boolean(user?.isGuest)
 
@@ -310,6 +310,7 @@ export default function VendorChatScreen() {
             const history = await getChatHistory(chatId)
             setMessages(history.map(normalizeMessage).reverse())
             await markChatAsRead(chatId)
+            clearNotificationCount()
         } catch (error) {
             console.log('Error loading chat history:', error)
         } finally {
@@ -367,6 +368,7 @@ export default function VendorChatScreen() {
                 return [normalizedMessage, ...prev];
             })
             markChatAsRead(chatId)
+            clearNotificationCount()
         }
 
         const handleNewMessageNotification = (notificationMsg: any) => {

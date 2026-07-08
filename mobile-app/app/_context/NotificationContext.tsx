@@ -109,6 +109,22 @@ export const useUnreadNotificationCount = (enabled: boolean = true) => {
   return unreadCount;
 };
 
+const unreadMessageCountListeners = new Set<() => void>();
+
+export function registerUnreadMessageCountListener(listener: () => void) {
+  unreadMessageCountListeners.add(listener);
+}
+
+export function unregisterUnreadMessageCountListener(listener: () => void) {
+  unreadMessageCountListeners.delete(listener);
+}
+
+export function triggerUnreadMessageCountRefresh() {
+  unreadMessageCountListeners.forEach(listener => {
+    try { listener(); } catch (_) {}
+  });
+}
+
 /**
  * Hook for single unread chat message count
  */
@@ -126,19 +142,31 @@ export const useUnreadMessageCount = (enabled: boolean = true) => {
     }
   };
 
+  const fetchCountRef = useRef(fetchCount);
+  fetchCountRef.current = fetchCount;
+
   useEffect(() => {
     if (!enabled) return;
 
     // Fetch immediately
-    fetchCount();
+    fetchCountRef.current();
 
     // Poll every 10 seconds
-    pollIntervalRef.current = setInterval(fetchCount, 10000);
+    pollIntervalRef.current = setInterval(() => {
+      fetchCountRef.current();
+    }, 10000);
+
+    const listener = () => {
+      fetchCountRef.current();
+    };
+
+    registerUnreadMessageCountListener(listener);
 
     return () => {
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
       }
+      unregisterUnreadMessageCountListener(listener);
     };
   }, [enabled]);
 

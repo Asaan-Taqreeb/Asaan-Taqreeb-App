@@ -170,7 +170,36 @@ export const sendMessage = async (
 
 export const markChatAsRead = async (chatId: string): Promise<any> => {
   const url = MESSAGE_ENDPOINTS.markChatAsRead(chatId);
-  return apiFetchJson<any>(url, { method: 'PATCH', auth: true });
+  try {
+    const response = await apiFetchJson<any>(url, { method: 'PATCH', auth: true });
+    
+    // Immediately update the cached_user_chats to set unreadCount to 0 for this chatId
+    try {
+      const cached = await AsyncStorage.getItem('cached_user_chats');
+      if (cached) {
+        const chats: ChatOverview[] = JSON.parse(cached);
+        const updated = chats.map(chat => 
+          chat.chatId === chatId ? { ...chat, unreadCount: 0 } : chat
+        );
+        await AsyncStorage.setItem('cached_user_chats', JSON.stringify(updated));
+      }
+    } catch (e) {
+      console.warn('Failed to update cached_user_chats after marking read:', e);
+    }
+
+    // Dynamic import to prevent circular dependency
+    try {
+      const { triggerUnreadMessageCountRefresh } = require('../_context/NotificationContext');
+      triggerUnreadMessageCountRefresh();
+    } catch (e) {
+      console.warn('Failed to trigger unread message count refresh:', e);
+    }
+
+    return response;
+  } catch (err) {
+    console.warn('Failed to mark chat as read:', err);
+    throw err;
+  }
 };
 
 export const deleteChatHistory = async (chatId: string): Promise<any> => {
