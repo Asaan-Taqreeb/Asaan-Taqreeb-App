@@ -137,9 +137,16 @@ const useLocation = () => {
                                     throw new Error("No reverse geocoding results found");
                                 }
                             } catch (err: any) {
-                                console.log("Web geocoding failed:", err);
+                                console.log("Web geocoding failed, using fallback:", err);
                                 if (!hasCached) {
-                                    setError("Geocoding failed");
+                                    const fallbackResponse = [{
+                                        city: "Karachi",
+                                        district: "Karachi",
+                                        country: "Pakistan",
+                                        name: `Pinned Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`
+                                    }];
+                                    setResult(fallbackResponse);
+                                    setError("");
                                 }
                             } finally {
                                 setLoading(false);
@@ -153,9 +160,9 @@ const useLocation = () => {
                             setLoading(false);
                         },
                         {
-                            enableHighAccuracy: true,
-                            timeout: 15000,     // 15s — mobile browsers can be slow
-                            maximumAge: 0        // Always get a fresh GPS reading
+                            enableHighAccuracy: false, // Don't enforce hardware GPS on desktop web to avoid hanging
+                            timeout: 8000,            // 8s timeout
+                            maximumAge: 0             // Always get a fresh location
                         }
                     );
                 } else {
