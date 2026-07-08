@@ -10,9 +10,10 @@ import { useTheme } from '@/app/_context/ThemeContext';
 interface LocationPermissionScreenProps {
   onPermissionGranted: () => void;
   onBack: () => void;
+  onSkip?: () => void;
 }
 
-export default function LocationPermissionScreen({ onPermissionGranted, onBack }: LocationPermissionScreenProps) {
+export default function LocationPermissionScreen({ onPermissionGranted, onBack, onSkip }: LocationPermissionScreenProps) {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const [requesting, setRequesting] = React.useState(false);
@@ -115,6 +116,17 @@ export default function LocationPermissionScreen({ onPermissionGranted, onBack }
             <Text style={styles.buttonText}>Allow access</Text>
           )}
         </Pressable>
+
+        {onSkip && (
+          <Pressable 
+            style={styles.skipButton} 
+            onPress={onSkip}
+            disabled={requesting}
+            className="active:opacity-80"
+          >
+            <Text style={styles.skipButtonText}>Skip for now</Text>
+          </Pressable>
+        )}
       </View>
     </View>
   );
@@ -213,6 +225,23 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 16,
     fontWeight: '700',
+    fontFamily: 'Inter',
+  },
+  skipButton: {
+    width: '100%',
+    height: 52,
+    backgroundColor: 'transparent',
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  skipButtonText: {
+    color: Colors.textSecondary,
+    fontSize: 16,
+    fontWeight: '600',
     fontFamily: 'Inter',
   },
 });

@@ -231,6 +231,10 @@ export default function TabLayout() {
     setHasPermission(true)
   }
 
+  const handlePermissionSkipped = () => {
+    setHasPermission(true)
+  }
+
   const handleBack = async () => {
     try {
       if (user && !user.isGuest) {
@@ -257,6 +261,7 @@ export default function TabLayout() {
       <LocationPermissionScreen 
         onPermissionGranted={handlePermissionGranted}
         onBack={handleBack}
+        onSkip={handlePermissionSkipped}
       />
     )
   }
