@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, View, Pressable, Alert, RefreshControl } from 'react-native'
+import { ScrollView, StyleSheet, Text, View, Pressable, Alert, RefreshControl, Platform } from 'react-native'
 import { useState, useEffect, useCallback } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useFocusEffect, router } from 'expo-router'
@@ -81,6 +81,21 @@ export default function MessagesScreen() {
   }
 
   const handleDeleteChat = (chatId: string, chatName: string) => {
+    if (Platform.OS === 'web') {
+      const confirmDelete = window.confirm(`Delete conversation with ${chatName}?`);
+      if (confirmDelete) {
+        (async () => {
+          try {
+            await deleteChatHistory(chatId)
+            await loadChats()
+          } catch (err) {
+            window.alert('Failed to delete chat')
+          }
+        })()
+      }
+      return
+    }
+
     Alert.alert(
       'Delete Chat',
       `Delete conversation with ${chatName}?`,

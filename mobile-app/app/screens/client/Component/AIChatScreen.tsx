@@ -71,6 +71,28 @@ export default function AIChatScreen() {
     }
 
     const handleDeleteChat = () => {
+        if (Platform.OS === 'web') {
+            const confirmDelete = window.confirm("Are you sure you want to clear your conversation history with the Event Concierge?");
+            if (confirmDelete) {
+                (async () => {
+                    await deleteChat(AI_CHAT_ID)
+                    // Reset to welcome message
+                    const welcomeMsg: Message = {
+                        id: Date.now(),
+                        text: "Conversation cleared. What event details can I help you check now?",
+                        sender: 'ai',
+                        timestamp: new Date()
+                    }
+                    setMessages([welcomeMsg])
+                    await addMessageToChat(AI_CHAT_ID, welcomeMsg, { 
+                        type: 'ai', 
+                        name: AI_CHAT_NAME 
+                    })
+                })()
+            }
+            return
+        }
+
         Alert.alert(
             "Delete Conversation",
             "Are you sure you want to clear your conversation history with the Event Concierge?",

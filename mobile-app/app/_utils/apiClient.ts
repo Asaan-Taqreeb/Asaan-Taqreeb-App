@@ -1,5 +1,6 @@
 import { AUTH_ENDPOINTS } from '@/app/_constants/apiEndpoints'
 import { clearAuthTokens, getAccessToken, getRefreshToken, saveAuthTokens } from '@/app/_utils/authStorage'
+import { Platform } from 'react-native'
 
 type ApiFetchOptions = RequestInit & {
   auth?: boolean
@@ -213,6 +214,12 @@ export const apiFetch = async (url: string, options: ApiFetchOptions = {}) => {
 
   const finalHeaders: Record<string, string> = {
     ...(headers as Record<string, string>),
+  }
+
+  if (method === 'GET' && Platform.OS === 'web') {
+    finalHeaders['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    finalHeaders['Pragma'] = 'no-cache'
+    finalHeaders['Expires'] = '0'
   }
 
   if (!finalHeaders['Content-Type'] && rest.body && !isFormDataBody(rest.body)) {

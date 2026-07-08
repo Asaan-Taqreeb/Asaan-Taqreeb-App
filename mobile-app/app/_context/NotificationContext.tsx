@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { getNotifications, getUnreadNotificationCount, markNotificationAsRead, clearAllNotifications } from '../_utils/notificationService';
 import type { Notification } from '../_utils/notificationService';
 import { getUserChats } from '../_utils/messagesApi';
+import { registerChatListener, unregisterChatListener, triggerChatRefresh } from '../_utils/chatEvents';
 
 export const useNotifications = (enabled: boolean = true) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -109,20 +110,16 @@ export const useUnreadNotificationCount = (enabled: boolean = true) => {
   return unreadCount;
 };
 
-const unreadMessageCountListeners = new Set<() => void>();
-
 export function registerUnreadMessageCountListener(listener: () => void) {
-  unreadMessageCountListeners.add(listener);
+  registerChatListener(listener);
 }
 
 export function unregisterUnreadMessageCountListener(listener: () => void) {
-  unreadMessageCountListeners.delete(listener);
+  unregisterChatListener(listener);
 }
 
 export function triggerUnreadMessageCountRefresh() {
-  unreadMessageCountListeners.forEach(listener => {
-    try { listener(); } catch (_) {}
-  });
+  triggerChatRefresh();
 }
 
 /**
@@ -160,13 +157,13 @@ export const useUnreadMessageCount = (enabled: boolean = true) => {
       fetchCountRef.current();
     };
 
-    registerUnreadMessageCountListener(listener);
+    registerChatListener(listener);
 
     return () => {
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
       }
-      unregisterUnreadMessageCountListener(listener);
+      unregisterChatListener(listener);
     };
   }, [enabled]);
 

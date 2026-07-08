@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, FlatList, Pressable, RefreshControl } from 'react-native';
+import { View, Text, FlatList, Pressable, RefreshControl, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MessageCircle, Trash2 } from 'lucide-react-native';
 import { Colors } from '@/app/_constants/theme';
@@ -78,6 +78,21 @@ export default function VendorMessagesScreen() {
   };
 
   const handleDeleteChat = (chatId: string, clientName: string) => {
+    if (Platform.OS === 'web') {
+      const confirmDelete = window.confirm(`Delete all messages with ${clientName}?`);
+      if (confirmDelete) {
+        (async () => {
+          try {
+            await deleteChatHistory(chatId);
+            await fetchChats();
+          } catch (err) {
+            window.alert('Failed to delete chat');
+          }
+        })()
+      }
+      return;
+    }
+
     Alert.alert(
       'Delete Conversation',
       `Delete all messages with ${clientName}?`,

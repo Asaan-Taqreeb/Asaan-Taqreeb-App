@@ -2,6 +2,7 @@ import { apiFetchJson } from './apiClient';
 import { MESSAGE_ENDPOINTS } from '../_constants/apiEndpoints';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import { triggerChatRefresh } from './chatEvents';
 
 export type Message = {
   _id: string;
@@ -187,13 +188,8 @@ export const markChatAsRead = async (chatId: string): Promise<any> => {
       console.warn('Failed to update cached_user_chats after marking read:', e);
     }
 
-    // Dynamic import to prevent circular dependency
-    try {
-      const { triggerUnreadMessageCountRefresh } = require('../_context/NotificationContext');
-      triggerUnreadMessageCountRefresh();
-    } catch (e) {
-      console.warn('Failed to trigger unread message count refresh:', e);
-    }
+    // Trigger count refresh statically
+    triggerChatRefresh();
 
     return response;
   } catch (err) {
@@ -206,6 +202,21 @@ export const deleteChatHistory = async (chatId: string): Promise<any> => {
   const url = MESSAGE_ENDPOINTS.chatHistory(chatId);
   try {
     const response = await apiFetchJson<any>(url, { method: 'DELETE', auth: true });
+    
+    // Clear cache entries
+    try {
+      await AsyncStorage.removeItem(`cached_chat_history_${chatId}`);
+      const cached = await AsyncStorage.getItem('cached_user_chats');
+      if (cached) {
+        const chats: ChatOverview[] = JSON.parse(cached);
+        const updated = chats.filter(chat => chat.chatId !== chatId);
+        await AsyncStorage.setItem('cached_user_chats', JSON.stringify(updated));
+      }
+    } catch (e) {
+      console.warn('Failed to clear cached chat history after deletion:', e);
+    }
+
+    triggerChatRefresh();
     return response;
   } catch (error) {
     console.warn('Failed to delete chat history:', error);
