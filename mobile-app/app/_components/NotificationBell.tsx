@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Modal, Alert, StyleSheet, Pressable } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Modal, Alert, StyleSheet, Pressable, Platform } from 'react-native';
 import { Bell, X, Check, Clock, MessageSquare, Info, Trash2, BellOff } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -67,9 +67,22 @@ export default function NotificationBell({ userId, userRole }: NotificationBellP
 
   const handleMarkAllRead = async () => {
     await markAllAsRead();
+    clearNotificationCount(); // also clear socket count
   };
 
   const handleClearAll = () => {
+    if (typeof window !== 'undefined' && Platform.OS === 'web') {
+      const confirmed = window.confirm('Clear All Notifications\n\nAre you sure you want to delete all notifications? This cannot be undone.');
+      if (confirmed) {
+        (async () => {
+          await deleteAllNotifications();
+          await dismissAllTrayNotifications();
+          refresh();
+        })();
+      }
+      return;
+    }
+
     Alert.alert(
       "Clear All Notifications",
       "Are you sure you want to delete all notifications? This cannot be undone.",

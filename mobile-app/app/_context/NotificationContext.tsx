@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { getNotifications, getUnreadNotificationCount, markNotificationAsRead, clearAllNotifications } from '../_utils/notificationService';
 import type { Notification } from '../_utils/notificationService';
 import { getUserChats } from '../_utils/messagesApi';
-import { registerChatListener, unregisterChatListener, triggerChatRefresh } from '../_utils/chatEvents';
+import { registerChatListener, unregisterChatListener, triggerChatRefresh, registerChatResetListener, unregisterChatResetListener } from '../_utils/chatEvents';
 
 export const useNotifications = (enabled: boolean = true) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -122,18 +122,31 @@ export function triggerUnreadMessageCountRefresh() {
   triggerChatRefresh();
 }
 
+export function resetUnreadMessageCount(chatId?: string) {
+  // This is now handled via chatEvents.ts triggerChatReset
+  // Kept for backward compatibility
+}
+
 /**
  * Hook for single unread chat message count
  */
 export const useUnreadMessageCount = (enabled: boolean = true) => {
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+  const [chatUnreadCounts, setChatUnreadCounts] = useState<Record<string, number>>({});
   const pollIntervalRef = useRef<any>(null);
 
   const fetchCount = async () => {
     try {
       const chats = await getUserChats();
-      const count = chats.reduce((sum, chat) => sum + (chat.unreadCount || 0), 0);
-      setUnreadMessageCount(count);
+      const counts: Record<string, number> = {};
+      let total = 0;
+      chats.forEach(chat => {
+        const count = chat.unreadCount || 0;
+        counts[chat.chatId] = count;
+        total += count;
+      });
+      setChatUnreadCounts(counts);
+      setUnreadMessageCount(total);
     } catch (error) {
       console.error('Failed to fetch unread message count:', error);
     }
@@ -143,12 +156,29 @@ export const useUnreadMessageCount = (enabled: boolean = true) => {
   fetchCountRef.current = fetchCount;
 
   useEffect(() => {
+    const handleReset = (chatId?: string) => {
+      if (chatId) {
+        setChatUnreadCounts(prev => {
+          if (!prev[chatId]) return prev;
+          const newCounts = { ...prev, [chatId]: 0 };
+          setUnreadMessageCount(Object.values(newCounts).reduce((a, b) => a + b, 0));
+          return newCounts;
+        });
+      } else {
+        setChatUnreadCounts({});
+        setUnreadMessageCount(0);
+      }
+    };
+
+    registerChatResetListener(handleReset);
+    return () => unregisterChatResetListener(handleReset);
+  }, []);
+
+  useEffect(() => {
     if (!enabled) return;
 
-    // Fetch immediately
     fetchCountRef.current();
 
-    // Poll every 10 seconds
     pollIntervalRef.current = setInterval(() => {
       fetchCountRef.current();
     }, 10000);
@@ -173,4 +203,3 @@ export const useUnreadMessageCount = (enabled: boolean = true) => {
 export default function NotificationContextStub() {
   return null;
 }
-

@@ -2,7 +2,7 @@ import { apiFetchJson } from './apiClient';
 import { MESSAGE_ENDPOINTS } from '../_constants/apiEndpoints';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import { triggerChatRefresh } from './chatEvents';
+import { triggerChatRefresh, triggerChatReset } from './chatEvents';
 
 export type Message = {
   _id: string;
@@ -183,6 +183,9 @@ export const markChatAsRead = async (chatId: string): Promise<any> => {
     } catch (e) {
       console.warn('Failed to update cached_user_chats after marking read:', e);
     }
+
+    // Optimistically reset badge count for this chat immediately
+    triggerChatReset(chatId);
 
     // Trigger count refresh statically
     triggerChatRefresh();
