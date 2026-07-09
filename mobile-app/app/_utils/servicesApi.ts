@@ -768,6 +768,45 @@ export const updateVendorService = async (serviceId: string | number, payload: R
       .map((s: any) => ({ name: String(s.name), price: toNumber(s.price, 0) }))
   }
 
+  if (Array.isArray(payload.packages)) {
+    body.packages = payload.packages
+      .map((pkg: any) => {
+        const pkgName = String(firstDefined(pkg?.packageName, pkg?.name, '')).trim()
+        const price = toNumber(firstDefined(pkg?.price, pkg?.amount), NaN)
+        if (!pkgName || !Number.isFinite(price)) return null
+
+        const mergedItems = [
+          ...(Array.isArray(pkg?.items) ? pkg.items : []),
+          ...(Array.isArray(pkg?.mainCourse) ? pkg.mainCourse : []),
+          ...(Array.isArray(pkg?.desserts) ? pkg.desserts : []),
+          ...(Array.isArray(pkg?.drinks) ? pkg.drinks : []),
+        ]
+          .map((item) => String(item || '').trim())
+          .filter(Boolean)
+
+        const result: Record<string, any> = { name: pkgName, price, items: mergedItems }
+
+        if (pkg?.pricePerHead !== undefined && pkg?.pricePerHead !== '') {
+          const pricePerHead = toFiniteNumberOrUndefined(pkg.pricePerHead)
+          if (pricePerHead !== undefined) {
+            result.pricePerHead = pricePerHead
+          }
+        }
+        if (pkg?.guestCount !== undefined && pkg?.guestCount !== '') {
+          const guestCount = toFiniteNumberOrUndefined(pkg.guestCount)
+          if (guestCount !== undefined) {
+            result.guestCount = guestCount
+          }
+        }
+        if (pkg?.details !== undefined && pkg?.details !== '') {
+          result.details = String(pkg.details)
+        }
+
+        return result
+      })
+      .filter(Boolean)
+  }
+
   if (Array.isArray(payload.branches)) {
     body.branches = payload.branches
   }
