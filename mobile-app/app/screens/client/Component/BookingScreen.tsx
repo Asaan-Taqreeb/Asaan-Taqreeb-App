@@ -49,6 +49,7 @@ export default function BookingScreen() {
     const normalizedCategory = String(bookingData.category || '').trim().toLowerCase()
     const requiresGuestCount = normalizedCategory === 'banquet' || normalizedCategory === 'catering'
     const vendorAvailabilityId = bookingData?.vendorId || bookingData?.serviceId
+    const isManualTimeCategory = normalizedCategory === 'parlor' || normalizedCategory === 'photo' || normalizedCategory === 'photography'
 
 
 
@@ -236,10 +237,15 @@ export default function BookingScreen() {
             if (!slot) return null
             return parseRange(slot.time)
         }
+        if (isManualTimeCategory) {
+            const timeStr = getSelectedTime()
+            if (!timeStr) return null
+            return parseRange(timeStr)
+        }
 
         if (!selectedSlot) return null
         return parseRange(selectedSlot)
-    }, [bookingData.category, selectedSlot, slots])
+    }, [bookingData.category, selectedSlot, slots, isManualTimeCategory, customStartHour, customStartMinute, customStartPeriod, customEndHour, customEndMinute, customEndPeriod])
 
     const intervals = useMemo(() => {
         if (bookingData.category === 'banquet') return [];
@@ -332,14 +338,37 @@ export default function BookingScreen() {
         }
     }, [selectedDate, selectedSlot, unavailableRangesMap])
 
-    const getSelectedTime = () => {
+    function isValidTime(value: string) {
+        return /^([01]\d|2[0-3]):([0-5]\d)$/.test(value)
+    }
+
+    function toTwentyFourHour(value: string, period: 'AM' | 'PM') {
+        const [hourRaw, minuteRaw] = String(value || '').split(':')
+        const hour = Number(hourRaw)
+        const minute = Number(minuteRaw)
+
+        if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null
+        if (hour < 1 || hour > 12 || minute < 0 || minute > 59) return null
+
+        let normalizedHour = hour % 12
+        if (period === 'PM') normalizedHour += 12
+        return `${String(normalizedHour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+    }
+
+    function getSelectedTime() {
         if (bookingData.category === 'banquet') {
             return selectedSlot ? (slots.find(s => s.id === selectedSlot)?.time ?? '') : ''
+        }
+        if (isManualTimeCategory) {
+            if (!customStartHour || !customEndHour) return ''
+            const startMin = (customStartMinute || '00').padStart(2, '0')
+            const endMin = (customEndMinute || '00').padStart(2, '0')
+            return `${customStartHour.padStart(2, '0')}:${startMin} ${customStartPeriod} to ${customEndHour.padStart(2, '0')}:${endMin} ${customEndPeriod}`
         }
         return selectedSlot ?? ''
     }
 
-    const isTimeBlockedOnSelectedDate = (timeRange: string) => {
+    function isTimeBlockedOnSelectedDate(timeRange: string) {
         if (!selectedDate) return false
 
         const selectedRange = parseRange(timeRange)
@@ -353,7 +382,7 @@ export default function BookingScreen() {
         return blockedRanges.some((range) => rangesOverlap(selectedRange, range))
     }
 
-    const isBanquetSlotBlocked = (slotId: string) => {
+    function isBanquetSlotBlocked(slotId: string) {
         const slot = slots.find((item) => item.id === slotId)
         if (!slot) return false
         return isTimeBlockedOnSelectedDate(slot.time)
@@ -365,9 +394,49 @@ export default function BookingScreen() {
             return false
         }
 
-        if (!getSelectedTime()) {
-            Alert.alert('Missing Time', 'Please select or enter event time.')
-            return false
+        if (isManualTimeCategory) {
+            if (!customStartHour || !customEndHour) {
+                Alert.alert('Missing Time', 'Please enter both start and end times.')
+                return false
+            }
+
+            const from24 = toTwentyFourHour(`${customStartHour}:${customStartMinute || '00'}`, customStartPeriod)
+            const to24 = toTwentyFourHour(`${customEndHour}:${customEndMinute || '00'}`, customEndPeriod)
+
+            if (!from24 || !to24) {
+                Alert.alert('Invalid Time', 'Use 12-hour time values like 09:30 with AM or PM selected.')
+                return false
+            }
+
+            if (!isValidTime(from24) || !isValidTime(to24)) {
+                Alert.alert('Invalid Time', 'Please enter valid times.')
+                return false
+            }
+
+            if (from24 >= to24) {
+                Alert.alert('Invalid Range', 'End time must be later than start time.')
+                return false
+            }
+
+            // Check if selected time is within operating hours
+            if (operatingHours) {
+                const opRange = parseRange(`${operatingHours.from} to ${operatingHours.to}`)
+                const selRange = parseRange(getSelectedTime())
+                if (opRange && selRange) {
+                    if (selRange.from < opRange.from || selRange.to > opRange.to) {
+                        Alert.alert(
+                            'Outside Operating Hours',
+                            `Please select a time within the vendor's operating hours (${operatingHours.from} to ${operatingHours.to}).`
+                        )
+                        return false
+                    }
+                }
+            }
+        } else {
+            if (!getSelectedTime()) {
+                Alert.alert('Missing Time', 'Please select or enter event time.')
+                return false
+            }
         }
 
         if (requiresGuestCount && (!bookingData.guestCount || Number(bookingData.guestCount) <= 0)) {
@@ -633,8 +702,8 @@ export default function BookingScreen() {
                     </View>
                 )}
 
-                {/* Others - Hourly Slots Selection */}
-                {bookingData.category !== 'banquet' && (
+                {/* Others - Hourly Slots Selection (e.g. Catering) */}
+                {!isManualTimeCategory && bookingData.category !== 'banquet' && (
                     <View className='rounded-2xl p-4' style={[{backgroundColor: Colors.white, borderWidth: 2, borderColor: Colors.border}, Shadows.medium]}>
                         <View className='flex-row items-center gap-2 mb-4'>
                             <Clock size={20} color={categoryColor} />
@@ -687,6 +756,122 @@ export default function BookingScreen() {
                         <Text className='text-xs font-semibold mt-3 text-center' style={{color: Colors.textTertiary}}>
                             All bookings have a standard 3-hour session duration.
                         </Text>
+                    </View>
+                )}
+
+                {/* Manual Time Selection for Parlor & Photography */}
+                {isManualTimeCategory && (
+                    <View className='rounded-2xl p-5' style={[{backgroundColor: Colors.white, borderWidth: 2, borderColor: Colors.border}, Shadows.medium]}>
+                        <View className='flex-row items-center gap-2 mb-4'>
+                            <Clock size={20} color={categoryColor} />
+                            <Text className='text-base font-bold' style={{color: Colors.textPrimary}}>Enter Booking Time</Text>
+                        </View>
+
+                        {/* Start Time Section */}
+                        <View className='mb-4'>
+                            <Text className='text-[10px] font-bold text-gray-500 mb-2 uppercase tracking-wide'>Start Time</Text>
+                            <View className='flex-row items-center gap-2'>
+                                <TextInput
+                                    value={customStartHour}
+                                    onChangeText={(text) => {
+                                        const cleaned = text.replace(/[^0-9]/g, '');
+                                        setCustomStartHour(cleaned);
+                                    }}
+                                    placeholder='09'
+                                    className='flex-1 rounded-xl px-3 py-3 text-center font-bold'
+                                    style={{borderWidth: 1.5, borderColor: Colors.border, color: Colors.textPrimary}}
+                                    placeholderTextColor={Colors.textTertiary}
+                                    keyboardType='numeric'
+                                    maxLength={2}
+                                />
+                                <Text className='text-lg font-extrabold text-gray-400'>:</Text>
+                                <TextInput
+                                    value={customStartMinute}
+                                    onChangeText={(text) => {
+                                        const cleaned = text.replace(/[^0-9]/g, '');
+                                        setCustomStartMinute(cleaned);
+                                    }}
+                                    placeholder='00'
+                                    className='flex-1 rounded-xl px-3 py-3 text-center font-bold'
+                                    style={{borderWidth: 1.5, borderColor: Colors.border, color: Colors.textPrimary}}
+                                    placeholderTextColor={Colors.textTertiary}
+                                    keyboardType='numeric'
+                                    maxLength={2}
+                                />
+                                <View className='flex-row rounded-xl overflow-hidden' style={{borderWidth: 1.5, borderColor: Colors.border}}>
+                                    <Pressable
+                                        className='px-3.5 py-3'
+                                        style={{backgroundColor: customStartPeriod === 'AM' ? categoryColor : 'transparent'}}
+                                        onPress={() => setCustomStartPeriod('AM')}
+                                    >
+                                        <Text className='font-extrabold text-xs' style={{color: customStartPeriod === 'AM' ? Colors.white : Colors.textSecondary}}>AM</Text>
+                                    </Pressable>
+                                    <Pressable
+                                        className='px-3.5 py-3'
+                                        style={{backgroundColor: customStartPeriod === 'PM' ? categoryColor : 'transparent'}}
+                                        onPress={() => setCustomStartPeriod('PM')}
+                                    >
+                                        <Text className='font-extrabold text-xs' style={{color: customStartPeriod === 'PM' ? Colors.white : Colors.textSecondary}}>PM</Text>
+                                    </Pressable>
+                                </View>
+                            </View>
+                        </View>
+
+                        {/* End Time Section */}
+                        <View className='mb-2'>
+                            <Text className='text-[10px] font-bold text-gray-500 mb-2 uppercase tracking-wide'>End Time</Text>
+                            <View className='flex-row items-center gap-2'>
+                                <TextInput
+                                    value={customEndHour}
+                                    onChangeText={(text) => {
+                                        const cleaned = text.replace(/[^0-9]/g, '');
+                                        setCustomEndHour(cleaned);
+                                    }}
+                                    placeholder='12'
+                                    className='flex-1 rounded-xl px-3 py-3 text-center font-bold'
+                                    style={{borderWidth: 1.5, borderColor: Colors.border, color: Colors.textPrimary}}
+                                    placeholderTextColor={Colors.textTertiary}
+                                    keyboardType='numeric'
+                                    maxLength={2}
+                                />
+                                <Text className='text-lg font-extrabold text-gray-400'>:</Text>
+                                <TextInput
+                                    value={customEndMinute}
+                                    onChangeText={(text) => {
+                                        const cleaned = text.replace(/[^0-9]/g, '');
+                                        setCustomEndMinute(cleaned);
+                                    }}
+                                    placeholder='00'
+                                    className='flex-1 rounded-xl px-3 py-3 text-center font-bold'
+                                    style={{borderWidth: 1.5, borderColor: Colors.border, color: Colors.textPrimary}}
+                                    placeholderTextColor={Colors.textTertiary}
+                                    keyboardType='numeric'
+                                    maxLength={2}
+                                />
+                                <View className='flex-row rounded-xl overflow-hidden' style={{borderWidth: 1.5, borderColor: Colors.border}}>
+                                    <Pressable
+                                        className='px-3.5 py-3'
+                                        style={{backgroundColor: customEndPeriod === 'AM' ? categoryColor : 'transparent'}}
+                                        onPress={() => setCustomEndPeriod('AM')}
+                                    >
+                                        <Text className='font-extrabold text-xs' style={{color: customEndPeriod === 'AM' ? Colors.white : Colors.textSecondary}}>AM</Text>
+                                    </Pressable>
+                                    <Pressable
+                                        className='px-3.5 py-3'
+                                        style={{backgroundColor: customEndPeriod === 'PM' ? categoryColor : 'transparent'}}
+                                        onPress={() => setCustomEndPeriod('PM')}
+                                    >
+                                        <Text className='font-extrabold text-xs' style={{color: customEndPeriod === 'PM' ? Colors.white : Colors.textSecondary}}>PM</Text>
+                                    </Pressable>
+                                </View>
+                            </View>
+                        </View>
+
+                        {operatingHours && (
+                            <Text className='text-xs font-semibold mt-3 text-center' style={{color: Colors.textSecondary}}>
+                                Vendor Operating Hours: {operatingHours.from} to {operatingHours.to}
+                            </Text>
+                        )}
                     </View>
                 )}
             </View>

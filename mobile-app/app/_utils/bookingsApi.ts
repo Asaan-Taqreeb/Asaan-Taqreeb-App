@@ -149,6 +149,17 @@ const mapCategoryToBackend = (category: string | undefined) => {
   return category
 }
 
+const format24To12 = (timeStr: string) => {
+  const match = String(timeStr || '').trim().match(/^(\d{1,2}):(\d{2})$/)
+  if (!match) return timeStr
+  let hour = Number(match[1])
+  const minute = match[2]
+  const period = hour >= 12 ? 'PM' : 'AM'
+  hour = hour % 12
+  if (hour === 0) hour = 12
+  return `${String(hour).padStart(2, '0')}:${minute} ${period}`
+}
+
 const mapSingleBookingToUi = (item: any, index = Date.now()): ClientBookingItem => {
   const eventDate = String(firstDefined(item?.eventDate, item?.date, item?.bookingDate, new Date().toISOString().slice(0, 10)))
   const bookingDate = String(firstDefined(item?.createdAt, item?.bookingDate, eventDate))
@@ -156,7 +167,7 @@ const mapSingleBookingToUi = (item: any, index = Date.now()): ClientBookingItem 
   const fromTime = firstDefined(item?.timeSlot?.from, item?.time?.from)
   const toTime = firstDefined(item?.timeSlot?.to, item?.time?.to)
   const displayTime = fromTime && toTime
-    ? `${fromTime} - ${toTime}`
+    ? `${format24To12(fromTime)} - ${format24To12(toTime)}`
     : String(firstDefined(item?.eventTime, item?.time, 'Not provided'))
 
   return {
@@ -185,7 +196,7 @@ const mapSingleVendorBookingToUi = (item: any, index = Date.now()): VendorOrderI
   const fromTime = firstDefined(item?.timeSlot?.from, item?.time?.from)
   const toTime = firstDefined(item?.timeSlot?.to, item?.time?.to)
   const displayTime = fromTime && toTime
-    ? `${fromTime} - ${toTime}`
+    ? `${format24To12(fromTime)} - ${format24To12(toTime)}`
     : String(firstDefined(item?.eventTime, item?.time, 'Not provided'))
   const orderDate = String(firstDefined(item?.createdAt, item?.bookingDate, item?.eventDate, new Date().toISOString()))
   const optionalItems = Array.isArray(item?.optionalAddons)
