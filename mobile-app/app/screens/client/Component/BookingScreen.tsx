@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router'
 import { ArrowLeft, Circle, Dot, Square, MapPin, Clock } from 'lucide-react-native'
 import { useEffect, useMemo, useState } from 'react'
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform } from 'react-native'
+import { Pressable, ScrollView, StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform } from 'react-native'
 import { Calendar } from "react-native-calendars"
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors, getCategoryColor, Shadows } from '@/app/_constants/theme'
@@ -10,6 +10,8 @@ import { getVendorAvailability, type VendorAvailabilityDay } from '@/app/_utils/
 import { parseRange, rangesOverlap, toLocalIsoDate, toMinutes, generateHourlyIntervals } from '@/app/_utils/calendarDateUtils'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useUser } from '@/app/_context/UserContext'
+import { showAlert } from '@/app/_utils/alert'
+import TimePickerModal from '@/app/_components/TimePickerModal'
 
 
 
@@ -47,20 +49,27 @@ export default function BookingScreen() {
 
     const categoryColor = getCategoryColor(bookingData.category)
     const normalizedCategory = String(bookingData.category || '').trim().toLowerCase()
-    const requiresGuestCount = normalizedCategory === 'banquet' || normalizedCategory === 'catering'
+    const isBanquet = normalizedCategory.includes('banquet') || normalizedCategory.includes('hall') || normalizedCategory === 'venue'
+    const isCatering = normalizedCategory.includes('cater')
+    const isPhoto = normalizedCategory.includes('photo') || normalizedCategory.includes('photography')
+    const isParlor = normalizedCategory.includes('parlor') || normalizedCategory.includes('salon') || normalizedCategory.includes('parlour')
+    const requiresGuestCount = isBanquet || isCatering
     const vendorAvailabilityId = bookingData?.vendorId || bookingData?.serviceId
-    const isManualTimeCategory = normalizedCategory === 'parlor' || normalizedCategory === 'photo' || normalizedCategory === 'photography'
+    const isManualTimeCategory = isParlor || isPhoto
 
 
 
     const [selectedDate, setSelectedDate] = useState('')
     const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
-    const [customStartHour, setCustomStartHour] = useState('')
-    const [customStartMinute, setCustomStartMinute] = useState('')
+    const [customStartHour, setCustomStartHour] = useState('09')
+    const [customStartMinute, setCustomStartMinute] = useState('00')
     const [customStartPeriod, setCustomStartPeriod] = useState<'AM' | 'PM'>('AM')
-    const [customEndHour, setCustomEndHour] = useState('')
-    const [customEndMinute, setCustomEndMinute] = useState('')
+    const [customEndHour, setCustomEndHour] = useState('12')
+    const [customEndMinute, setCustomEndMinute] = useState('00')
     const [customEndPeriod, setCustomEndPeriod] = useState<'AM' | 'PM'>('PM')
+
+    const [isStartPickerVisible, setIsStartPickerVisible] = useState(false)
+    const [isEndPickerVisible, setIsEndPickerVisible] = useState(false)
     const [location, setLocation] = useState('')
     const [specialRequests, setSpecialRequests] = useState('')
     const [selectedAddons, setSelectedAddons] = useState<{[key: number]: boolean}>({})
@@ -77,13 +86,13 @@ export default function BookingScreen() {
     ])
     const [operatingHours, setOperatingHours] = useState<{ from: string; to: string } | null>(null)
 
-
+    const serializedOperatingHours = JSON.stringify(bookingData.operatingHours || null)
 
     useEffect(() => {
         const loadTimeOptions = async () => {
             if (!vendorAvailabilityId) return;
             try {
-                if (bookingData.category === 'banquet') {
+                if (isBanquet) {
                     const saved = await AsyncStorage.getItem('vendor_slots_' + vendorAvailabilityId);
                     if (saved) {
                         const parsed = JSON.parse(saved);
@@ -111,7 +120,7 @@ export default function BookingScreen() {
             }
         };
         loadTimeOptions();
-    }, [vendorAvailabilityId, bookingData.category, bookingData.operatingHours]);
+    }, [vendorAvailabilityId, bookingData.category, serializedOperatingHours]);
 
     const addons: BookingAddon[] = useMemo(() => {
         const rawOptional: any[] = Array.isArray(bookingData.optionalServices)
@@ -157,7 +166,7 @@ export default function BookingScreen() {
 
     const packagePrice = Number(bookingData.price) || 0
     const guestMultiplier = requiresGuestCount ? Number(bookingData.guestCount) : 1
-    const travelFeeTotal = (normalizedCategory === 'parlor' && isHomeService) ? (Number(bookingData.onSiteFee) || 0) : 0
+    const travelFeeTotal = (isParlor && isHomeService) ? (Number(bookingData.onSiteFee) || 0) : 0
     const totalPrice = (packagePrice * guestMultiplier) + addonsTotal + travelFeeTotal
     const advancePayment = Math.round(totalPrice * 0.5) // 50% advance
 
@@ -329,7 +338,7 @@ export default function BookingScreen() {
 
     useEffect(() => {
         if (selectedDate && selectedSlot) {
-            const blocked = bookingData.category === 'banquet'
+            const blocked = isBanquet
                 ? isBanquetSlotBlocked(selectedSlot)
                 : isTimeBlockedOnSelectedDate(selectedSlot);
             if (blocked) {
@@ -356,7 +365,7 @@ export default function BookingScreen() {
     }
 
     function getSelectedTime() {
-        if (bookingData.category === 'banquet') {
+        if (isBanquet) {
             return selectedSlot ? (slots.find(s => s.id === selectedSlot)?.time ?? '') : ''
         }
         if (isManualTimeCategory) {
@@ -390,13 +399,13 @@ export default function BookingScreen() {
 
     const validateBooking = () => {
         if (!selectedDate) {
-            Alert.alert('Missing Date', 'Please select an event date.')
+            showAlert('Missing Date', 'Please select an event date.')
             return false
         }
 
         if (isManualTimeCategory) {
             if (!customStartHour || !customEndHour) {
-                Alert.alert('Missing Time', 'Please enter both start and end times.')
+                showAlert('Missing Time', 'Please enter both start and end times.')
                 return false
             }
 
@@ -404,17 +413,17 @@ export default function BookingScreen() {
             const to24 = toTwentyFourHour(`${customEndHour}:${customEndMinute || '00'}`, customEndPeriod)
 
             if (!from24 || !to24) {
-                Alert.alert('Invalid Time', 'Use 12-hour time values like 09:30 with AM or PM selected.')
+                showAlert('Invalid Time', 'Use 12-hour time values like 09:30 with AM or PM selected.')
                 return false
             }
 
             if (!isValidTime(from24) || !isValidTime(to24)) {
-                Alert.alert('Invalid Time', 'Please enter valid times.')
+                showAlert('Invalid Time', 'Please enter valid times.')
                 return false
             }
 
             if (from24 >= to24) {
-                Alert.alert('Invalid Range', 'End time must be later than start time.')
+                showAlert('Invalid Range', 'End time must be later than start time.')
                 return false
             }
 
@@ -424,7 +433,7 @@ export default function BookingScreen() {
                 const selRange = parseRange(getSelectedTime())
                 if (opRange && selRange) {
                     if (selRange.from < opRange.from || selRange.to > opRange.to) {
-                        Alert.alert(
+                        showAlert(
                             'Outside Operating Hours',
                             `Please select a time within the vendor's operating hours (${operatingHours.from} to ${operatingHours.to}).`
                         )
@@ -434,28 +443,28 @@ export default function BookingScreen() {
             }
         } else {
             if (!getSelectedTime()) {
-                Alert.alert('Missing Time', 'Please select or enter event time.')
+                showAlert('Missing Time', 'Please select or enter event time.')
                 return false
             }
         }
 
         if (requiresGuestCount && (!bookingData.guestCount || Number(bookingData.guestCount) <= 0)) {
-            Alert.alert('Missing Guests', 'Please provide the number of guests for this booking.')
+            showAlert('Missing Guests', 'Please provide the number of guests for this booking.')
             return false
         }
 
         if (isTimeBlockedOnSelectedDate(getSelectedTime())) {
-            Alert.alert('Time Not Available', 'This time slot is blocked by vendor on selected date.')
+            showAlert('Time Not Available', 'This time slot is blocked by vendor on selected date.')
             return false
         }
 
         const locationRequired = 
-            bookingData.category === 'catering' || 
-            bookingData.category === 'photo' || 
-            (normalizedCategory === 'parlor' && isHomeService);
+            isCatering || 
+            isPhoto || 
+            (isParlor && isHomeService);
 
         if (locationRequired && !location.trim()) {
-            Alert.alert('Missing Location', 'Please provide the address details properly.')
+            showAlert('Missing Location', 'Please provide the address details properly.')
             return false
         }
 
@@ -464,17 +473,10 @@ export default function BookingScreen() {
 
     const handleRequestBooking = async () => {
         if (user?.isGuest) {
-            if (Platform.OS === 'web') {
-                const confirmSignIn = window.confirm('Guest Mode: Sign in to request a booking.');
-                if (confirmSignIn) {
-                    router.push('/screens/client/Component/LoginScreen');
-                }
-            } else {
-                Alert.alert('Guest Mode', 'Sign in to request a booking.', [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Sign In', onPress: () => router.push('/screens/client/Component/LoginScreen') },
-                ]);
-            }
+            showAlert('Guest Mode', 'Sign in to request a booking.', [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Sign In', onPress: () => router.push('/screens/client/Component/LoginScreen') },
+            ]);
             return;
         }
 
@@ -489,7 +491,7 @@ export default function BookingScreen() {
         try {
             setIsSubmitting(true)
 
-            const travelNotes = (normalizedCategory === 'parlor' && isHomeService) 
+            const travelNotes = (isParlor && isHomeService) 
                 ? `[On-Site/Home Service Requested - Travel Fee: PKR ${travelFeeTotal.toLocaleString()}]\n` 
                 : '';
             const finalSpecialRequests = travelNotes + specialRequests.trim();
@@ -502,7 +504,7 @@ export default function BookingScreen() {
                 eventDate: selectedDate,
                 eventTime: getSelectedTime(),
                 ...(bookingData.guestCount != null ? { guestCount: bookingData.guestCount } : {}),
-                location: (normalizedCategory === 'parlor' && !isHomeService)
+                location: (isParlor && !isHomeService)
                     ? bookingData.vendorLocation
                     : (location.trim() || bookingData.vendorLocation),
                 specialRequests: finalSpecialRequests,
@@ -511,23 +513,14 @@ export default function BookingScreen() {
                 advancePayment,
             })
 
-            if (Platform.OS === 'web') {
-                alert('Booking request sent to vendor successfully.');
-                router.replace('/screens/client/BookingScreen');
-            } else {
-                Alert.alert('Success', 'Booking request sent to vendor successfully.', [
-                    {
-                        text: 'OK',
-                        onPress: () => router.replace('/screens/client/BookingScreen'),
-                    },
-                ]);
-            }
+            showAlert('Success', 'Booking request sent to vendor successfully.', [
+                {
+                    text: 'OK',
+                    onPress: () => router.replace('/screens/client/BookingScreen'),
+                },
+            ]);
         } catch (error: any) {
-            if (Platform.OS === 'web') {
-                alert(error?.message || 'Unable to submit booking. Please try again.');
-            } else {
-                Alert.alert('Booking Failed', error?.message || 'Unable to submit booking. Please try again.');
-            }
+            showAlert('Booking Failed', error?.message || 'Unable to submit booking. Please try again.');
         } finally {
             setIsSubmitting(false)
         }
@@ -606,7 +599,7 @@ export default function BookingScreen() {
                             const state = dayStatusMap[day.dateString];
 
                             if (state?.isFullDayBlocked) {
-                                Alert.alert('Date Not Available', 'Vendor has blocked this date.');
+                                showAlert('Date Not Available', 'Vendor has blocked this date.');
                                 return;
                             }
 
@@ -660,50 +653,48 @@ export default function BookingScreen() {
                 <Text className='text-xl font-extrabold mb-4' style={{color: Colors.textPrimary}}>Time Slot</Text>
                 
                 {/* Banquet - Predefined Slots */}
-                {bookingData.category === 'banquet' && (
+                {isBanquet && (
                     <View className='gap-3'>
-                        {slots.map((slot) => (
-                            (() => {
-                                const blocked = isBanquetSlotBlocked(slot.id)
-                                const selected = selectedSlot === slot.id
+                        {slots.map((slot) => {
+                            const blocked = isBanquetSlotBlocked(slot.id)
+                            const selected = selectedSlot === slot.id
 
-                                return (
-                            <Pressable 
-                                key={slot.id}
-                                className='flex-row items-center gap-3 p-4 rounded-2xl active:opacity-80'
-                                style={[{
-                                    borderWidth: 2,
-                                    borderColor: selected ? categoryColor : blocked ? Colors.error : Colors.border,
-                                    backgroundColor: selected ? `${categoryColor}10` : blocked ? '#fee2e2' : Colors.white,
-                                    opacity: blocked ? 0.75 : 1,
-                                }]}
-                                onPress={() => {
-                                    if (blocked) return
-                                    setSelectedSlot(slot.id)
-                                }}
-                                disabled={blocked}
-                            >
-                                <Circle 
-                                    size={20} 
-                                    color={selected ? categoryColor : blocked ? Colors.error : Colors.borderDark}
-                                    fill={selected ? categoryColor : 'transparent'} 
-                                />
-                                <View>
-                                    <Text className='text-base font-extrabold' style={{color: Colors.textPrimary}}>{slot.label}</Text>
-                                    <Text className='text-sm font-medium' style={{color: Colors.textSecondary}}>{slot.time}</Text>
-                                    {blocked && selectedDate && (
-                                        <Text className='text-xs font-bold mt-1' style={{color: Colors.error}}>Blocked on {selectedDate}</Text>
-                                    )}
-                                </View>
-                            </Pressable>
-                                )
-                            })()
-                        ))}
+                            return (
+                                <Pressable 
+                                    key={slot.id}
+                                    className='flex-row items-center gap-3 p-4 rounded-2xl active:opacity-80'
+                                    style={[{
+                                        borderWidth: 2,
+                                        borderColor: selected ? categoryColor : blocked ? Colors.error : Colors.border,
+                                        backgroundColor: selected ? `${categoryColor}10` : blocked ? '#fee2e2' : Colors.white,
+                                        opacity: blocked ? 0.75 : 1,
+                                    }]}
+                                    onPress={() => {
+                                        if (blocked) return
+                                        setSelectedSlot(slot.id)
+                                    }}
+                                    disabled={blocked}
+                                >
+                                    <Circle 
+                                        size={20} 
+                                        color={selected ? categoryColor : blocked ? Colors.error : Colors.borderDark}
+                                        fill={selected ? categoryColor : 'transparent'} 
+                                    />
+                                    <View>
+                                        <Text className='text-base font-extrabold' style={{color: Colors.textPrimary}}>{slot.label}</Text>
+                                        <Text className='text-sm font-medium' style={{color: Colors.textSecondary}}>{slot.time}</Text>
+                                        {blocked && selectedDate && (
+                                            <Text className='text-xs font-bold mt-1' style={{color: Colors.error}}>Blocked on {selectedDate}</Text>
+                                        )}
+                                    </View>
+                                </Pressable>
+                            )
+                        })}
                     </View>
                 )}
 
                 {/* Others - Hourly Slots Selection (e.g. Catering) */}
-                {!isManualTimeCategory && bookingData.category !== 'banquet' && (
+                {!isManualTimeCategory && !isBanquet && (
                     <View className='rounded-2xl p-4' style={[{backgroundColor: Colors.white, borderWidth: 2, borderColor: Colors.border}, Shadows.medium]}>
                         <View className='flex-row items-center gap-2 mb-4'>
                             <Clock size={20} color={categoryColor} />
@@ -764,107 +755,37 @@ export default function BookingScreen() {
                     <View className='rounded-2xl p-5' style={[{backgroundColor: Colors.white, borderWidth: 2, borderColor: Colors.border}, Shadows.medium]}>
                         <View className='flex-row items-center gap-2 mb-4'>
                             <Clock size={20} color={categoryColor} />
-                            <Text className='text-base font-bold' style={{color: Colors.textPrimary}}>Enter Booking Time</Text>
+                            <Text className='text-base font-bold' style={{color: Colors.textPrimary}}>Select Booking Time</Text>
                         </View>
 
                         {/* Start Time Section */}
                         <View className='mb-4'>
                             <Text className='text-[10px] font-bold text-gray-500 mb-2 uppercase tracking-wide'>Start Time</Text>
-                            <View className='flex-row items-center gap-2'>
-                                <TextInput
-                                    value={customStartHour}
-                                    onChangeText={(text) => {
-                                        const cleaned = text.replace(/[^0-9]/g, '');
-                                        setCustomStartHour(cleaned);
-                                    }}
-                                    placeholder='09'
-                                    className='flex-1 rounded-xl px-3 py-3 text-center font-bold'
-                                    style={{borderWidth: 1.5, borderColor: Colors.border, color: Colors.textPrimary}}
-                                    placeholderTextColor={Colors.textTertiary}
-                                    keyboardType='numeric'
-                                    maxLength={2}
-                                />
-                                <Text className='text-lg font-extrabold text-gray-400'>:</Text>
-                                <TextInput
-                                    value={customStartMinute}
-                                    onChangeText={(text) => {
-                                        const cleaned = text.replace(/[^0-9]/g, '');
-                                        setCustomStartMinute(cleaned);
-                                    }}
-                                    placeholder='00'
-                                    className='flex-1 rounded-xl px-3 py-3 text-center font-bold'
-                                    style={{borderWidth: 1.5, borderColor: Colors.border, color: Colors.textPrimary}}
-                                    placeholderTextColor={Colors.textTertiary}
-                                    keyboardType='numeric'
-                                    maxLength={2}
-                                />
-                                <View className='flex-row rounded-xl overflow-hidden' style={{borderWidth: 1.5, borderColor: Colors.border}}>
-                                    <Pressable
-                                        className='px-3.5 py-3'
-                                        style={{backgroundColor: customStartPeriod === 'AM' ? categoryColor : 'transparent'}}
-                                        onPress={() => setCustomStartPeriod('AM')}
-                                    >
-                                        <Text className='font-extrabold text-xs' style={{color: customStartPeriod === 'AM' ? Colors.white : Colors.textSecondary}}>AM</Text>
-                                    </Pressable>
-                                    <Pressable
-                                        className='px-3.5 py-3'
-                                        style={{backgroundColor: customStartPeriod === 'PM' ? categoryColor : 'transparent'}}
-                                        onPress={() => setCustomStartPeriod('PM')}
-                                    >
-                                        <Text className='font-extrabold text-xs' style={{color: customStartPeriod === 'PM' ? Colors.white : Colors.textSecondary}}>PM</Text>
-                                    </Pressable>
-                                </View>
-                            </View>
+                            <Pressable
+                                onPress={() => setIsStartPickerVisible(true)}
+                                className='flex-row items-center justify-between px-4 py-3.5 rounded-xl active:opacity-85'
+                                style={{ borderWidth: 1.5, borderColor: Colors.border, backgroundColor: '#f8fafc' }}
+                            >
+                                <Text className='font-extrabold text-base' style={{ color: Colors.textPrimary }}>
+                                    {customStartHour ? `${customStartHour}:${customStartMinute} ${customStartPeriod}` : 'Choose Start Time'}
+                                </Text>
+                                <Clock size={18} color={categoryColor} />
+                            </Pressable>
                         </View>
 
                         {/* End Time Section */}
                         <View className='mb-2'>
                             <Text className='text-[10px] font-bold text-gray-500 mb-2 uppercase tracking-wide'>End Time</Text>
-                            <View className='flex-row items-center gap-2'>
-                                <TextInput
-                                    value={customEndHour}
-                                    onChangeText={(text) => {
-                                        const cleaned = text.replace(/[^0-9]/g, '');
-                                        setCustomEndHour(cleaned);
-                                    }}
-                                    placeholder='12'
-                                    className='flex-1 rounded-xl px-3 py-3 text-center font-bold'
-                                    style={{borderWidth: 1.5, borderColor: Colors.border, color: Colors.textPrimary}}
-                                    placeholderTextColor={Colors.textTertiary}
-                                    keyboardType='numeric'
-                                    maxLength={2}
-                                />
-                                <Text className='text-lg font-extrabold text-gray-400'>:</Text>
-                                <TextInput
-                                    value={customEndMinute}
-                                    onChangeText={(text) => {
-                                        const cleaned = text.replace(/[^0-9]/g, '');
-                                        setCustomEndMinute(cleaned);
-                                    }}
-                                    placeholder='00'
-                                    className='flex-1 rounded-xl px-3 py-3 text-center font-bold'
-                                    style={{borderWidth: 1.5, borderColor: Colors.border, color: Colors.textPrimary}}
-                                    placeholderTextColor={Colors.textTertiary}
-                                    keyboardType='numeric'
-                                    maxLength={2}
-                                />
-                                <View className='flex-row rounded-xl overflow-hidden' style={{borderWidth: 1.5, borderColor: Colors.border}}>
-                                    <Pressable
-                                        className='px-3.5 py-3'
-                                        style={{backgroundColor: customEndPeriod === 'AM' ? categoryColor : 'transparent'}}
-                                        onPress={() => setCustomEndPeriod('AM')}
-                                    >
-                                        <Text className='font-extrabold text-xs' style={{color: customEndPeriod === 'AM' ? Colors.white : Colors.textSecondary}}>AM</Text>
-                                    </Pressable>
-                                    <Pressable
-                                        className='px-3.5 py-3'
-                                        style={{backgroundColor: customEndPeriod === 'PM' ? categoryColor : 'transparent'}}
-                                        onPress={() => setCustomEndPeriod('PM')}
-                                    >
-                                        <Text className='font-extrabold text-xs' style={{color: customEndPeriod === 'PM' ? Colors.white : Colors.textSecondary}}>PM</Text>
-                                    </Pressable>
-                                </View>
-                            </View>
+                            <Pressable
+                                onPress={() => setIsEndPickerVisible(true)}
+                                className='flex-row items-center justify-between px-4 py-3.5 rounded-xl active:opacity-85'
+                                style={{ borderWidth: 1.5, borderColor: Colors.border, backgroundColor: '#f8fafc' }}
+                            >
+                                <Text className='font-extrabold text-base' style={{ color: Colors.textPrimary }}>
+                                    {customEndHour ? `${customEndHour}:${customEndMinute} ${customEndPeriod}` : 'Choose End Time'}
+                                </Text>
+                                <Clock size={18} color={categoryColor} />
+                            </Pressable>
                         </View>
 
                         {operatingHours && (
@@ -872,12 +793,45 @@ export default function BookingScreen() {
                                 Vendor Operating Hours: {operatingHours.from} to {operatingHours.to}
                             </Text>
                         )}
+
+                        {/* Picker Modals */}
+                        <TimePickerModal
+                            visible={isStartPickerVisible}
+                            title="Select Start Time"
+                            initialHour={customStartHour}
+                            initialMinute={customStartMinute}
+                            initialPeriod={customStartPeriod}
+                            categoryColor={categoryColor}
+                            onClose={() => setIsStartPickerVisible(false)}
+                            onConfirm={(h, m, p) => {
+                                setCustomStartHour(h)
+                                setCustomStartMinute(m)
+                                setCustomStartPeriod(p)
+                                setIsStartPickerVisible(false)
+                            }}
+                        />
+
+                        <TimePickerModal
+                            visible={isEndPickerVisible}
+                            title="Select End Time"
+                            initialHour={customEndHour}
+                            initialMinute={customEndMinute}
+                            initialPeriod={customEndPeriod}
+                            categoryColor={categoryColor}
+                            onClose={() => setIsEndPickerVisible(false)}
+                            onConfirm={(h, m, p) => {
+                                setCustomEndHour(h)
+                                setCustomEndMinute(m)
+                                setCustomEndPeriod(p)
+                                setIsEndPickerVisible(false)
+                            }}
+                        />
                     </View>
                 )}
             </View>
 
             {/* Travel Toggle for Parlor */}
-            {normalizedCategory === 'parlor' && bookingData.isOnSite && (
+            {isParlor && bookingData.isOnSite && (
                 <View className='px-5 mb-6'>
                     <Text className='text-xl font-extrabold mb-4' style={{color: Colors.textPrimary}}>Service Location</Text>
                     <View className='rounded-2xl p-4 flex-row gap-3' style={[{backgroundColor: Colors.white, borderWidth: 2, borderColor: Colors.border}, Shadows.medium]}>
@@ -910,17 +864,17 @@ export default function BookingScreen() {
 
 
             {/* Location Input - Only for Catering, Photographer & Parlor On-Site */}
-            {(bookingData.category === 'catering' || bookingData.category === 'photo' || (normalizedCategory === 'parlor' && isHomeService)) && (
+            {(isCatering || isPhoto || (isParlor && isHomeService)) && (
                 <View className='px-5 mb-6'>
                     <Text className='text-xl font-extrabold mb-4' style={{color: Colors.textPrimary}}>
-                        {bookingData.category === 'catering' ? 'Delivery Location' : 'Event / Home Location'}
+                        {isCatering ? 'Delivery Location' : 'Event / Home Location'}
                     </Text>
                     <View className='flex-row items-center rounded-2xl px-4 py-4' style={[{backgroundColor: Colors.white, borderWidth: 2, borderColor: Colors.border}, Shadows.medium]}>
                         <MapPin size={20} color={categoryColor} />
                         <TextInput
                             placeholder={
-                                bookingData.category === 'catering' ? 'Enter delivery address' :
-                                normalizedCategory === 'parlor' ? 'Enter your home/venue address properly' :
+                                isCatering ? 'Enter delivery address' :
+                                isParlor ? 'Enter your home/venue address properly' :
                                 'Enter event venue address'
                             }
                             value={location}
@@ -1032,7 +986,7 @@ export default function BookingScreen() {
                     </View>
 
                     {/* Location */}
-                    {(bookingData.category === 'catering' || bookingData.category === 'photo' || (normalizedCategory === 'parlor' && isHomeService)) && (
+                    {(isCatering || isPhoto || (isParlor && isHomeService)) && (
                         <View className='flex-row justify-between items-start mb-3'>
                             <Text className='text-xs font-bold' style={{color: Colors.textSecondary}}>Location</Text>
                             <Text className='text-sm font-bold flex-1 text-right' style={{color: Colors.textPrimary}} numberOfLines={2}>

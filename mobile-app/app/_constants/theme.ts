@@ -73,7 +73,10 @@ export const Gradients = {
 export const getCategoryColor = (category?: string | null): string => {
   if (!category) return Colors.primary
   switch(category.toLowerCase()) {
-    case 'banquet': return Colors.banquet
+    case 'banquet':
+    case 'banquet_hall':
+    case 'banquet-hall':
+    case 'venue': return Colors.banquet
     case 'catering': return Colors.catering
     case 'photo':
     case 'photographer':

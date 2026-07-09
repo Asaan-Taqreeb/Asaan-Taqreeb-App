@@ -5,7 +5,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
@@ -17,6 +16,7 @@ import { Colors, Shadows } from '@/app/_constants/theme';
 import { useUser } from '@/app/_context/UserContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getMyVendorServices, updateVendorService } from '@/app/_utils/servicesApi';
+import { showAlert } from '@/app/_utils/alert';
 
 export interface TimeSlot {
   id: string;
@@ -96,7 +96,7 @@ export default function TimeSlotsScreen() {
         // Simple validation for banquet slots
         for (const slot of slots) {
           if (!slot.label.trim() || !slot.from.trim() || !slot.to.trim()) {
-            Alert.alert('Error', 'Please fill in all fields for all slots.');
+            showAlert('Error', 'Please fill in all fields for all slots.');
             setIsSaving(false);
             return;
           }
@@ -105,7 +105,7 @@ export default function TimeSlotsScreen() {
       } else {
         // Simple validation for operating hours
         if (!operatingHours.from.trim() || !operatingHours.to.trim()) {
-          Alert.alert('Error', 'Please fill in operating hours.');
+          showAlert('Error', 'Please fill in operating hours.');
           setIsSaving(false);
           return;
         }
@@ -114,10 +114,10 @@ export default function TimeSlotsScreen() {
         }
         await AsyncStorage.setItem('vendor_operating_hours_' + user.id, JSON.stringify(operatingHours));
       }
-      Alert.alert('Success', 'Time slots updated successfully!');
+      showAlert('Success', 'Time slots updated successfully!');
       router.back();
     } catch (error) {
-      Alert.alert('Error', 'Failed to save time slots.');
+      showAlert('Error', 'Failed to save time slots.');
     } finally {
       setIsSaving(false);
     }

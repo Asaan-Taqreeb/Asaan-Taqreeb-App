@@ -7,14 +7,14 @@ export const showAlert = (
 ) => {
   if (Platform.OS === 'web') {
     // Check if it has a cancel option (requires confirm dialog)
-    const hasCancel = buttons?.some(b => b.style === 'cancel' || b.text.toLowerCase() === 'cancel');
+    const hasCancel = buttons?.some(b => b?.style === 'cancel' || b?.text?.toLowerCase() === 'cancel');
     if (hasCancel) {
-      const confirmButton = buttons?.find(b => b.style === 'destructive' || b.text.toLowerCase() === 'delete' || b.text.toLowerCase() === 'ok' || b.text.toLowerCase() === 'yes');
+      const confirmButton = buttons?.find(b => b?.style !== 'cancel' && b?.text?.toLowerCase() !== 'cancel');
       const confirmed = window.confirm(`${title}\n\n${message}`);
       if (confirmed && confirmButton?.onPress) {
         confirmButton.onPress();
       } else {
-        const cancelButton = buttons?.find(b => b.style === 'cancel' || b.text.toLowerCase() === 'cancel');
+        const cancelButton = buttons?.find(b => b?.style === 'cancel' || b?.text?.toLowerCase() === 'cancel');
         if (cancelButton?.onPress) {
           cancelButton.onPress();
         }

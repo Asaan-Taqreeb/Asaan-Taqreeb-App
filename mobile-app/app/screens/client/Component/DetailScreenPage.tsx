@@ -58,6 +58,11 @@ export default function DetailScreenPage() {
     const [fallbackCoords, setFallbackCoords] = useState<{latitude: number, longitude: number} | null>(null)
 
     const categoryColor = getCategoryColor(params.category as string || vendor?.category)
+    const normalizedCategory = String(vendor?.category || params.category || '').trim().toLowerCase()
+    const isBanquet = normalizedCategory.includes('banquet') || normalizedCategory.includes('hall') || normalizedCategory === 'venue'
+    const isCatering = normalizedCategory.includes('cater')
+    const isPhoto = normalizedCategory.includes('photo') || normalizedCategory.includes('photography')
+    const isParlor = normalizedCategory.includes('parlor') || normalizedCategory.includes('salon') || normalizedCategory.includes('parlour')
 
     useEffect(() => {
         const tryGeocode = async () => {
@@ -380,7 +385,7 @@ export default function DetailScreenPage() {
                     <View className='items-end'>
                         <Text className='text-xs font-semibold mb-1' style={{color: Colors.textSecondary}}>FROM</Text>
                         <Text className='text-lg font-extrabold' style={{color: categoryColor}}>
-                            PKR {vendor.category === "banquet" ? vendor.price.toLocaleString() : (vendor.packages && vendor.packages[0] ? vendor.packages[0].price.toLocaleString() : "0")}
+                            PKR {isBanquet ? vendor.price.toLocaleString() : (vendor.packages && vendor.packages[0] ? vendor.packages[0].price.toLocaleString() : "0")}
                         </Text>
                     </View>
                 </View>
@@ -460,7 +465,7 @@ export default function DetailScreenPage() {
                 </View>
 
                 {/* Banquet Specific Info */}
-                {vendor.category === "banquet" && (
+                {isBanquet && (
                     <View className='px-5 mb-5'>
                         <Text className='text-lg font-extrabold mb-4' style={{color: Colors.textPrimary}}>Guest Capacity</Text>
                         <View className='flex-row gap-3'>
@@ -506,7 +511,7 @@ export default function DetailScreenPage() {
                 )}
 
                 {/* Catering Guest Count Selection */}
-                {vendor.category === "catering" && (
+                {isCatering && (
                     <View className='px-5 mb-5'>
                         {renderGuestCountInput()}
                         <Text className='text-lg font-extrabold mb-3 mt-5' style={{color: Colors.textPrimary}}>Quick Select</Text>
@@ -534,17 +539,17 @@ export default function DetailScreenPage() {
                 )}
 
                 {/* Packages Section */}
-                {vendor.packages && vendor.packages.length > 0 && (selectedGuestCount || vendor.category === "photo" || vendor.category === "parlor") && (
+                {vendor.packages && vendor.packages.length > 0 && (selectedGuestCount || isPhoto || isParlor) && (
                     <View className='px-5 mb-6'>
                         <Text className='text-xl font-extrabold mb-4' style={{color: Colors.textPrimary}}>
-                            {vendor.category === "banquet" ? "Banquet Packages" :
-                             vendor.category === "catering" ? "Catering Packages" : 
-                             vendor.category === "photo" ? "Photography Packages" :
+                            {isBanquet ? "Banquet Packages" :
+                             isCatering ? "Catering Packages" : 
+                             isPhoto ? "Photography Packages" :
                              "Salon Packages"}
                         </Text>
 
                         {/* Dishes-based pricing info for catering */}
-                        {vendor.category === "catering" && selectedGuestCount && (
+                        {isCatering && selectedGuestCount && (
                             <View className='rounded-xl p-3 mb-4' style={{backgroundColor: '#dbeafe', borderWidth: 1, borderColor: '#93c5fd'}}>
                                 <Text className='text-sm font-bold' style={{color: Colors.info}}>For <Text className='font-extrabold'>{selectedGuestCount} guests</Text> - prices are per head</Text>
                             </View>
@@ -567,7 +572,7 @@ export default function DetailScreenPage() {
                                             <Text className='text-lg font-extrabold mb-1' style={{color: Colors.textPrimary}}>{pkg.packageName}</Text>
                                             <View className='flex-row gap-2 mt-1 flex-wrap'>
                                                 <Text className='text-base font-bold' style={{color: categoryColor}}>PKR {(pkg.price * (selectedGuestCount || 1)).toLocaleString()}</Text>
-                                                {vendor.category === "catering" && selectedGuestCount && (
+                                                {isCatering && selectedGuestCount && (
                                                     <Text className='text-sm font-medium' style={{color: Colors.textSecondary}}>(PKR {pkg.price}/per guest)</Text>
                                                 )}
                                             </View>
@@ -579,7 +584,7 @@ export default function DetailScreenPage() {
                                 {expandedPackages[pkg.id] && (
                                     <View className='mb-4 pt-4' style={{borderTopWidth: 1, borderTopColor: Colors.border}}>
                                         {/* Banquet */}
-                                        {vendor.category === "banquet" && pkg.items && (
+                                        {isBanquet && pkg.items && (
                                             <View>
                                                 {pkg.items.map((item: string, idx: number) => (
                                                     <View key={idx} className='flex-row items-center mb-2'>
@@ -591,7 +596,7 @@ export default function DetailScreenPage() {
                                         )}
 
                                         {/* Catering - Show courses */}
-                                        {vendor.category === "catering" && pkg.mainCourse && (
+                                        {isCatering && pkg.mainCourse && (
                                             <View>
                                                 <View className='mb-4'>
                                                     <Text className='text-sm font-bold mb-2' style={{color: Colors.textPrimary}}>Main Course</Text>
@@ -624,7 +629,7 @@ export default function DetailScreenPage() {
                                         )}
 
                                         {/* Photography & Parlor - Show items */}
-                                        {(vendor.category === "photo" || vendor.category === "parlor") && pkg.items && (
+                                        {(isPhoto || isParlor) && pkg.items && (
                                             <View>
                                                 {pkg.items.map((item: string, idx: number) => (
                                                     <View key={idx} className='flex-row items-center mb-2'>
@@ -677,7 +682,7 @@ export default function DetailScreenPage() {
                         ))}
 
                         {/* Custom Package Option for Catering */}
-                        {vendor.category === "catering" && selectedGuestCount && (
+                        {isCatering && selectedGuestCount && (
                             <Pressable 
                                 className='rounded-2xl py-5 px-4 mb-4 flex-row items-center justify-center gap-2 active:opacity-80'
                                 style={{backgroundColor: '#fff7ed', borderWidth: 2, borderStyle: 'dashed', borderColor: categoryColor}}
@@ -691,13 +696,13 @@ export default function DetailScreenPage() {
                 )}
 
                 {/* No Guest Count Selected Message */}
-                {vendor.category === "banquet" && !selectedGuestCount && vendor.packages && vendor.packages.length > 0 && (
+                {isBanquet && !selectedGuestCount && vendor.packages && vendor.packages.length > 0 && (
                     <View className='px-5 mb-5 rounded-xl p-4' style={{backgroundColor: '#fef3c7', borderWidth: 1, borderColor: '#fcd34d'}}>
                         <Text className='text-sm font-bold text-center' style={{color: Colors.warning}}>Please select guest count to view packages</Text>
                     </View>
                 )}
 
-                {vendor.category === "catering" && !selectedGuestCount && vendor.packages && vendor.packages.length > 0 && (
+                {isCatering && !selectedGuestCount && vendor.packages && vendor.packages.length > 0 && (
                     <View className='px-5 mb-5 rounded-xl p-4' style={{backgroundColor: '#fef3c7', borderWidth: 1, borderColor: '#fcd34d'}}>
                         <Text className='text-sm font-bold text-center' style={{color: Colors.warning}}>Please select guest count to view packages and pricing</Text>
                     </View>

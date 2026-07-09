@@ -5,7 +5,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  Alert,
   TextInput,
   KeyboardAvoidingView,
   Platform,
@@ -28,6 +27,7 @@ import { Colors, Shadows } from '@/app/_constants/theme';
 import { updateBookingStatus, recordRemainingPayment } from '@/app/_utils/bookingsApi';
 import { useUser } from '@/app/_context/UserContext';
 import { useNotifications } from '@/app/_context/NotificationContext';
+import { showAlert } from '@/app/_utils/alert';
 
 export default function OrderDetailScreen() {
   const router = useRouter();
@@ -76,16 +76,16 @@ export default function OrderDetailScreen() {
 
     const enteredAmount = Number(paidAmountInput);
     if (isNaN(enteredAmount) || enteredAmount <= 0) {
-      Alert.alert('Invalid Amount', 'Please enter a token payment amount greater than 0.');
+      showAlert('Invalid Amount', 'Please enter a token payment amount greater than 0.');
       return;
     }
 
     if (enteredAmount > order.totalAmount) {
-      Alert.alert('Invalid Amount', 'Advance payment cannot exceed total amount.');
+      showAlert('Invalid Amount', 'Advance payment cannot exceed total amount.');
       return;
     }
 
-    Alert.alert(
+    showAlert(
       'Approve Order',
       `Accept this order and record payment of PKR ${enteredAmount.toLocaleString()} received so far?`,
       [
@@ -100,9 +100,9 @@ export default function OrderDetailScreen() {
               setOrderStatus('accepted')
               setOrderPaidAmount(enteredAmount)
               setShowApproveInput(false)
-              Alert.alert('Success', 'Order has been approved and payment recorded!')
+              showAlert('Success', 'Order has been approved and payment recorded!')
             } catch (error: any) {
-              Alert.alert('Error', error?.message || 'Failed to approve order')
+              showAlert('Error', error?.message || 'Failed to approve order')
             } finally {
               setIsUpdating(false)
             }
@@ -113,7 +113,7 @@ export default function OrderDetailScreen() {
   };
 
   const handleReceiveRemainingPayment = () => {
-    Alert.alert(
+    showAlert(
       'Mark Remaining as Paid',
       `Are you sure you have received the remaining balance of PKR ${(order.totalAmount - orderPaidAmount).toLocaleString()}?`,
       [
@@ -127,9 +127,9 @@ export default function OrderDetailScreen() {
               await recordRemainingPayment(order.id);
               setOrderStatus('confirmed');
               setOrderPaidAmount(order.totalAmount);
-              Alert.alert('Success', 'Remaining payment recorded successfully!');
+              showAlert('Success', 'Remaining payment recorded successfully!');
             } catch (error: any) {
-              Alert.alert('Error', error?.message || 'Failed to update payment status');
+              showAlert('Error', error?.message || 'Failed to update payment status');
             } finally {
               setIsUpdating(false);
             }
@@ -145,7 +145,7 @@ export default function OrderDetailScreen() {
       return;
     }
 
-    Alert.alert(
+    showAlert(
       'Reject Order',
       'Are you sure you want to reject this order with the provided reason?',
       [
@@ -159,10 +159,10 @@ export default function OrderDetailScreen() {
               await updateBookingStatus(order.id, 'rejected', rejectionReason)
               setOrderStatus('rejected')
               setShowRejectInput(false)
-              Alert.alert('Order Rejected', 'The customer will be notified.')
+              showAlert('Order Rejected', 'The customer will be notified.')
               refreshNotifications()
             } catch (error: any) {
-              Alert.alert('Error', error?.message || 'Failed to reject order')
+              showAlert('Error', error?.message || 'Failed to reject order')
             } finally {
               setIsUpdating(false)
             }
@@ -175,7 +175,7 @@ export default function OrderDetailScreen() {
   const handleChat = () => {
     const clientId = order.clientId;
     if (!clientId) {
-      Alert.alert('Error', 'Cannot open chat: Client ID is missing.');
+      showAlert('Error', 'Cannot open chat: Client ID is missing.');
       return;
     }
 
