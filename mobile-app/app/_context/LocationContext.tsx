@@ -3,7 +3,7 @@ import * as Location from "expo-location"
 import { Platform } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
-const LOCATION_CACHE_KEY = '@user_location_cache_v2'
+const LOCATION_CACHE_KEY = '@user_location_cache_v3'
 const WEB_GEOLOCATION_SOURCE = 'browser-geolocation'
 const CACHE_MAX_AGE_MS = 30 * 60 * 1000 // 30 minutes
 
@@ -57,6 +57,13 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 // Reject expired cache
                 if (cachedData.timestamp && (Date.now() - cachedData.timestamp > CACHE_MAX_AGE_MS)) {
                     console.log("Location cache expired, fetching fresh location")
+                    await AsyncStorage.removeItem(LOCATION_CACHE_KEY)
+                    return null
+                }
+
+                // Invalidate cache if coordinates are missing or invalid
+                if (!cachedData.latitude || !cachedData.longitude) {
+                    console.log("Location cache is missing coordinates, clearing cache...")
                     await AsyncStorage.removeItem(LOCATION_CACHE_KEY)
                     return null
                 }
