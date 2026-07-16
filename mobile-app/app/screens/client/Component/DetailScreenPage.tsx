@@ -6,7 +6,7 @@ import GoogleMapView from '@/app/_components/GoogleMapView'
 import * as ExpoLocation from 'expo-location'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors, getCategoryColor, Shadows, Spacing } from '@/app/_constants/theme'
-import { getConciseAddress } from '@/app/_utils/servicesApi'
+import { getConciseAddress, getServiceById } from '@/app/_utils/servicesApi'
 import { useUser } from '@/app/_context/UserContext'
 import { getVendorReviews, Review } from '@/app/_utils/reviewsApi'
 import { toggleFavorite, getMyFavoriteIds } from '@/app/_utils/favoritesApi'
@@ -41,19 +41,41 @@ export default function DetailScreenPage() {
         }))
     }
 
-    let vendor: any = null
-    if (params.vendor) {
-        try {
-            const rawData = params.vendor.toString();
-            vendor = JSON.parse(
-                rawData.startsWith('{')
-                    ? rawData
-                    : decodeURIComponent(rawData)
-            )
-        } catch {
-            vendor = null
+    const [vendor, setVendor] = useState<any>(() => {
+        if (params.vendor) {
+            try {
+                const rawData = params.vendor.toString();
+                return JSON.parse(
+                    rawData.startsWith('{')
+                        ? rawData
+                        : decodeURIComponent(rawData)
+                )
+            } catch {
+                return null
+            }
         }
-    }
+        return null
+    })
+
+    useEffect(() => {
+        let mounted = true;
+        const fetchLatestDetails = async () => {
+            const serviceId = vendor?.serviceId || vendor?.id || params.id;
+            if (!serviceId) return;
+            try {
+                const fresh = await getServiceById(serviceId);
+                if (fresh && mounted) {
+                    setVendor(fresh);
+                }
+            } catch (err) {
+                console.log('Failed to fetch latest vendor details in DetailScreenPage:', err);
+            }
+        };
+        fetchLatestDetails();
+        return () => {
+            mounted = false;
+        };
+    }, [params.id, vendor?.id, vendor?.serviceId]);
 
     const [fallbackCoords, setFallbackCoords] = useState<{latitude: number, longitude: number} | null>(null)
 

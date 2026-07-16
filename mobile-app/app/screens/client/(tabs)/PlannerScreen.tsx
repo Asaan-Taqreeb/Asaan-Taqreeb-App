@@ -1,4 +1,5 @@
-import { Alert, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, ActivityIndicator } from 'react-native'
+import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, ActivityIndicator } from 'react-native'
+import { showAlert } from '@/app/_utils/alert'
 import React, { useCallback, useState, useRef } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -105,10 +106,10 @@ export default function PlannerScreen() {
             }
             
             setPlanner(currentPlanner)
-            Alert.alert('Success', 'Planner prepopulated with starter tasks!')
+            showAlert('Success', 'Planner prepopulated with starter tasks!')
         } catch (error) {
             console.error('Failed to prepopulate:', error)
-            Alert.alert('Error', 'Failed to apply template. Please try again.')
+            showAlert('Error', 'Failed to apply template. Please try again.')
         } finally {
             setIsPrepopulating(false)
         }
@@ -117,7 +118,7 @@ export default function PlannerScreen() {
     const handleApplyTemplatePress = (templateKey: 'grandWedding' | 'intimateCeremony' | 'basicParty') => {
         const hasTasks = planner && planner.tasks.length > 0
         if (hasTasks) {
-            Alert.alert(
+            showAlert(
                 'Prepopulate Planner',
                 'This will add the template tasks to your current list. Do you want to proceed?',
                 [
@@ -167,13 +168,13 @@ export default function PlannerScreen() {
             setPlanner(res.planner)
             setIsEditingBudget(false)
         } catch (error) {
-            Alert.alert('Error', 'Failed to update budget')
+            showAlert('Error', 'Failed to update budget')
         }
     }
 
     const handleSaveTask = async () => {
         if (!taskName) {
-            Alert.alert('Error', 'Task name is required')
+            showAlert('Error', 'Task name is required')
             return
         }
         try {
@@ -195,12 +196,12 @@ export default function PlannerScreen() {
             setEditingTask(null)
         } catch (error: any) {
             console.error('Save task error:', error)
-            Alert.alert('Error', error?.message || 'Failed to save task. Please check your connection and try again.')
+            showAlert('Error', error?.message || 'Failed to save task. Please check your connection and try again.')
         }
     }
 
     const handleDeleteTask = (taskId: string) => {
-        Alert.alert('Delete Task', 'Are you sure you want to delete this task?', [
+        showAlert('Delete Task', 'Are you sure you want to delete this task?', [
             { text: 'Cancel', style: 'cancel' },
             { 
                 text: 'Delete', 
@@ -210,7 +211,7 @@ export default function PlannerScreen() {
                         const res = await deletePlannerTask(taskId)
                         setPlanner(res.planner)
                     } catch (error) {
-                        Alert.alert('Error', 'Failed to delete task')
+                        showAlert('Error', 'Failed to delete task')
                     }
                 }
             }
@@ -222,7 +223,7 @@ export default function PlannerScreen() {
             const res = await updatePlannerTask(task._id, { isCompleted: !task.isCompleted })
             setPlanner(res.planner)
         } catch (error) {
-            Alert.alert('Error', 'Failed to update task')
+            showAlert('Error', 'Failed to update task')
         }
     }
 
