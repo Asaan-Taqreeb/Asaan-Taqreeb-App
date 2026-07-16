@@ -257,15 +257,20 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             }
 
             // Native iOS/Android implementation
+            console.log('[LocationContext] Checking existing foreground permissions...');
             let { status } = await Location.getForegroundPermissionsAsync()
+            console.log('[LocationContext] Existing permission status:', status);
 
             // If not granted and we want to force permission prompt (e.g. from user action)
             if (status !== 'granted' && forceRequestPermission) {
+                console.log('[LocationContext] Force requesting foreground permissions...');
                 const requested = await Location.requestForegroundPermissionsAsync()
+                console.log('[LocationContext] Force request permission response:', JSON.stringify(requested, null, 2));
                 status = requested.status
             }
 
             if (status !== 'granted') {
+                console.warn('[LocationContext] Location permission not granted. Current status:', status);
                 setError("Permission denied - using cached location if available")
                 if (!hasCached) {
                     await applyKarachiFallback()

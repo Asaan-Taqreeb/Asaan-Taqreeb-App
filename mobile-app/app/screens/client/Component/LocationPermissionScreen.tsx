@@ -19,24 +19,36 @@ export default function LocationPermissionScreen({ onPermissionGranted, onBack, 
   const [requesting, setRequesting] = React.useState(false);
 
   const handleRequestPermission = async () => {
+    console.log('[LocationPermissionScreen] Requesting foreground permissions...');
     setRequesting(true);
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
+      const result = await Location.requestForegroundPermissionsAsync();
+      console.log('[LocationPermissionScreen] Permission response:', JSON.stringify(result, null, 2));
+      
+      const { status } = result;
       if (status === 'granted') {
+        console.log('[LocationPermissionScreen] Location permission granted!');
         onPermissionGranted();
       } else {
+        console.warn('[LocationPermissionScreen] Location permission not granted. Status:', status);
         Alert.alert(
           'Location Required',
-          'We need your location to show nearby event organizers, catering, and venues. Please enable it in settings.',
+          `We need your location to show nearby event organizers, catering, and venues. (Status: ${status}). Please enable it in settings.`,
           [
             { text: 'Cancel', style: 'cancel' },
             { text: 'Open Settings', onPress: () => Linking.openSettings() }
           ]
         );
       }
-    } catch (error) {
-      console.log('Error requesting location permission:', error);
-      Alert.alert('Error', 'An error occurred while requesting permission.');
+    } catch (error: any) {
+      console.error('[LocationPermissionScreen] Exception during permission request:', error);
+      if (error && error.stack) {
+        console.error('[LocationPermissionScreen] Stack trace:', error.stack);
+      }
+      Alert.alert(
+        'Error',
+        `An error occurred while requesting permission: ${error?.message || String(error)}`
+      );
     } finally {
       setRequesting(false);
     }
