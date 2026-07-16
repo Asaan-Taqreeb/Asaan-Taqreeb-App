@@ -2,7 +2,8 @@ import { Colors } from '@/app/_constants/theme'
 import { verifyEmail, resendVerificationOtp } from '@/app/_utils/authApi'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useState, useEffect } from 'react'
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { showAlert } from '@/app/_utils/alert'
 import { TextInput } from 'react-native-paper'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import AppLogo from '../screens/client/Component/AppLogo'
@@ -43,19 +44,19 @@ const VerificationScreen = ({
 
     const handleVerify = async () => {
         if (otp.length < 6) {
-            Alert.alert('Error', 'Please enter the 6-digit verification code')
+            showAlert('Error', 'Please enter the 6-digit verification code')
             return
         }
 
         setLoading(true)
         try {
             const response = await verifyEmail({ email: userEmail.trim().toLowerCase(), otp: otp.trim() })
-            Alert.alert('Success', 'Email verified successfully! You can now login.', [
+            showAlert('Success', 'Email verified successfully! You can now login.', [
                 { text: 'Login', onPress: () => router.push(redirectLoginRoute as any) }
             ])
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Verification failed.'
-            Alert.alert('Error', message)
+            showAlert('Error', message)
         } finally {
             setLoading(false)
         }
@@ -68,10 +69,10 @@ const VerificationScreen = ({
         try {
             await resendVerificationOtp({ email: userEmail.trim().toLowerCase() })
             setTimer(60)
-            Alert.alert('Success', 'Verification code resent successfully.')
+            showAlert('Success', 'Verification code resent successfully.')
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Failed to resend code.'
-            Alert.alert('Error', message)
+            showAlert('Error', message)
         } finally {
             setResending(false)
         }

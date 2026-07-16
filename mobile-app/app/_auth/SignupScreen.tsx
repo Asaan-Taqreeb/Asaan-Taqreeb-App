@@ -1,5 +1,6 @@
 import { Colors } from '@/app/_constants/theme'
-import { View, Text, StyleSheet, Pressable, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native'
+import { View, Text, StyleSheet, Pressable, ScrollView, KeyboardAvoidingView, Platform } from 'react-native'
+import { showAlert } from '@/app/_utils/alert'
 import { TextInput } from 'react-native-paper'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter, useLocalSearchParams } from 'expo-router'
@@ -43,24 +44,24 @@ const SignupScreen = ({
 
     const handleSignup = async () => {
         if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim() || !phone.trim()) {
-            Alert.alert('Error', t('Please fill in all fields'))
+            showAlert('Error', t('Please fill in all fields'))
             return
         }
 
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
         if (!emailRegex.test(email.trim())) {
-            Alert.alert('Error', t('Please enter a valid email address'))
+            showAlert('Error', t('Please enter a valid email address'))
             return
         }
 
         if (password !== confirmPassword) {
-            Alert.alert('Error', t('Passwords do not match'))
+            showAlert('Error', t('Passwords do not match'))
             return
         }
 
         if (password.length < 6) {
-            Alert.alert('Error', t('Password must be at least 6 characters'))
+            showAlert('Error', t('Password must be at least 6 characters'))
             return
         }
 
@@ -77,7 +78,7 @@ const SignupScreen = ({
             })
             
             console.log('Registration successful:', result)
-            Alert.alert('Success', t('Account created! Please verify your email.'))
+            showAlert('Success', t('Account created! Please verify your email.'))
             
             const verificationRoute = userRole === 'vendor' 
                 ? '/screens/vendor/VerificationScreen' 
@@ -98,7 +99,7 @@ const SignupScreen = ({
             
             if (error?.code === 'CLIENT_ACCOUNT_EXISTS' || error?.code === 'VENDOR_ACCOUNT_EXISTS') {
                 const isVendorSignup = userRole === 'vendor'
-                Alert.alert(
+                showAlert(
                     t('existingAccountTitle') || 'Existing Account Found',
                     error.message,
                     [
@@ -119,7 +120,7 @@ const SignupScreen = ({
                                     })
                                     
                                     console.log(`${userRole} account activated successfully:`, result)
-                                    Alert.alert(
+                                    showAlert(
                                         'Success',
                                         isVendorSignup 
                                             ? (t('vendorActivatedSuccess') || 'Vendor dashboard activated! Please log in with your credentials.')
@@ -133,7 +134,7 @@ const SignupScreen = ({
                                     )
                                 } catch (activationError: any) {
                                     console.error('Activation failed:', activationError)
-                                    Alert.alert('Activation Failed', activationError.message || 'Could not activate account.')
+                                    showAlert('Activation Failed', activationError.message || 'Could not activate account.')
                                 } finally {
                                     setLoading(false)
                                 }
@@ -147,7 +148,7 @@ const SignupScreen = ({
                 )
             } else {
                 const errorMessage = error instanceof Error ? error.message : 'Network error. Please check your connection.'
-                Alert.alert('Registration Failed', errorMessage)
+                showAlert('Registration Failed', errorMessage)
             }
         } finally {
             setLoading(false)

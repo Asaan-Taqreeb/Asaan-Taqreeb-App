@@ -1,5 +1,6 @@
 import { Colors } from '@/app/_constants/theme'
-import { View, Text, StyleSheet, Pressable, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native'
+import { View, Text, StyleSheet, Pressable, ScrollView, KeyboardAvoidingView, Platform } from 'react-native'
+import { showAlert } from '@/app/_utils/alert'
 import { TextInput } from 'react-native-paper'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter, useLocalSearchParams } from 'expo-router'
@@ -61,7 +62,7 @@ const LoginScreen = ({
                 ? '/screens/vendor/VerificationScreen'
                 : '/screens/client/Component/VerificationScreen'
 
-            Alert.alert('Verification Required', 'Your email is not verified. Please verify your account.', [
+            showAlert('Verification Required', 'Your email is not verified. Please verify your account.', [
                 {
                     text: 'Verify Now',
                     onPress: () => router.push({
@@ -97,13 +98,13 @@ const LoginScreen = ({
 
     const handleLogin = async () => {
         if (!email.trim() || !password.trim()) {
-            Alert.alert('Error', 'Please fill in all fields')
+            showAlert('Error', 'Please fill in all fields')
             return
         }
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
         if (!emailRegex.test(email.trim())) {
-            Alert.alert('Error', 'Please enter a valid email address')
+            showAlert('Error', 'Please enter a valid email address')
             return
         }
 
@@ -132,7 +133,7 @@ const LoginScreen = ({
 
             if (!authenticatedRole || authenticatedRole !== userRole) {
                 await clearAuthTokens()
-                Alert.alert('Login Failed', 'Invalid credentials or unauthorized access.')
+                showAlert('Login Failed', 'Invalid credentials or unauthorized access.')
                 return
             }
 
@@ -140,11 +141,11 @@ const LoginScreen = ({
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Network error. Please check your connection.'
             if (errorMessage.toLowerCase().includes('deactivated')) {
-                Alert.alert('Account Deactivated', 'Your account is deleted but can be restored within 15 days. Use the restore button below.', [
+                showAlert('Account Deactivated', 'Your account is deleted but can be restored within 15 days. Use the restore button below.', [
                     { text: 'OK' },
                 ])
             } else {
-                Alert.alert('Error', errorMessage)
+                showAlert('Error', errorMessage)
             }
             console.error('Login error:', error)
         } finally {
@@ -154,13 +155,13 @@ const LoginScreen = ({
 
     const handleRestoreAccount = async () => {
         if (!email.trim() || !password.trim()) {
-            Alert.alert('Error', 'Please enter your email and password first')
+            showAlert('Error', 'Please enter your email and password first')
             return
         }
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
         if (!emailRegex.test(email.trim())) {
-            Alert.alert('Error', 'Please enter a valid email address')
+            showAlert('Error', 'Please enter a valid email address')
             return
         }
 
@@ -186,14 +187,14 @@ const LoginScreen = ({
 
             if (!authenticatedRole || authenticatedRole !== userRole) {
                 await clearAuthTokens()
-                Alert.alert('Restore Failed', 'Your account was restored, but you need to login with the correct account type.')
+                showAlert('Restore Failed', 'Your account was restored, but you need to login with the correct account type.')
                 return
             }
 
             await finalizeAuthSession(data, authenticatedRole)
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unable to restore account.'
-            Alert.alert('Restore Failed', errorMessage)
+            showAlert('Restore Failed', errorMessage)
             console.error('Restore account error:', error)
         } finally {
             setRestoreLoading(false)

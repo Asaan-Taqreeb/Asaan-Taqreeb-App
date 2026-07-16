@@ -2,7 +2,8 @@ import { Colors } from '@/app/_constants/theme'
 import { forgotPassword, verifyOtp, resetPassword } from '@/app/_utils/authApi'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { showAlert } from '@/app/_utils/alert'
 import { TextInput } from 'react-native-paper'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -35,13 +36,13 @@ const ForgotPasswordScreen = ({
 
     const handleEmailSubmit = async () => {
         if (!email.trim()) {
-            Alert.alert('Error', 'Please enter your email address')
+            showAlert('Error', 'Please enter your email address')
             return
         }
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
         if (!emailRegex.test(email.trim())) {
-            Alert.alert('Error', 'Please enter a valid email address')
+            showAlert('Error', 'Please enter a valid email address')
             return
         }
 
@@ -49,10 +50,10 @@ const ForgotPasswordScreen = ({
         try {
             const response = await forgotPassword({ email: email.trim().toLowerCase() })
             setStep('otp')
-            Alert.alert('Verification Sent', response?.message || 'If your account exists, an OTP has been sent to your email.')
+            showAlert('Verification Sent', response?.message || 'If your account exists, an OTP has been sent to your email.')
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Unable to send reset instructions.'
-            Alert.alert('Error', message)
+            showAlert('Error', message)
         } finally {
             setLoading(false)
         }
@@ -60,7 +61,7 @@ const ForgotPasswordScreen = ({
 
     const handleOtpVerify = async () => {
         if (otp.length < 4) {
-            Alert.alert('Error', 'Please enter a valid OTP')
+            showAlert('Error', 'Please enter a valid OTP')
             return
         }
 
@@ -73,7 +74,7 @@ const ForgotPasswordScreen = ({
             setStep('reset')
         } catch (error) {
             const message = error instanceof Error ? error.message : 'OTP verification failed.'
-            Alert.alert('Error', message)
+            showAlert('Error', message)
         } finally {
             setLoading(false)
         }
@@ -81,11 +82,11 @@ const ForgotPasswordScreen = ({
 
     const handlePasswordReset = async () => {
         if (newPassword.length < 6) {
-            Alert.alert('Error', 'Password must be at least 6 characters long')
+            showAlert('Error', 'Password must be at least 6 characters long')
             return
         }
         if (newPassword !== confirmPassword) {
-            Alert.alert('Error', 'Passwords do not match')
+            showAlert('Error', 'Passwords do not match')
             return
         }
 
@@ -96,12 +97,12 @@ const ForgotPasswordScreen = ({
                 newPassword: newPassword,
                 token: resetToken
             })
-            Alert.alert('Success', 'Your password has been reset successfully.', [
+            showAlert('Success', 'Your password has been reset successfully.', [
                 { text: 'Login Now', onPress: () => router.push(redirectLoginRoute as any) }
             ])
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Password reset failed.'
-            Alert.alert('Error', message)
+            showAlert('Error', message)
         } finally {
             setLoading(false)
         }
