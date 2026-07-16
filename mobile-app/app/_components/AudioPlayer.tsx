@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
-import { Audio } from 'expo-av';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { Play, Pause } from 'lucide-react-native';
 import { useTheme } from '@/app/_context/ThemeContext';
 import { Spacing } from '@/app/_constants/theme';
@@ -12,71 +12,26 @@ interface AudioPlayerProps {
 
 export default function AudioPlayer({ audioUrl, isSender }: AudioPlayerProps) {
   const { colors } = useTheme();
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [position, setPosition] = useState(0);
-  const [duration, setDuration] = useState(0);
+  
+  const player = useAudioPlayer(audioUrl);
+  const status = useAudioPlayerStatus(player);
 
-  const isMountedRef = useRef(true);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-      if (sound) {
-        sound.unloadAsync().catch((err) => console.log('Error unloading sound:', err));
+  const handlePlayPause = () => {
+    if (status.playing) {
+      player.pause();
+    } else {
+      if (status.duration && status.currentTime >= status.duration) {
+        player.seekTo(0);
       }
-    };
-  }, [sound]);
-
-  const onPlaybackStatusUpdate = (status: any) => {
-    if (!isMountedRef.current) return;
-    if (status.isLoaded) {
-      setPosition(status.positionMillis || 0);
-      setDuration(status.durationMillis || 0);
-      setIsPlaying(status.isPlaying);
-      if (status.didJustFinish) {
-        setIsPlaying(false);
-        setPosition(0);
-        sound?.setPositionAsync(0).catch(() => {});
-      }
+      player.play();
     }
   };
 
-  const handlePlayPause = async () => {
-    try {
-      if (sound) {
-        if (isPlaying) {
-          await sound.pauseAsync();
-        } else {
-          await sound.playAsync();
-        }
-      } else {
-        setIsLoading(true);
-        const { sound: newSound } = await Audio.Sound.createAsync(
-          { uri: audioUrl },
-          { shouldPlay: true },
-          onPlaybackStatusUpdate
-        );
-        if (isMountedRef.current) {
-          setSound(newSound);
-          setIsLoading(false);
-        } else {
-          newSound.unloadAsync().catch(() => {});
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load/play sound:', error);
-      setIsLoading(false);
-    }
-  };
-
-  const formatTime = (millis: number) => {
-    if (!millis || isNaN(millis)) return '0:00';
-    const seconds = Math.floor(millis / 1000);
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
+  const formatTime = (seconds: number) => {
+    if (!seconds || isNaN(seconds)) return '0:00';
+    const sInt = Math.floor(seconds);
+    const m = Math.floor(sInt / 60);
+    const s = sInt % 60;
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
@@ -85,7 +40,10 @@ export default function AudioPlayer({ audioUrl, isSender }: AudioPlayerProps) {
   const progressBg = isSender ? 'rgba(255, 255, 255, 0.25)' : 'rgba(17, 24, 8, 0.1)';
   const progressFill = isSender ? colors.white : colors.primary;
 
-  const percent = duration > 0 ? (position / duration) * 100 : 0;
+  const durationSec = status.duration || 0;
+  const currentTimeSec = status.currentTime || 0;
+  const percent = durationSec > 0 ? (currentTimeSec / durationSec) * 100 : 0;
+  const isLoading = !status.isLoaded;
 
   return (
     <View style={styles.container}>
@@ -97,7 +55,7 @@ export default function AudioPlayer({ audioUrl, isSender }: AudioPlayerProps) {
       >
         {isLoading ? (
           <ActivityIndicator size="small" color={textColor} />
-        ) : isPlaying ? (
+        ) : status.playing ? (
           <Pause size={18} color={textColor} fill={textColor} />
         ) : (
           <Play size={18} color={textColor} fill={textColor} style={{ marginLeft: 2 }} />
@@ -118,10 +76,10 @@ export default function AudioPlayer({ audioUrl, isSender }: AudioPlayerProps) {
         {/* Time displays */}
         <View style={styles.timeContainer}>
           <Text style={[styles.timeText, { color: textColor }]}>
-            {formatTime(position)}
+            {formatTime(currentTimeSec)}
           </Text>
           <Text style={[styles.timeText, { color: textColor, opacity: 0.7 }]}>
-            {formatTime(duration || 0)}
+            {formatTime(durationSec)}
           </Text>
         </View>
       </View>

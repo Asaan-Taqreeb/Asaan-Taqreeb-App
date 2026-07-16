@@ -2,7 +2,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router'
 import { ArrowLeft, Send, Paperclip, FileText, Calendar, Video, MapPin, X, Mic } from 'lucide-react-native'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, Alert, ViewStyle, Image, ActivityIndicator, Keyboard, Modal, FlatList } from 'react-native'
-import { Audio } from 'expo-av'
+import { useAudioRecorder, RecordingPresets, requestRecordingPermissionsAsync } from 'expo-audio'
 import AudioPlayer from '@/app/_components/AudioPlayer'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors, Shadows } from '@/app/_constants/theme'
@@ -27,33 +27,22 @@ export default function ClientChatScreen() {
     
     // Voice recording states and functions
     const [isRecording, setIsRecording] = useState(false)
-    const [recording, setRecording] = useState<Audio.Recording | null>(null)
+    const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY)
     const [recordingDuration, setRecordingDuration] = useState(0)
     const recordingTimerRef = useRef<any>(null)
     const [isUploadingVoice, setIsUploadingVoice] = useState(false)
 
     const startRecording = async () => {
         try {
-            const { status } = await Audio.requestPermissionsAsync();
-            if (status !== 'granted') {
+            const status = await requestRecordingPermissionsAsync();
+            if (!status.granted) {
                 Alert.alert('Permission Denied', 'Please enable microphone access in settings to send voice notes.');
                 return;
             }
 
-            await Audio.setAudioModeAsync({
-                allowsRecordingIOS: true,
-                playsInSilentModeIOS: true,
-            });
-
-            if (recording) {
-                await recording.stopAndUnloadAsync().catch(() => {});
-            }
-
-            const { recording: newRecording } = await Audio.Recording.createAsync(
-                Audio.RecordingOptionsPresets.HIGH_QUALITY
-            );
+            await recorder.prepareToRecordAsync();
+            recorder.record();
             
-            setRecording(newRecording);
             setIsRecording(true);
             setRecordingDuration(0);
 
@@ -68,15 +57,12 @@ export default function ClientChatScreen() {
     };
 
     const stopAndSendRecording = async () => {
-        if (!recording) return;
-        
         setIsRecording(false);
         if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
 
         try {
-            await recording.stopAndUnloadAsync();
-            const uri = recording.getURI();
-            setRecording(null);
+            await recorder.stop();
+            const uri = recorder.uri;
 
             if (uri && clientId) {
                 setIsUploadingVoice(true);
@@ -123,14 +109,11 @@ export default function ClientChatScreen() {
     };
 
     const cancelRecording = async () => {
-        if (!recording) return;
-        
         setIsRecording(false);
         if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
 
         try {
-            await recording.stopAndUnloadAsync();
-            setRecording(null);
+            await recorder.stop();
         } catch (err) {
             console.log('Error cancelling recording:', err);
         }
