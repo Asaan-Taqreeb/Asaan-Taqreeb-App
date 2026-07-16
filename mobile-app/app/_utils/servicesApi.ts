@@ -355,16 +355,18 @@ export const getVendorServices = async (): Promise<ServiceListItem[]> => {
 let activeAllServicesFetchPromise: Promise<ServiceListItem[]> | null = null
 let activeCategoryServicesPromises: Record<string, Promise<ServiceListItem[]>> = {}
 
-export const getServiceByCategory = async (category: string): Promise<ServiceListItem[]> => {
-  // Load cached category data first
+export const getServiceByCategory = async (category: string, forceRefresh = false): Promise<ServiceListItem[]> => {
+  // Load cached category data first if not forcing a refresh
   let cachedData: ServiceListItem[] = []
-  try {
-    const cachedStr = await AsyncStorage.getItem(`cached_services_${category}`)
-    if (cachedStr) {
-      cachedData = JSON.parse(cachedStr)
+  if (!forceRefresh) {
+    try {
+      const cachedStr = await AsyncStorage.getItem(`cached_services_${category}`)
+      if (cachedStr) {
+        cachedData = JSON.parse(cachedStr)
+      }
+    } catch (e) {
+      console.warn(`Failed to load category ${category} cache:`, e)
     }
-  } catch (e) {
-    console.warn(`Failed to load category ${category} cache:`, e)
   }
 
   if (!activeCategoryServicesPromises[category]) {
@@ -402,7 +404,7 @@ export const getServiceByCategory = async (category: string): Promise<ServiceLis
     })()
   }
 
-  if (cachedData.length > 0) {
+  if (!forceRefresh && cachedData.length > 0) {
     activeCategoryServicesPromises[category].catch(() => {})
     return cachedData
   }
@@ -410,16 +412,18 @@ export const getServiceByCategory = async (category: string): Promise<ServiceLis
   return activeCategoryServicesPromises[category]
 }
 
-export const getAllServices = async (): Promise<ServiceListItem[]> => {
-  // Load cached all services first
+export const getAllServices = async (forceRefresh = false): Promise<ServiceListItem[]> => {
+  // Load cached all services first if not forcing a refresh
   let cachedData: ServiceListItem[] = []
-  try {
-    const cachedStr = await AsyncStorage.getItem('cached_all_services')
-    if (cachedStr) {
-      cachedData = JSON.parse(cachedStr)
+  if (!forceRefresh) {
+    try {
+      const cachedStr = await AsyncStorage.getItem('cached_all_services')
+      if (cachedStr) {
+        cachedData = JSON.parse(cachedStr)
+      }
+    } catch (e) {
+      console.warn('Failed to load services cache:', e)
     }
-  } catch (e) {
-    console.warn('Failed to load services cache:', e)
   }
 
   if (!activeAllServicesFetchPromise) {
@@ -455,7 +459,7 @@ export const getAllServices = async (): Promise<ServiceListItem[]> => {
     })()
   }
 
-  if (cachedData.length > 0) {
+  if (!forceRefresh && cachedData.length > 0) {
     activeAllServicesFetchPromise.catch(() => {})
     return cachedData
   }

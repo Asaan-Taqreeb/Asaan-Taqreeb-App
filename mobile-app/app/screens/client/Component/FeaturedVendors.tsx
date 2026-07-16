@@ -64,12 +64,21 @@ export default function FeaturedVendors() {
       try {
         setLoading(true)
         setError(null)
-        const services = await getAllServices()
+        
+        // 1. Get cached services first for instant display
+        const cachedServices = await getAllServices(false)
+        if (mounted && cachedServices.length > 0) {
+          setVendors(cachedServices)
+          setLoading(false)
+        }
+        
+        // 2. Fetch fresh services in the background and update UI state
+        const freshServices = await getAllServices(true)
         if (mounted) {
-          setVendors(services)
+          setVendors(freshServices)
         }
       } catch (apiError: any) {
-        if (mounted) {
+        if (mounted && vendors.length === 0) {
           setError(apiError?.message || t('loadingVendors'))
         }
       } finally {
@@ -117,9 +126,11 @@ export default function FeaturedVendors() {
                   query += ', Karachi, Pakistan';
                 }
                 const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
-                const res = await fetch(url, {
-                  headers: { 'User-Agent': 'AsaanTaqreebApp/1.0' }
-                });
+                const headers: Record<string, string> = {}
+                if (Platform.OS !== 'web') {
+                  headers['User-Agent'] = 'AsaanTaqreebApp/1.0'
+                }
+                const res = await fetch(url, { headers });
                 const data = await res.json();
                 if (Array.isArray(data) && data.length > 0) {
                   results = [{

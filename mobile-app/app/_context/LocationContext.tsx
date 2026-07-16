@@ -180,9 +180,34 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             
             if (Platform.OS === 'web') {
                 if (typeof window !== 'undefined' && window.navigator && window.navigator.geolocation) {
-                    window.navigator.geolocation.getCurrentPosition(
-                        async (position) => {
+                    const getPosition = (highAccuracy: boolean): Promise<GeolocationPosition> => {
+                        return new Promise((resolve, reject) => {
+                            window.navigator.geolocation.getCurrentPosition(resolve, reject, {
+                                enableHighAccuracy: highAccuracy,
+                                timeout: highAccuracy ? 8000 : 15000,
+                                maximumAge: 60000 // Allow cached position up to 1 min
+                            });
+                        });
+                    };
+
+                    (async () => {
+                        let position: GeolocationPosition | null = null;
+                        try {
+                            console.log('[LocationContext] Trying high accuracy browser geolocation...');
+                            position = await getPosition(true);
+                        } catch (err: any) {
+                            console.warn('[LocationContext] High accuracy browser geolocation failed:', err);
+                            try {
+                                console.log('[LocationContext] Retrying with low accuracy browser geolocation...');
+                                position = await getPosition(false);
+                            } catch (lowAccErr) {
+                                console.error('[LocationContext] Low accuracy browser geolocation failed:', lowAccErr);
+                            }
+                        }
+
+                        if (position) {
                             const { latitude, longitude } = position.coords;
+                            console.log(`[LocationContext] Browser geolocation succeeded: ${latitude}, ${longitude}`);
 
                             if (cachedData && haversineDistance(
                                 cachedData.latitude, cachedData.longitude,
@@ -195,11 +220,8 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                             setLongitude(longitude);
                             try {
                                 const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`;
-                                const res = await fetch(url, {
-                                    headers: {
-                                        'User-Agent': 'Asaan-Taqreeb-App/1.0'
-                                    }
-                                });
+                                // Omit User-Agent header on web to avoid browser security block/error
+                                const res = await fetch(url);
                                 const data = await res.json();
                                 if (data && data.address) {
                                     const parsed = parseNominatimAddress(data.address);
@@ -226,9 +248,8 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                             } finally {
                                 setLoading(false);
                             }
-                        },
-                        async (geoError) => {
-                            console.log("Web Geolocation failed, trying IP fallback...", geoError);
+                        } else {
+                            console.log("Web Geolocation failed completely, trying IP fallback...");
                             if (!hasCached) {
                                 const success = await fetchIpLocationFallback()
                                 if (!success) {
@@ -236,13 +257,8 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                                 }
                             }
                             setLoading(false);
-                        },
-                        {
-                            enableHighAccuracy: true,
-                            timeout: 10000,
-                            maximumAge: 0
                         }
-                    );
+                    })();
                 } else {
                     console.log("Geolocation API not available, trying IP fallback...");
                     if (!hasCached) {
