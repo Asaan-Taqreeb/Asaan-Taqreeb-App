@@ -4,8 +4,8 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
+import { showAlert } from '@/app/_utils/alert';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -118,7 +118,7 @@ export default function VendorProfileScreen() {
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert(
+    showAlert(
       'Delete Account',
       'Are you sure you want to permanently delete your vendor account? All your services and bookings will be removed. This action cannot be undone.',
       [
@@ -132,7 +132,7 @@ export default function VendorProfileScreen() {
               setUser(null);
               router.replace('/screens/WelcomeScreen');
             } catch (err) {
-              Alert.alert('Error', 'Failed to delete account');
+              showAlert('Error', 'Failed to delete account');
             }
           }
         }
@@ -320,7 +320,7 @@ export default function VendorProfileScreen() {
             title="Partner Support"
             subtitle="Get help with your bookings"
             onPress={() => {
-              Alert.alert('Help & Support', 'Contact us at asaantaqreebhelpline@outlook.com')
+              showAlert('Help & Support', 'Contact us at asaantaqreebhelpline@outlook.com')
             }}
           />
         </View>

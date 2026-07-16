@@ -239,9 +239,9 @@ const useLocation = () => {
                             setLoading(false);
                         },
                         {
-                            enableHighAccuracy: false, // Don't enforce hardware GPS on desktop web to avoid hanging
-                            timeout: 8000,            // 8s timeout
-                            maximumAge: 0             // Always get a fresh location
+                            enableHighAccuracy: true,  // Request high-accuracy GPS coordinates (Wi-Fi/GPS)
+                            timeout: 10000,           // 10 seconds timeout
+                            maximumAge: 0              // Always get a fresh location
                         }
                     );
                 } else {

@@ -6,7 +6,7 @@ import { Colors, Shadows, Spacing } from '@/app/_constants/theme'
 import { useUser } from '@/app/_context/UserContext'
 import Avatar from '@/app/_components/Avatar'
 import { logoutUser, deleteUserAccount } from '@/app/_utils/authApi'
-import { Alert } from 'react-native'
+import { showAlert } from '@/app/_utils/alert'
 import { useState } from 'react'
 import { useLanguage } from '@/app/_context/LanguageContext'
 import LanguagePickerModal from '@/app/_components/LanguagePickerModal'
@@ -64,7 +64,7 @@ export default function ProfileView() {
   }
 
   const handleDeleteAccount = () => {
-    Alert.alert(
+    showAlert(
       'Delete Account',
       'Are you sure you want to permanently delete your account? This action cannot be undone.',
       [
@@ -78,7 +78,7 @@ export default function ProfileView() {
               setUser(null)
               router.replace('/screens/WelcomeScreen')
             } catch (err) {
-              Alert.alert('Error', 'Failed to delete account')
+              showAlert('Error', 'Failed to delete account')
             }
           }
         }
@@ -160,7 +160,7 @@ export default function ProfileView() {
                     <Pressable 
                         className='px-5 flex-row items-center rounded-2xl gap-4 active:opacity-80 py-4' 
                         style={styles.menuItem}
-                        onPress={() => Alert.alert('Help Center', 'Our support team is available 24/7 at asaantaqreebhelpline@outlook.com')}
+                        onPress={() => showAlert('Help Center', 'Our support team is available 24/7 at asaantaqreebhelpline@outlook.com')}
                     >
                         <View className='p-2.5 rounded-xl' style={{backgroundColor: Colors.lightGray}}>
                             <CircleQuestionMark size={20} color={Colors.textSecondary} />
