@@ -7,6 +7,7 @@ import {
   Modal,
   TextInput,
   Alert,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -239,29 +240,52 @@ export default function PackageManagementScreen() {
   const handleDeletePackage = (packageId: string, packageName: string) => {
     if (!activeService) return
 
-    Alert.alert(
-      'Delete Service',
-      `Are you sure you want to delete "${activeService.name}"? This action cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setIsDeletingService(true)
-              await deleteVendorService(activeService.id || activeService.serviceId)
-              Alert.alert('Success', 'Service deleted successfully.')
-              loadPackages()
-            } catch (error: any) {
-              Alert.alert('Failed', error?.message || 'Unable to delete service. Please try again.')
-            } finally {
-              setIsDeletingService(false)
-            }
+    const performDelete = async () => {
+      try {
+        setIsDeletingService(true)
+        // Filter out the package at the specified index
+        const updatedPackages = (activeService.packages || []).filter((_, index) => String(index) !== packageId)
+        
+        await updateVendorService(activeService.id || activeService.serviceId, {
+          packages: updatedPackages
+        })
+        
+        if (Platform.OS === 'web') {
+          window.alert('Package deleted successfully.')
+        } else {
+          Alert.alert('Success', 'Package deleted successfully.')
+        }
+        loadPackages()
+      } catch (error: any) {
+        if (Platform.OS === 'web') {
+          window.alert(error?.message || 'Unable to delete package. Please try again.')
+        } else {
+          Alert.alert('Failed', error?.message || 'Unable to delete package. Please try again.')
+        }
+      } finally {
+        setIsDeletingService(false)
+      }
+    }
+
+    if (Platform.OS === 'web') {
+      const confirmDelete = window.confirm(`Are you sure you want to delete "${packageName}"? This action cannot be undone.`)
+      if (confirmDelete) {
+        performDelete()
+      }
+    } else {
+      Alert.alert(
+        'Delete Package',
+        `Are you sure you want to delete "${packageName}"? This action cannot be undone.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: performDelete,
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
   return (

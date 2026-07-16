@@ -7,6 +7,7 @@ import { UserProvider } from '@/app/_context/UserContext';
 import { LanguageProvider } from '@/app/_context/LanguageContext';
 import { SocketProvider } from '@/app/_context/SocketContext';
 import { ThemeProvider, useTheme } from '@/app/_context/ThemeContext';
+import { LocationProvider } from '@/app/_context/LocationContext';
 import { useNotificationSetup } from '@/app/_hooks/useNotificationSetup';
 import { useAppUpdateCheck } from '@/app/_hooks/useAppUpdateCheck';
 import AppUpdateModal from '@/app/_components/AppUpdateModal';
@@ -89,15 +90,17 @@ export default function RootLayout() {
 
   return (
     <UserProvider>
-      <ThemeProvider>
-        <LanguageProvider>
-          <SocketProvider>
-            <NotificationInitializer />
-            <UpdateInitializer />
-            <AppContent stackContent={stackContent} />
-          </SocketProvider>
-        </LanguageProvider>
-      </ThemeProvider>
+      <LocationProvider>
+        <ThemeProvider>
+          <LanguageProvider>
+            <SocketProvider>
+              <NotificationInitializer />
+              <UpdateInitializer />
+              <AppContent stackContent={stackContent} />
+            </SocketProvider>
+          </LanguageProvider>
+        </ThemeProvider>
+      </LocationProvider>
     </UserProvider>
   );
 }

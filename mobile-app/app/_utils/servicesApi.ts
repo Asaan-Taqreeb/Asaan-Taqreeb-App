@@ -351,6 +351,10 @@ export const getVendorServices = async (): Promise<ServiceListItem[]> => {
   }
 }
 
+// Promise caches to prevent concurrent duplicate network queries on page loads
+let activeAllServicesFetchPromise: Promise<ServiceListItem[]> | null = null
+let activeCategoryServicesPromises: Record<string, Promise<ServiceListItem[]>> = {}
+
 export const getServiceByCategory = async (category: string): Promise<ServiceListItem[]> => {
   // Load cached category data first
   let cachedData: ServiceListItem[] = []
@@ -363,43 +367,47 @@ export const getServiceByCategory = async (category: string): Promise<ServiceLis
     console.warn(`Failed to load category ${category} cache:`, e)
   }
 
-  const fetchPromise = (async () => {
-    try {
-      const noCacheUrl = `${VENDOR_ENDPOINTS.allServices}${VENDOR_ENDPOINTS.allServices.includes('?') ? '&' : '?'}_t=${Date.now()}`
-      const response = await apiFetchJson<any[]>(
-        noCacheUrl,
-        {
-          method: 'GET',
-          auth: false,
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            Pragma: 'no-cache',
-            Expires: '0',
+  if (!activeCategoryServicesPromises[category]) {
+    activeCategoryServicesPromises[category] = (async () => {
+      try {
+        const noCacheUrl = `${VENDOR_ENDPOINTS.allServices}${VENDOR_ENDPOINTS.allServices.includes('?') ? '&' : '?'}_t=${Date.now()}`
+        const response = await apiFetchJson<any[]>(
+          noCacheUrl,
+          {
+            method: 'GET',
+            auth: false,
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              Pragma: 'no-cache',
+              Expires: '0',
+            },
           },
-        },
-        'Failed to load services.'
-      )
+          'Failed to load services.'
+        )
 
-      const rawServices = extractServicesArray(response)
-      const uiServices = rawServices
-        .filter(s => toCategoryKey(firstDefined(s?.category, s?.serviceType, s?.type)) === category)
-        .map(mapServiceToUi)
-      
-      // Update cache
-      await AsyncStorage.setItem(`cached_services_${category}`, JSON.stringify(uiServices))
-      return uiServices
-    } catch (error) {
-      console.error('Background category fetch failed:', error)
-      throw error
-    }
-  })()
+        const rawServices = extractServicesArray(response)
+        const uiServices = rawServices
+          .filter(s => toCategoryKey(firstDefined(s?.category, s?.serviceType, s?.type)) === category)
+          .map(mapServiceToUi)
+        
+        // Update cache
+        await AsyncStorage.setItem(`cached_services_${category}`, JSON.stringify(uiServices))
+        return uiServices
+      } catch (error) {
+        console.error('Background category fetch failed:', error)
+        throw error
+      } finally {
+        delete activeCategoryServicesPromises[category]
+      }
+    })()
+  }
 
   if (cachedData.length > 0) {
-    fetchPromise.catch(() => {})
+    activeCategoryServicesPromises[category].catch(() => {})
     return cachedData
   }
 
-  return fetchPromise
+  return activeCategoryServicesPromises[category]
 }
 
 export const getAllServices = async (): Promise<ServiceListItem[]> => {
@@ -414,41 +422,45 @@ export const getAllServices = async (): Promise<ServiceListItem[]> => {
     console.warn('Failed to load services cache:', e)
   }
 
-  const fetchPromise = (async () => {
-    try {
-      const noCacheUrl = `${VENDOR_ENDPOINTS.allServices}${VENDOR_ENDPOINTS.allServices.includes('?') ? '&' : '?'}_t=${Date.now()}`
-      const response = await apiFetchJson<any[]>(
-        noCacheUrl,
-        {
-          method: 'GET',
-          auth: false,
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            Pragma: 'no-cache',
-            Expires: '0',
+  if (!activeAllServicesFetchPromise) {
+    activeAllServicesFetchPromise = (async () => {
+      try {
+        const noCacheUrl = `${VENDOR_ENDPOINTS.allServices}${VENDOR_ENDPOINTS.allServices.includes('?') ? '&' : '?'}_t=${Date.now()}`
+        const response = await apiFetchJson<any[]>(
+          noCacheUrl,
+          {
+            method: 'GET',
+            auth: false,
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              Pragma: 'no-cache',
+              Expires: '0',
+            },
           },
-        },
-        'Failed to load services.'
-      )
+          'Failed to load services.'
+        )
 
-      const rawServices = dedupeLatestServiceSnapshots(extractServicesArray(response))
-      const uiServices = rawServices.map(mapServiceToUi)
-      
-      // Update cache
-      await AsyncStorage.setItem('cached_all_services', JSON.stringify(uiServices))
-      return uiServices
-    } catch (error) {
-      console.error('Background fetch failed:', error)
-      throw error
-    }
-  })()
+        const rawServices = dedupeLatestServiceSnapshots(extractServicesArray(response))
+        const uiServices = rawServices.map(mapServiceToUi)
+        
+        // Update cache
+        await AsyncStorage.setItem('cached_all_services', JSON.stringify(uiServices))
+        return uiServices
+      } catch (error) {
+        console.error('Background fetch failed:', error)
+        throw error
+      } finally {
+        activeAllServicesFetchPromise = null
+      }
+    })()
+  }
 
   if (cachedData.length > 0) {
-    fetchPromise.catch(() => {})
+    activeAllServicesFetchPromise.catch(() => {})
     return cachedData
   }
 
-  return fetchPromise
+  return activeAllServicesFetchPromise
 }
 
 export const createVendorService = async (payload: Record<string, any>) => {

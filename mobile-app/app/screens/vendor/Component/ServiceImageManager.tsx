@@ -7,6 +7,7 @@ import {
   Alert,
   Image,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -44,38 +45,47 @@ export default function ServiceImageManager() {
   };
 
   const handleDeleteImage = (serviceId: string, imageUrl: string, serviceName: string) => {
-    Alert.alert(
-      'Delete Image',
-      `Remove this image from ${serviceName}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setIsDeletingImage(imageUrl);
-              // Optimistically remove from UI immediately
-              setServices(prev => prev.map(s =>
-                (s.id === serviceId || s.serviceId === serviceId)
-                  ? { ...s, images: (s.images || []).filter(img => img !== imageUrl) }
-                  : s
-              ));
-              // Attempt server delete — fail silently if Supabase not configured
-              try {
-                await deleteServiceImage(serviceId, imageUrl);
-              } catch (serverError: any) {
-                console.warn('Delete from server failed (Supabase may not be configured):', serverError?.message);
-              }
-            } catch (error: any) {
-              console.warn('handleDeleteImage error:', error?.message);
-            } finally {
-              setIsDeletingImage(null);
-            }
+    const performDelete = async () => {
+      try {
+        setIsDeletingImage(imageUrl);
+        // Optimistically remove from UI immediately
+        setServices(prev => prev.map(s =>
+          (s.id === serviceId || s.serviceId === serviceId)
+            ? { ...s, images: (s.images || []).filter(img => img !== imageUrl) }
+            : s
+        ));
+        // Attempt server delete — fail silently if Supabase not configured
+        try {
+          await deleteServiceImage(serviceId, imageUrl);
+        } catch (serverError: any) {
+          console.warn('Delete from server failed:', serverError?.message);
+        }
+      } catch (error: any) {
+        console.warn('handleDeleteImage error:', error?.message);
+      } finally {
+        setIsDeletingImage(null);
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      const confirmDelete = window.confirm(`Remove this image from ${serviceName}?`);
+      if (confirmDelete) {
+        performDelete();
+      }
+    } else {
+      Alert.alert(
+        'Delete Image',
+        `Remove this image from ${serviceName}?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: performDelete,
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
   return (
