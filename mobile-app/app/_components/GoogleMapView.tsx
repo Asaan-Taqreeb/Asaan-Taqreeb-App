@@ -380,4 +380,6 @@ const styles = StyleSheet.create({
     }
 });
 
+GoogleMapView.displayName = 'GoogleMapView';
+
 export default GoogleMapView;

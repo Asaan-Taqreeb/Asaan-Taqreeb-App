@@ -18,7 +18,7 @@ export interface LeafletMapMethods {
     animateToRegion: (lat: number, lng: number, zoom?: number) => void;
 }
 
-export default React.forwardRef<LeafletMapMethods, LeafletMapProps>((props, ref) => {
+const LeafletMap = React.forwardRef<LeafletMapMethods, LeafletMapProps>((props, ref) => {
     const {
         latitude,
         longitude,
@@ -158,6 +158,10 @@ export default React.forwardRef<LeafletMapMethods, LeafletMapProps>((props, ref)
         </View>
     );
 });
+
+LeafletMap.displayName = 'LeafletMap';
+
+export default LeafletMap;
 
 const styles = StyleSheet.create({
     container: {
