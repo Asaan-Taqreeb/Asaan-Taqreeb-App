@@ -94,7 +94,7 @@ const VerificationScreen = ({
 
                     <View style={styles.formContainer}>
                         <Text style={styles.infoText}>
-                            We've sent a 6-digit verification code to {'\n'}
+                            We&apos;ve sent a 6-digit verification code to {'\n'}
                             <Text style={{ fontWeight: '700', color: '#1F2937' }}>{userEmail}</Text>
                         </Text>
 
@@ -122,7 +122,7 @@ const VerificationScreen = ({
                         </Pressable>
 
                         <View style={styles.resendContainer}>
-                            <Text style={styles.resendText}>Didn't receive the code? </Text>
+                            <Text style={styles.resendText}>Didn&apos;t receive the code? </Text>
                             <Pressable onPress={handleResend} disabled={timer > 0 || resending}>
                                 <Text style={[
                                     styles.resendLink, 

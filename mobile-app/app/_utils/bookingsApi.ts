@@ -463,7 +463,7 @@ export const cancelBooking = async (bookingId: string | number) => {
     const cachedStr = await AsyncStorage.getItem('cached_my_bookings')
     if (cachedStr) {
       const cached: ClientBookingItem[] = JSON.parse(cachedStr)
-      const updated = cached.map((b) => (b.id === Number(bookingId) ? { ...b, status: 'rejected' as const } : b))
+      const updated = cached.map((b) => (String(b.id) === String(bookingId) ? { ...b, status: 'rejected' as const } : b))
       await AsyncStorage.setItem('cached_my_bookings', JSON.stringify(updated))
     }
   } catch (e) {

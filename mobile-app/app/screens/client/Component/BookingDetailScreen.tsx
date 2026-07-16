@@ -318,7 +318,7 @@ export default function BookingDetailScreen() {
                 </View>
                 {ratedBookings[booking.id].comment ? (
                   <Text className="text-xs font-medium text-gray-500 italic mt-1">
-                    "{ratedBookings[booking.id].comment}"
+                    &quot;{ratedBookings[booking.id].comment}&quot;
                   </Text>
                 ) : null}
               </View>

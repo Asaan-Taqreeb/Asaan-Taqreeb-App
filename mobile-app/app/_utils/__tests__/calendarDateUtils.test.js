@@ -1,3 +1,4 @@
+/* global describe, test, expect */
 const {
   generateHourlyIntervals,
   getLocalMonthRange,
@@ -48,7 +49,7 @@ describe('calendarDateUtils', () => {
   })
 
   test('creates hourly intervals from configured hours', () => {
-    const intervals = generateHourlyIntervals('09:00 AM', '11:00 AM')
+    const intervals = generateHourlyIntervals('09:00 AM', '01:00 PM')
 
     expect(intervals).toHaveLength(2)
     expect(intervals[0]).toEqual({

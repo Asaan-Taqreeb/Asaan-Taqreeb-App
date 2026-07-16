@@ -93,7 +93,7 @@ export default function LocationPermissionScreen({ onPermissionGranted, onBack, 
         {/* Text Details */}
         <Text style={styles.title}>Allow location access</Text>
         <Text style={styles.subtitle}>
-          We use this to show nearby stores. You can edit access in your phone's settings.
+          We use this to show nearby stores. You can edit access in your phone&apos;s settings.
         </Text>
       </View>
 

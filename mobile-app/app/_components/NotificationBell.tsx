@@ -275,7 +275,7 @@ export default function NotificationBell({ userId, userRole }: NotificationBellP
                 </View>
                 <Text className="text-base font-extrabold text-center" style={{ color: Colors.textPrimary }}>All Caught Up!</Text>
                 <Text className="text-xs font-medium mt-2 text-center text-slate-400 leading-relaxed max-w-[240px]">
-                  No new alerts here. We'll notify you when you receive a message or booking update.
+                  No new alerts here. We&apos;ll notify you when you receive a message or booking update.
                 </Text>
               </View>
             ) : (

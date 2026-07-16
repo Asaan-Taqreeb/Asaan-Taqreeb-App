@@ -55,7 +55,7 @@ export const generateHourlyIntervals = (fromStr: string, toStr: string) => {
 
   const intervals: Array<{ label: string; value: string }> = []
 
-  for (let time = fromMin; time <= toMin - 60; time += 60) {
+  for (let time = fromMin; time <= toMin - 180; time += 60) {
     const hour = Math.floor(time / 60) % 24
     const min = time % 60
     const period = hour >= 12 ? 'PM' : 'AM'

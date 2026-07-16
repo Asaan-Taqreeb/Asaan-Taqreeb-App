@@ -446,7 +446,7 @@ export default function ParlorServiceForm() {
                       Offer On-Site (Home/Venue) Services?
                   </Text>
                   <Text className='text-[10px] font-semibold text-slate-400 mt-0.5'>
-                      Check this if you travel to the client's location for beauty services.
+                      Check this if you travel to the client&apos;s location for beauty services.
                   </Text>
               </View>
               <Pressable
