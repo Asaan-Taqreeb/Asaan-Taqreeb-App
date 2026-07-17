@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Image, Pressable, FlatList } from "react-native";
+import { View, Text, StyleSheet, Image, Pressable, FlatList, Platform } from "react-native";
 import { Star, MapPin, Users } from "lucide-react-native";
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
@@ -127,7 +127,7 @@ export default function FeaturedVendors() {
                 }
                 const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
                 const headers: Record<string, string> = {}
-                if (Platform.OS !== 'web') {
+                if ((Platform.OS as string) !== 'web') {
                   headers['User-Agent'] = 'AsaanTaqreebApp/1.0'
                 }
                 const res = await fetch(url, { headers });

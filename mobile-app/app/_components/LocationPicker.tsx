@@ -135,9 +135,11 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
                     }
                     
                     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5`;
-                    const response = await fetch(url, {
-                        headers: { 'User-Agent': 'AsaanTaqreebApp/1.0' }
-                    });
+                    const headers: Record<string, string> = {};
+                    if ((Platform.OS as string) !== 'web') {
+                        headers['User-Agent'] = 'AsaanTaqreebApp/1.0';
+                    }
+                    const response = await fetch(url, { headers });
                     
                     if (!response.ok) return;
                     const data = await response.json();
@@ -194,7 +196,10 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
                 const reverse = await Location.reverseGeocodeAsync({ latitude, longitude });
                 if (reverse.length > 0) {
                     const addr = reverse[0];
-                    const formatted = [addr.name, addr.street, addr.district, addr.city].filter(Boolean).join(', ');
+                    const formatted = [addr.name, addr.street, addr.subregion, addr.district, addr.city]
+                        .map(s => String(s || '').trim())
+                        .filter((value, index, self) => value && self.indexOf(value) === index)
+                        .join(', ');
                     setTempAddress(formatted);
                 } else {
                     setTempAddress(searchQuery);
@@ -206,9 +211,11 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
             // Try Nominatim search fallback if native geocoding fails
             try {
                 const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(geocodeQuery)}&format=json&limit=1`;
-                const res = await fetch(url, {
-                    headers: { 'User-Agent': 'AsaanTaqreebApp/1.0' }
-                });
+                const headers: Record<string, string> = {};
+                if ((Platform.OS as string) !== 'web') {
+                    headers['User-Agent'] = 'AsaanTaqreebApp/1.0';
+                }
+                const res = await fetch(url, { headers });
                 const data = await res.json();
                 if (Array.isArray(data) && data.length > 0) {
                     const lat = parseFloat(data[0].lat);
@@ -256,7 +263,10 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
             const results = await Location.reverseGeocodeAsync({ latitude, longitude });
             if (results.length > 0) {
                 const addr = results[0];
-                const formatted = [addr.name, addr.street, addr.district, addr.city].filter(Boolean).join(', ');
+                const formatted = [addr.name, addr.street, addr.subregion, addr.district, addr.city]
+                    .map(s => String(s || '').trim())
+                    .filter((value, index, self) => value && self.indexOf(value) === index)
+                    .join(', ');
                 setTempAddress(formatted);
                 setSearchQuery(formatted);
             } else {
@@ -266,9 +276,11 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
             // Try Nominatim fallback
             try {
                 const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
-                const res = await fetch(url, {
-                    headers: { 'User-Agent': 'AsaanTaqreebApp/1.0' }
-                });
+                const headers: Record<string, string> = {};
+                if ((Platform.OS as string) !== 'web') {
+                    headers['User-Agent'] = 'AsaanTaqreebApp/1.0';
+                }
+                const res = await fetch(url, { headers });
                 const data = await res.json();
                 if (data && data.display_name) {
                     setTempAddress(data.display_name);
@@ -362,9 +374,11 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
                         setSearchQuery("Loading address...");
                         try {
                             const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
-                            const res = await fetch(url, {
-                                headers: { 'User-Agent': 'AsaanTaqreebApp/1.0' }
-                            });
+                            const headers: Record<string, string> = {};
+                            if ((Platform.OS as string) !== 'web') {
+                                headers['User-Agent'] = 'AsaanTaqreebApp/1.0';
+                            }
+                            const res = await fetch(url, { headers });
                             const data = await res.json();
                             if (data && data.display_name) {
                                 setTempAddress(data.display_name);
@@ -454,7 +468,10 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
                 const results = await Location.reverseGeocodeAsync({ latitude, longitude });
                 if (results.length > 0) {
                     const addr = results[0];
-                    const formatted = [addr.name, addr.street, addr.district, addr.city].filter(Boolean).join(', ');
+                    const formatted = [addr.name, addr.street, addr.subregion, addr.district, addr.city]
+                        .map(s => String(s || '').trim())
+                        .filter((value, index, self) => value && self.indexOf(value) === index)
+                        .join(', ');
                     setTempAddress(formatted);
                     setSearchQuery(formatted);
                 } else {
@@ -464,9 +481,11 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
                 console.log("Native reverse geocoding failed in getCurrentLocation, trying Nominatim fallback:", geocodeError);
                 try {
                     const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
-                    const res = await fetch(url, {
-                        headers: { 'User-Agent': 'AsaanTaqreebApp/1.0' }
-                    });
+                    const headers: Record<string, string> = {};
+                    if ((Platform.OS as string) !== 'web') {
+                        headers['User-Agent'] = 'AsaanTaqreebApp/1.0';
+                    }
+                    const res = await fetch(url, { headers });
                     const data = await res.json();
                     if (data && data.display_name) {
                         setTempAddress(data.display_name);

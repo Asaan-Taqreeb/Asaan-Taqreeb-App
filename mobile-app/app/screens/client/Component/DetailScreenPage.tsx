@@ -104,9 +104,11 @@ export default function DetailScreenPage() {
                             query += ', Karachi, Pakistan';
                         }
                         const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
-                        const res = await fetch(url, {
-                            headers: { 'User-Agent': 'AsaanTaqreebApp/1.0' }
-                        });
+                        const headers: Record<string, string> = {};
+                        if ((Platform.OS as string) !== 'web') {
+                            headers['User-Agent'] = 'AsaanTaqreebApp/1.0';
+                        }
+                        const res = await fetch(url, { headers });
                         const data = await res.json();
                         if (Array.isArray(data) && data.length > 0) {
                             results = [{

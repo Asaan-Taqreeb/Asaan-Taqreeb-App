@@ -19,8 +19,12 @@ const Header = () => {
   const { t } = useLanguage()
   
   const location = Array.isArray(result) ? result[0] : result
+  const neighborhood = location ? (location.subregion || location.district || '') : '';
   const formattedLocation = location
-    ? ([location.district, location.city].map(s => String(s || '').trim()).filter(Boolean).join(', ') || location.name || 'Karachi, Pakistan')
+    ? ([neighborhood, location.city]
+        .map(s => String(s || '').trim())
+        .filter((value, index, self) => value && self.indexOf(value) === index)
+        .join(', ') || location.name || 'Karachi, Pakistan')
     : '';
 
   const handleSearchSubmit = (text: string) => {
