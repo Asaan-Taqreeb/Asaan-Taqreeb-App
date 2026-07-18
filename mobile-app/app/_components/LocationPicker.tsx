@@ -10,6 +10,7 @@ import {
     Modal, 
     SafeAreaView,
     Platform,
+    StatusBar,
     ViewStyle,
     TextStyle,
     ScrollView
@@ -31,6 +32,7 @@ interface LocationPickerProps {
         longitude?: number;
     };
     customTrigger?: (openModal: () => void) => React.ReactNode;
+    containerStyle?: ViewStyle;
 }
 
 const DEFAULT_REGION = {
@@ -54,7 +56,7 @@ const KARACHI_FALLBACKS = [
     { keys: ['johar', 'gulistan-e-johar'], name: 'Gulistan-e-Johar, Karachi', latitude: 24.9114, longitude: 67.1353 },
 ];
 
-export default function LocationPicker({ onLocationSelect, initialLocation, customTrigger }: LocationPickerProps) {
+export default function LocationPicker({ onLocationSelect, initialLocation, customTrigger, containerStyle }: LocationPickerProps) {
     const [modalVisible, setModalVisible] = useState(false);
     const [address, setAddress] = useState(initialLocation?.address || '');
     const [latitude, setLatitude] = useState(initialLocation?.latitude);
@@ -81,7 +83,7 @@ export default function LocationPicker({ onLocationSelect, initialLocation, cust
     };
 
     return (
-        <View style={customTrigger ? undefined : (styles.container as ViewStyle)}>
+        <View style={customTrigger ? containerStyle : [styles.container as ViewStyle, containerStyle]}>
             {customTrigger ? (
                 customTrigger(() => setModalVisible(true))
             ) : (
@@ -544,6 +546,7 @@ function FullMapModal({ visible, onClose, onConfirm, initialLocation }: FullMapM
             transparent={false}
             onRequestClose={onClose}
         >
+            <StatusBar barStyle="dark-content" backgroundColor="#FFF" />
             <SafeAreaView style={styles.modalContainer as ViewStyle}>
                 {/* Header */}
                 <View style={styles.modalHeader as ViewStyle}>
@@ -709,6 +712,7 @@ const styles = StyleSheet.create({
     modalContainer: {
         flex: 1,
         backgroundColor: '#FFF',
+        paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 24) : 0,
     },
     modalHeader: {
         flexDirection: 'row',

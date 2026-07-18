@@ -310,8 +310,8 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             let { status } = await Location.getForegroundPermissionsAsync()
             console.log('[LocationContext] Existing permission status:', status);
 
-            // Request permission if not granted and status is undetermined OR forceRequestPermission is true
-            if (status !== 'granted' && (status === 'undetermined' || forceRequestPermission)) {
+            // Request permission if not granted
+            if (status !== 'granted') {
                 console.log('[LocationContext] Requesting foreground permissions...');
                 const requested = await Location.requestForegroundPermissionsAsync()
                 console.log('[LocationContext] Request permission response:', JSON.stringify(requested, null, 2));
@@ -328,35 +328,38 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 return
             }
 
-            let coords = null;
+            let coords: Location.LocationObjectCoords | null = null;
+
+            // Attempt to get last known position first for quick availability
+            try {
+                const lastKnown = await Location.getLastKnownPositionAsync();
+                if (lastKnown && lastKnown.coords) {
+                    coords = lastKnown.coords;
+                    console.log('[LocationContext] Fast lastKnown position acquired:', coords);
+                }
+            } catch (lastKnownError) {
+                console.log('[LocationContext] getLastKnownPositionAsync failed:', lastKnownError);
+            }
+
+            // Fetch fresh GPS position
             try {
                 const positionPromise = Location.getCurrentPositionAsync({
                     accuracy: Location.Accuracy.Balanced
                 });
 
                 const timeoutPromise = new Promise<null>((resolve) => 
-                    setTimeout(() => resolve(null), 6000)
+                    setTimeout(() => resolve(null), 8000)
                 );
 
                 const locationObj = await Promise.race([positionPromise, timeoutPromise]);
-                if (locationObj) {
+                if (locationObj && locationObj.coords) {
                     coords = locationObj.coords;
-                } else {
-                    console.log("getCurrentPositionAsync timed out, trying getLastKnownPositionAsync...");
+                    console.log('[LocationContext] Fresh GPS position acquired:', coords);
+                } else if (!coords) {
+                    console.log("[LocationContext] getCurrentPositionAsync timed out and no lastKnown coords available.");
                 }
             } catch (posError) {
-                console.log("getCurrentPositionAsync failed, trying getLastKnownPositionAsync...", posError);
-            }
-
-            if (!coords) {
-                try {
-                    const lastKnown = await Location.getLastKnownPositionAsync();
-                    if (lastKnown) {
-                        coords = lastKnown.coords;
-                    }
-                } catch (lastKnownError) {
-                    console.log("getLastKnownPositionAsync failed:", lastKnownError);
-                }
+                console.log("[LocationContext] getCurrentPositionAsync failed:", posError);
             }
 
             if (coords) {
@@ -408,9 +411,10 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                     }
                 }
             } else {
-                console.log("Failed to retrieve coordinates from GPS/Browser");
-                if (!hasCached) {
-                    await applyKarachiFallback()
+                console.log("Failed to retrieve coordinates from GPS, attempting IP location fallback...");
+                const ipSuccess = await fetchIpLocationFallback();
+                if (!ipSuccess && !hasCached) {
+                    await applyKarachiFallback();
                 }
             }
         } catch (error) {

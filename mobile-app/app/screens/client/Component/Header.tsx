@@ -88,34 +88,35 @@ const Header = () => {
   return (
     <View style={styles.container}>
       <View className='flex flex-row justify-between items-center px-4 py-3'>
-        <View className='flex-row items-center gap-3 flex-1'>
+        <View className='flex-row items-center gap-2.5 flex-1 min-w-0 mr-2'>
           <AppLogo size="small" showText={false} />
           
           <LocationPicker
+            containerStyle={{ flex: 1, flexShrink: 1 }}
             initialLocation={{ address: formattedLocation, latitude, longitude }}
             onLocationSelect={(loc) => setManualLocation(loc)}
             customTrigger={(openModal) => (
               <Pressable 
-                className='flex-1 justify-center active:opacity-70 pr-2' 
+                className='flex-1 flex-shrink justify-center active:opacity-70 pr-1' 
                 onPress={openModal}
               >
                 <Text className='text-[10px] font-bold uppercase tracking-[1px]' style={{color: Colors.textTertiary}}>{t('currentLocation')}</Text>
                 {location ? (
-                  <View className='flex flex-row items-center gap-1 mt-0.5'>
-                    <MapPin size={13} color={Colors.accent} />          
-                    <Text className='text-sm font-bold max-w-[230px]' style={{color: Colors.textPrimary}} numberOfLines={1}>{formattedLocation}</Text>
-                    <ChevronDown size={12} color={Colors.textTertiary} />
+                  <View className='flex flex-row items-center gap-1 mt-0.5 flex-shrink'>
+                    <MapPin size={13} color={Colors.accent} style={{ flexShrink: 0 }} />          
+                    <Text className='text-sm font-bold flex-shrink' style={{color: Colors.textPrimary}} numberOfLines={1} ellipsizeMode="tail">{formattedLocation}</Text>
+                    <ChevronDown size={12} color={Colors.textTertiary} style={{ flexShrink: 0 }} />
                   </View>
                 ) : error ? (
-                  <View className='flex flex-row items-center gap-1.5 mt-0.5'>
-                    <MapPin size={13} color={Colors.textTertiary} />          
-                    <Text className='text-xs font-semibold' style={{color: Colors.textSecondary}}>{t('locationUnavailable')}</Text>
-                    <ChevronDown size={12} color={Colors.textTertiary} />
+                  <View className='flex flex-row items-center gap-1.5 mt-0.5 flex-shrink'>
+                    <MapPin size={13} color={Colors.textTertiary} style={{ flexShrink: 0 }} />          
+                    <Text className='text-xs font-semibold flex-shrink' style={{color: Colors.textSecondary}} numberOfLines={1}>{t('locationUnavailable')}</Text>
+                    <ChevronDown size={12} color={Colors.textTertiary} style={{ flexShrink: 0 }} />
                   </View>
                 ) : (
-                  <View className='flex flex-row items-center gap-1 mt-0.5'>
-                    <Text className='text-xs font-semibold' style={{color: Colors.textTertiary}}>{t('detectingLocation')}</Text>
-                    <ChevronDown size={12} color={Colors.textTertiary} />
+                  <View className='flex flex-row items-center gap-1 mt-0.5 flex-shrink'>
+                    <Text className='text-xs font-semibold flex-shrink' style={{color: Colors.textTertiary}} numberOfLines={1}>{t('detectingLocation')}</Text>
+                    <ChevronDown size={12} color={Colors.textTertiary} style={{ flexShrink: 0 }} />
                   </View>
                 )}      
               </Pressable>
@@ -123,7 +124,7 @@ const Header = () => {
           />
         </View>
 
-        <View className='flex-row justify-center items-center gap-2 mr-1'>
+        <View className='flex-row justify-center items-center gap-2 flex-shrink-0'>
           <Pressable 
             className="p-2 rounded-xl active:bg-gray-100 border border-slate-100" 
             style={{ backgroundColor: Colors.white }}
@@ -132,7 +133,7 @@ const Header = () => {
             <Heart size={18} color={Colors.textPrimary} />
           </Pressable>
           <NotificationBell userId={user?.id} userRole='client' />
-          <Pressable className='active:opacity-70 ml-1.5' onPress={() => router.push("/screens/client/Component/ProfileView")}>
+          <Pressable className='active:opacity-70 ml-1' onPress={() => router.push("/screens/client/Component/ProfileView")}>
             <Avatar name={user?.name || 'U'} size='sm' />
           </Pressable>
         </View>
