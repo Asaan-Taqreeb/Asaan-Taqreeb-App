@@ -176,6 +176,16 @@ const refreshAccessToken = async (): Promise<string | null> => {
       currentRole = payload?.role || null
     }
 
+    if (!currentRole && Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+      try {
+        const rawUser = window.localStorage.getItem('auth_user_profile')
+        if (rawUser) {
+          const userObj = JSON.parse(rawUser)
+          currentRole = userObj?.role || null
+        }
+      } catch (e) {}
+    }
+
     const response = await fetch(AUTH_ENDPOINTS.refresh, {
       method: 'POST',
       headers: {

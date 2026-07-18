@@ -7,6 +7,13 @@ const REFRESH_TOKEN_KEY = 'auth_refresh_token'
 
 const saveItem = async (key: string, value: string) => {
   if (Platform.OS === 'web') {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        window.localStorage.setItem(key, value)
+      } catch (e) {
+        console.error('localStorage setItem error:', e)
+      }
+    }
     await AsyncStorage.setItem(key, value)
     return
   }
@@ -16,6 +23,14 @@ const saveItem = async (key: string, value: string) => {
 
 const getItem = async (key: string) => {
   if (Platform.OS === 'web') {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        const val = window.localStorage.getItem(key)
+        if (val) return val
+      } catch (e) {
+        console.error('localStorage getItem error:', e)
+      }
+    }
     return AsyncStorage.getItem(key)
   }
 
@@ -24,6 +39,13 @@ const getItem = async (key: string) => {
 
 const deleteItem = async (key: string) => {
   if (Platform.OS === 'web') {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        window.localStorage.removeItem(key)
+      } catch (e) {
+        console.error('localStorage removeItem error:', e)
+      }
+    }
     await AsyncStorage.removeItem(key)
     return
   }

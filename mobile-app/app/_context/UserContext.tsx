@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { Platform } from 'react-native'
 import { getAccessToken } from '@/app/_utils/authStorage'
 import { getCurrentUser } from '@/app/_utils/authApi'
 import { SessionExpiredError } from '@/app/_utils/apiClient'
@@ -30,15 +31,29 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const saveUserToStorage = useCallback(async (nextUser: UserData | null) => {
     if (!nextUser) {
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+        try {
+          window.localStorage.removeItem(USER_STORAGE_KEY)
+        } catch (e) {}
+      }
       await AsyncStorage.removeItem(USER_STORAGE_KEY)
       return
     }
 
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+      try {
+        window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(nextUser))
+      } catch (e) {}
+    }
     await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(nextUser))
   }, [])
 
   const loadUserFromStorage = useCallback(async (): Promise<UserData | null> => {
     try {
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+        const local = window.localStorage.getItem(USER_STORAGE_KEY)
+        if (local) return JSON.parse(local) as UserData
+      }
       const raw = await AsyncStorage.getItem(USER_STORAGE_KEY)
       if (!raw) return null
       return JSON.parse(raw) as UserData
@@ -76,10 +91,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userInfo = userPayload?.user ?? userPayload
 
       const user = {
-        id: userInfo?.id || userInfo?._id,
-        name: userInfo?.name,
-        email: userInfo?.email,
-        role: userInfo?.role,
+        id: userInfo?.id || userInfo?._id || cachedUser?.id,
+        name: userInfo?.name || cachedUser?.name,
+        email: userInfo?.email || cachedUser?.email,
+        role: userInfo?.role || cachedUser?.role,
+        ...cachedUser,
         ...userInfo,
       }
       console.log('UserContext refreshUser - loaded user data:', user)
