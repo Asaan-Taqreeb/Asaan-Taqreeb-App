@@ -187,7 +187,7 @@ export default function VendorChatScreen() {
             isRead: false,
             createdAt: new Date().toISOString()
         }
-        setMessages(prev => [...prev, optimisticMessage])
+        setMessages(prev => [optimisticMessage, ...prev])
         setShowSchedulerModal(false)
         setSchedNote('')
 
@@ -206,7 +206,7 @@ export default function VendorChatScreen() {
                     isRead: false,
                     createdAt: new Date().toISOString()
                 }
-                setMessages(prev => [...prev, mockReply])
+                setMessages(prev => [mockReply, ...prev])
             }, 3000)
 
         } catch (error) {
