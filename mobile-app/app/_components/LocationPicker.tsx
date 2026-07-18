@@ -30,6 +30,7 @@ interface LocationPickerProps {
         latitude?: number;
         longitude?: number;
     };
+    customTrigger?: (openModal: () => void) => React.ReactNode;
 }
 
 const DEFAULT_REGION = {
@@ -53,11 +54,23 @@ const KARACHI_FALLBACKS = [
     { keys: ['johar', 'gulistan-e-johar'], name: 'Gulistan-e-Johar, Karachi', latitude: 24.9114, longitude: 67.1353 },
 ];
 
-export default function LocationPicker({ onLocationSelect, initialLocation }: LocationPickerProps) {
+export default function LocationPicker({ onLocationSelect, initialLocation, customTrigger }: LocationPickerProps) {
     const [modalVisible, setModalVisible] = useState(false);
     const [address, setAddress] = useState(initialLocation?.address || '');
     const [latitude, setLatitude] = useState(initialLocation?.latitude);
     const [longitude, setLongitude] = useState(initialLocation?.longitude);
+
+    useEffect(() => {
+        if (initialLocation?.address) {
+            setAddress(initialLocation.address);
+        }
+        if (initialLocation?.latitude) {
+            setLatitude(initialLocation.latitude);
+        }
+        if (initialLocation?.longitude) {
+            setLongitude(initialLocation.longitude);
+        }
+    }, [initialLocation?.address, initialLocation?.latitude, initialLocation?.longitude]);
 
     const handleConfirm = (loc: { address: string; latitude: number; longitude: number }) => {
         setAddress(loc.address);
@@ -68,25 +81,29 @@ export default function LocationPicker({ onLocationSelect, initialLocation }: Lo
     };
 
     return (
-        <View style={styles.container as ViewStyle}>
-            <TouchableOpacity 
-                style={StyleSheet.flatten([styles.trigger, { borderColor: address ? Colors.primary : '#E5E7EB' }]) as ViewStyle} 
-                onPress={() => setModalVisible(true)}
-                activeOpacity={0.7}
-            >
-                <View style={styles.triggerIcon as ViewStyle}>
-                    <MapPin size={20} color={address ? Colors.primary : '#9CA3AF'} />
-                </View>
-                <Text 
-                    style={StyleSheet.flatten([styles.triggerText, { color: address ? '#111827' : '#9CA3AF' }]) as TextStyle} 
-                    numberOfLines={1}
+        <View style={customTrigger ? undefined : (styles.container as ViewStyle)}>
+            {customTrigger ? (
+                customTrigger(() => setModalVisible(true))
+            ) : (
+                <TouchableOpacity 
+                    style={StyleSheet.flatten([styles.trigger, { borderColor: address ? Colors.primary : '#E5E7EB' }]) as ViewStyle} 
+                    onPress={() => setModalVisible(true)}
+                    activeOpacity={0.7}
                 >
-                    {address || "Tap to select location on map..."}
-                </Text>
-                <View style={styles.triggerAction as ViewStyle}>
-                    <Text style={styles.triggerActionText as TextStyle}>{address ? "Change" : "Select"}</Text>
-                </View>
-            </TouchableOpacity>
+                    <View style={styles.triggerIcon as ViewStyle}>
+                        <MapPin size={20} color={address ? Colors.primary : '#9CA3AF'} />
+                    </View>
+                    <Text 
+                        style={StyleSheet.flatten([styles.triggerText, { color: address ? '#111827' : '#9CA3AF' }]) as TextStyle} 
+                        numberOfLines={1}
+                    >
+                        {address || "Tap to select location on map..."}
+                    </Text>
+                    <View style={styles.triggerAction as ViewStyle}>
+                        <Text style={styles.triggerActionText as TextStyle}>{address ? "Change" : "Select"}</Text>
+                    </View>
+                </TouchableOpacity>
+            )}
 
             <FullMapModal 
                 visible={modalVisible}

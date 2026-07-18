@@ -22,7 +22,6 @@ export function useNotificationSetup() {
   useEffect(() => {
     if (loading || !user?.id || user.isGuest || initializedUserIdRef.current === user.id) return;
 
-    initializedUserIdRef.current = user.id;
     let interactionHandle: { cancel: () => void } | null = null;
     let cancelled = false;
 
@@ -45,7 +44,10 @@ export function useNotificationSetup() {
 
         // Send token to backend only when authenticated
         if (expoToken) {
-          await updatePushTokens(expoToken, undefined);
+          const success = await updatePushTokens(expoToken, undefined);
+          if (success) {
+            initializedUserIdRef.current = user.id;
+          }
         }
 
         // Set up handler for foreground notifications
@@ -74,6 +76,7 @@ export function useNotificationSetup() {
         console.log('✅ Native Push notifications initialized successfully');
       } catch (error) {
         console.error('Error initializing native notifications:', error);
+        initializedUserIdRef.current = null;
       }
     };
 

@@ -37,6 +37,7 @@ export interface LocationContextType {
     longitude: number | undefined
     loading: boolean
     refreshLocation: (forceRequestPermission?: boolean) => Promise<void>
+    setManualLocation: (location: { address: string; latitude: number; longitude: number }) => Promise<void>
 }
 
 export const LocationContext = createContext<LocationContextType | undefined>(undefined)
@@ -110,6 +111,27 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         await cacheLocation(24.8607, 67.0011, fallbackResponse, 'karachi-fallback')
         console.log("Applied default Karachi location fallback and cached it")
     }, [cacheLocation])
+
+    const setManualLocation = useCallback(async (loc: { address: string; latitude: number; longitude: number }) => {
+        const parts = loc.address.split(',').map(s => s.trim()).filter(Boolean);
+        const mainArea = parts[0] || "Custom Location";
+        const cityPart = parts.find(p => p.toLowerCase().includes('karachi')) || parts[parts.length - 1] || "Karachi";
+
+        const response = [{
+            city: cityPart,
+            district: mainArea,
+            name: loc.address,
+            street: mainArea,
+            subregion: mainArea,
+            country: "Pakistan"
+        }];
+
+        setLatitude(loc.latitude);
+        setLongitude(loc.longitude);
+        setResult(response);
+        setError("");
+        await cacheLocation(loc.latitude, loc.longitude, response, 'manual-picker');
+    }, [cacheLocation]);
 
     const fetchIpLocationFallback = useCallback(async () => {
         const apis = [
@@ -284,11 +306,11 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             let { status } = await Location.getForegroundPermissionsAsync()
             console.log('[LocationContext] Existing permission status:', status);
 
-            // If not granted and we want to force permission prompt (e.g. from user action)
-            if (status !== 'granted' && forceRequestPermission) {
-                console.log('[LocationContext] Force requesting foreground permissions...');
+            // Request permission if not granted and status is undetermined OR forceRequestPermission is true
+            if (status !== 'granted' && (status === 'undetermined' || forceRequestPermission)) {
+                console.log('[LocationContext] Requesting foreground permissions...');
                 const requested = await Location.requestForegroundPermissionsAsync()
-                console.log('[LocationContext] Force request permission response:', JSON.stringify(requested, null, 2));
+                console.log('[LocationContext] Request permission response:', JSON.stringify(requested, null, 2));
                 status = requested.status
             }
 
@@ -406,7 +428,7 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }, [getUserLocation])
 
     return (
-        <LocationContext.Provider value={{ result, error, latitude, longitude, loading, refreshLocation }}>
+        <LocationContext.Provider value={{ result, error, latitude, longitude, loading, refreshLocation, setManualLocation }}>
             {children}
         </LocationContext.Provider>
     )
