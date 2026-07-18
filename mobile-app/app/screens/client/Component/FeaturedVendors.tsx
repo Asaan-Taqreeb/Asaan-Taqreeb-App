@@ -32,6 +32,20 @@ const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c;
 };
 
+const KARACHI_AREA_COORDS = [
+  { keys: ['clifton'], latitude: 24.8138, longitude: 67.0336 },
+  { keys: ['defence', 'dha'], latitude: 24.8238, longitude: 67.0681 },
+  { keys: ['gulshan', 'iqbal'], latitude: 24.9180, longitude: 67.0971 },
+  { keys: ['north nazimabad'], latitude: 24.9372, longitude: 67.0416 },
+  { keys: ['saddar', 'tariq', 'pechs'], latitude: 24.8615, longitude: 67.0423 },
+  { keys: ['fb area', 'federal b'], latitude: 24.9312, longitude: 67.0794 },
+  { keys: ['bahria'], latitude: 25.0252, longitude: 67.3294 },
+  { keys: ['malir'], latitude: 24.8986, longitude: 67.1908 },
+  { keys: ['korangi'], latitude: 24.8322, longitude: 67.1265 },
+  { keys: ['nazimabad'], latitude: 24.9122, longitude: 67.0265 },
+  { keys: ['johar', 'gulistan'], latitude: 24.9114, longitude: 67.1353 },
+];
+
 export default function FeaturedVendors() {
   const [vendors, setVendors] = useState<ServiceListItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -115,12 +129,22 @@ export default function FeaturedVendors() {
           }
 
           if (vendor.location && vendor.location !== 'Location not set') {
+            const locLower = vendor.location.toLowerCase();
+            const areaMatch = KARACHI_AREA_COORDS.find(item => item.keys.some(k => locLower.includes(k)));
+            
+            if (areaMatch) {
+              const coord = { latitude: areaMatch.latitude, longitude: areaMatch.longitude };
+              newCoords[vendor.id] = coord;
+              GEOCODE_CACHE[vendor.id] = coord;
+              cacheUpdated = true;
+              continue;
+            }
+
             try {
               let results: any[] = []
               try {
                 results = await Location.geocodeAsync(vendor.location)
               } catch (nativeGeocodeErr) {
-                console.log("Native geocoding failed for vendor, trying Nominatim search fallback:", nativeGeocodeErr);
                 let query = vendor.location;
                 if (!query.toLowerCase().includes('karachi')) {
                   query += ', Karachi, Pakistan';
@@ -148,7 +172,6 @@ export default function FeaturedVendors() {
                 newCoords[vendor.id] = coord
                 GEOCODE_CACHE[vendor.id] = coord
                 cacheUpdated = true
-                console.log(`Geocoded vendor "${vendor.name}" (${vendor.location}) to:`, coord.latitude, coord.longitude)
               }
             } catch (e) {
               console.log(`Failed to geocode address "${vendor.location}":`, e)
@@ -226,17 +249,24 @@ export default function FeaturedVendors() {
             <Text className="px-4 py-2 text-sm" style={{color: Colors.error}}>{error}</Text>
           )}
           <View style={{ paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md }}>
-            {sortedVendors.map((item) => {
+            {sortedVendors.map((item, index) => {
               const catColor = getCategoryColor(item.key)
+              const isNearest = index === 0 && item.distance !== undefined && item.distance <= 15
               return (
                 <Pressable key={item.id.toString()} className="mb-4 active:opacity-90" onPress={() => router.push({
                   pathname: "/screens/client/Component/DetailScreenPage",
                   params: { vendor: encodeURIComponent(JSON.stringify(item)), category: item.key }
                 })}>
                   <View 
-                    className="rounded-3xl p-4 flex-row items-center gap-4" 
+                    className="rounded-3xl p-4 flex-row items-center gap-4 relative overflow-hidden" 
                     style={[
-                      {backgroundColor: Colors.white, borderLeftWidth: 6, borderLeftColor: catColor}, 
+                      {
+                        backgroundColor: Colors.white, 
+                        borderLeftWidth: 6, 
+                        borderLeftColor: isNearest ? '#10B981' : catColor,
+                        borderColor: isNearest ? '#10B981' : 'transparent',
+                        borderWidth: isNearest ? 1.5 : 0,
+                      }, 
                       Shadows.medium
                     ]}
                   > 
@@ -249,6 +279,11 @@ export default function FeaturedVendors() {
                     />
                     <View className="flex-col flex-1 justify-between py-1">
                       <View>
+                        {isNearest && (
+                          <View className="flex-row items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 self-start mb-1">
+                            <Text className="text-[10px] font-bold text-emerald-700">⚡ Nearest to you</Text>
+                          </View>
+                        )}
                         <View className="flex-row justify-between items-start mb-1">
                           <Text className="text-base font-black flex-1 mr-2" style={{color: Colors.textPrimary}} numberOfLines={1}>{item.name}</Text>
                           <View className="flex-row items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-100">
@@ -257,12 +292,20 @@ export default function FeaturedVendors() {
                           </View>
                         </View>
                         
-                        <View className="flex-row items-center mb-1.5">
-                          <MapPin size={12} color={Colors.textTertiary} />
-                          <Text className="text-xs font-bold ml-1 flex-1" style={{color: Colors.textSecondary}} numberOfLines={1}>
-                            {getConciseAddress(item.location)}
-                            {item.distance !== undefined && ` • ${item.distance.toFixed(1)} km`}
-                          </Text>
+                        <View className="flex-row items-center mb-1.5 flex-wrap gap-1">
+                          <View className="flex-row items-center flex-1">
+                            <MapPin size={12} color={Colors.textTertiary} />
+                            <Text className="text-xs font-bold ml-1 flex-1" style={{color: Colors.textSecondary}} numberOfLines={1}>
+                              {getConciseAddress(item.location)}
+                            </Text>
+                          </View>
+                          {item.distance !== undefined && (
+                            <View className="bg-slate-100 px-2 py-0.5 rounded-md">
+                              <Text className="text-[10px] font-bold text-slate-700">
+                                📍 {item.distance.toFixed(1)} km
+                              </Text>
+                            </View>
+                          )}
                         </View>
 
                         {item.category === "banquet" && (

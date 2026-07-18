@@ -24,26 +24,40 @@ const Header = () => {
   const buildFormattedLocation = () => {
     if (!location) return '';
 
+    if (typeof location === 'string') return location;
+
     const nameStr = String(location.name || '').trim();
     const isGenericName = !nameStr || 
       nameStr.toLowerCase().includes('pinned location') || 
-      nameStr.toLowerCase().includes('karachi, pakistan (default)');
+      nameStr.toLowerCase().includes('karachi, pakistan (default)') ||
+      nameStr.toLowerCase() === 'karachi';
 
-    const streetStr = String(location.street || '').trim();
-    const areaStr = String(location.district || location.subregion || location.neighbourhood || '').trim();
-    const cityStr = String(location.city || 'Karachi').trim();
+    const streetStr = String(location.street || location.road || '').trim();
+    const subregionStr = String(location.subregion || location.suburb || location.neighbourhood || location.quarter || '').trim();
+    const districtStr = String(location.district || location.city_district || '').trim();
+    const cityStr = String(location.city || location.town || 'Karachi').trim();
 
-    const specificLandmark = !isGenericName ? nameStr : (streetStr || areaStr);
+    const parts: string[] = [];
 
-    if (specificLandmark && specificLandmark.toLowerCase() !== cityStr.toLowerCase()) {
-      return `${specificLandmark}, ${cityStr}`;
+    const addPart = (str: string) => {
+      if (!str) return;
+      const lower = str.toLowerCase();
+      if (lower === 'karachi' || lower === 'pakistan') return;
+      if (!parts.some(p => p.toLowerCase().includes(lower) || lower.includes(p.toLowerCase()))) {
+        parts.push(str);
+      }
+    };
+
+    if (!isGenericName) addPart(nameStr);
+    addPart(streetStr);
+    addPart(subregionStr);
+    addPart(districtStr);
+
+    if (parts.length > 0) {
+      return parts.join(', ');
     }
 
-    if (areaStr && areaStr.toLowerCase() !== cityStr.toLowerCase()) {
-      return `${areaStr}, ${cityStr}`;
-    }
-
-    return `${cityStr}, Pakistan`;
+    return cityStr ? `${cityStr}, Pakistan` : 'Karachi, Pakistan';
   };
 
   const formattedLocation = buildFormattedLocation();
@@ -89,7 +103,7 @@ const Header = () => {
                 {location ? (
                   <View className='flex flex-row items-center gap-1 mt-0.5'>
                     <MapPin size={13} color={Colors.accent} />          
-                    <Text className='text-sm font-bold max-w-[170px]' style={{color: Colors.textPrimary}} numberOfLines={1}>{formattedLocation}</Text>
+                    <Text className='text-sm font-bold max-w-[230px]' style={{color: Colors.textPrimary}} numberOfLines={1}>{formattedLocation}</Text>
                     <ChevronDown size={12} color={Colors.textTertiary} />
                   </View>
                 ) : error ? (

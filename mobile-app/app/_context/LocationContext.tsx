@@ -18,15 +18,19 @@ const haversineDistance = (lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 const parseNominatimAddress = (addr: any) => {
-    const district = addr.suburb || addr.neighbourhood || addr.city_district || addr.county || addr.district || addr.state || ""
-    const city = addr.city || addr.town || addr.village || addr.municipality || ""
-    const name = addr.road || addr.neighbourhood || addr.suburb || ""
+    const road = addr.road || addr.pedestrian || addr.footway || addr.path || ""
+    const neighbourhood = addr.neighbourhood || addr.suburb || addr.quarter || addr.residential || addr.city_district || ""
+    const district = addr.county || addr.district || addr.state_district || neighbourhood || ""
+    const city = addr.city || addr.town || addr.village || addr.municipality || "Karachi"
+    const name = addr.building || addr.amenity || addr.residential || addr.neighbourhood || road || ""
 
     return {
         city,
         district,
-        country: addr.country || "",
-        name,
+        country: addr.country || "Pakistan",
+        name: name || road || neighbourhood || city,
+        street: road,
+        subregion: neighbourhood,
     }
 }
 
