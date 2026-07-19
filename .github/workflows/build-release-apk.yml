@@ -68,12 +68,17 @@ jobs:
             -Pandroid.injected.signing.key.alias="${{ secrets.ANDROID_KEY_ALIAS }}" \
             -Pandroid.injected.signing.key.password="${{ secrets.ANDROID_KEY_PASSWORD }}"
 
+      # Rename APK output file to asaantaqreeb.apk
+      - name: Rename APK file
+        run: |
+          mv mobile-app/android/app/build/outputs/apk/release/app-release.apk mobile-app/android/app/build/outputs/apk/release/asaantaqreeb.apk
+
       # Upload the built APK as a downloadable run artifact
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-release
-          path: mobile-app/android/app/build/outputs/apk/release/app-release.apk
+          name: asaantaqreeb
+          path: mobile-app/android/app/build/outputs/apk/release/asaantaqreeb.apk
           if-no-files-found: error
 
       # Create a Github Release to download raw APK directly without zip
@@ -82,7 +87,7 @@ jobs:
         with:
           tag_name: build-${{ github.run_number }}
           name: "Release Build #${{ github.run_number }}"
-          files: mobile-app/android/app/build/outputs/apk/release/app-release.apk
+          files: mobile-app/android/app/build/outputs/apk/release/asaantaqreeb.apk
           draft: false
           prerelease: false
         env:
