@@ -310,8 +310,8 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             let { status } = await Location.getForegroundPermissionsAsync()
             console.log('[LocationContext] Existing permission status:', status);
 
-            // Request permission if not granted
-            if (status !== 'granted') {
+            // Only request permission if explicitly asked (e.g. from LocationPermissionScreen)
+            if (status !== 'granted' && forceRequestPermission) {
                 console.log('[LocationContext] Requesting foreground permissions...');
                 const requested = await Location.requestForegroundPermissionsAsync()
                 console.log('[LocationContext] Request permission response:', JSON.stringify(requested, null, 2));

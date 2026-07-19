@@ -6,6 +6,7 @@ import { Colors } from '@/app/_constants/theme';
 import Svg, { Circle, Path } from 'react-native-svg';
 import * as Location from 'expo-location';
 import { useTheme } from '@/app/_context/ThemeContext';
+import { useLocationContext } from '@/app/_context/LocationContext';
 
 interface LocationPermissionScreenProps {
   onPermissionGranted: () => void;
@@ -15,6 +16,7 @@ interface LocationPermissionScreenProps {
 
 export default function LocationPermissionScreen({ onPermissionGranted, onBack, onSkip }: LocationPermissionScreenProps) {
   const { colors, isDark } = useTheme();
+  const { refreshLocation } = useLocationContext();
   const insets = useSafeAreaInsets();
   const [requesting, setRequesting] = React.useState(false);
 
@@ -28,6 +30,7 @@ export default function LocationPermissionScreen({ onPermissionGranted, onBack, 
       const { status } = result;
       if (status === 'granted') {
         console.log('[LocationPermissionScreen] Location permission granted!');
+        await refreshLocation(true);
         onPermissionGranted();
       } else {
         console.warn('[LocationPermissionScreen] Location permission not granted. Status:', status);

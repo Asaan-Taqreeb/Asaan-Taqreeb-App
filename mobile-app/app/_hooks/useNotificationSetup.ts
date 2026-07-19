@@ -46,7 +46,7 @@ export function useNotificationSetup() {
         if (expoToken) {
           const success = await updatePushTokens(expoToken, undefined);
           if (success) {
-            initializedUserIdRef.current = user.id;
+            initializedUserIdRef.current = user.id ?? null;
           }
         }
 
