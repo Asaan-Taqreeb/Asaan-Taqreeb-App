@@ -7,7 +7,21 @@
 // You can get one for free at https://console.groq.com/
 const GROQ_API_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY || ''; 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const MODEL = 'llama-3.3-70b-versatile';
+const DEFAULT_MODEL = process.env.EXPO_PUBLIC_GROQ_MODEL || 'qwen-3.6-27b';
+const FALLBACK_MODELS = [
+  DEFAULT_MODEL,
+  'qwen-3.6-27b',
+  'qwen3.6-27b',
+  'gpt-oss-120b',
+  'qwen-2.5-32b',
+  'llama-3.1-70b-versatile',
+  'deepseek-r1-distill-llama-70b',
+  'llama3-70b-8192',
+  'llama-3.1-8b-instant',
+];
+
+// Deduplicate fallback list
+const MODELS_TO_TRY = Array.from(new Set(FALLBACK_MODELS));
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -43,39 +57,51 @@ export const getAIResponseFromGroq = async (userMessage: string, history: ChatMe
     return "The Asaan Taqreeb Event Concierge is currently in setup mode. Please provide a Groq API Key in your configuration to enable real-time planning assistance.";
   }
 
-  try {
-    const messages: ChatMessage[] = [
-      { role: 'system', content: SYSTEM_PROMPT + (context ? `\nCURRENT VENDOR DATA FOR CONTEXT:\n${context}` : '') },
-      ...history,
-      { role: 'user', content: userMessage }
-    ];
+  const messages: ChatMessage[] = [
+    { role: 'system', content: SYSTEM_PROMPT + (context ? `\nCURRENT VENDOR DATA FOR CONTEXT:\n${context}` : '') },
+    ...history,
+    { role: 'user', content: userMessage }
+  ];
 
-    const response = await fetch(GROQ_API_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GROQ_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: messages,
-        temperature: 0.7,
-        max_tokens: 1000,
-      }),
-    });
+  let lastError: Error | null = null;
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Groq API Error:', errorData);
-      throw new Error(errorData.error?.message || 'Failed to get response from concierge');
+  for (const model of MODELS_TO_TRY) {
+    try {
+      const response = await fetch(GROQ_API_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${GROQ_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: messages,
+          temperature: 0.7,
+          max_tokens: 1000,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errMsg = errorData.error?.message || `HTTP ${response.status}: Failed with model ${model}`;
+        console.warn(`Groq model ${model} failed:`, errMsg);
+        lastError = new Error(errMsg);
+        // Continue to try fallback model if model was decommissioned or not found
+        continue;
+      }
+
+      const data = await response.json();
+      if (data.choices?.[0]?.message?.content) {
+        return data.choices[0].message.content;
+      }
+    } catch (error) {
+      console.warn(`Network/Request error with model ${model}:`, error);
+      lastError = error as Error;
     }
-
-    const data = await response.json();
-    return data.choices[0].message.content;
-  } catch (error) {
-    console.error('AI Service Error:', error);
-    return "I am experiencing difficulty connecting to my planning services. Please try again in a moment. 😊";
   }
+
+  console.error('All Groq AI models failed:', lastError);
+  return "I am experiencing difficulty connecting to my planning services. Please try again in a moment. 😊";
 };
 
 export default function AiAssistantApiStub() {
