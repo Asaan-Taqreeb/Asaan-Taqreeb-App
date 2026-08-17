@@ -44,6 +44,7 @@ export default function ParlorServiceForm() {
   const [images, setImages] = useState<string[]>([]);
   const [isOnSite, setIsOnSite] = useState(false);
   const [onSiteFee, setOnSiteFee] = useState("");
+  const [slotCapacity, setSlotCapacity] = useState("3");
   const [isInitialLoading, setIsInitialLoading] = useState(isEditMode);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -98,6 +99,8 @@ export default function ParlorServiceForm() {
         if (data.longitude) setLongitude(data.longitude);
         setIsOnSite(data.isOnSite || false);
         setOnSiteFee(data.onSiteFee ? data.onSiteFee.toString() : "");
+        if (data.maxGuests) setSlotCapacity(data.maxGuests.toString());
+        else if ((data as any).capacity?.maxGuests) setSlotCapacity((data as any).capacity.maxGuests.toString());
         if (data.operatingHours) {
           setOperatingHours(data.operatingHours);
         }
@@ -290,6 +293,7 @@ export default function ParlorServiceForm() {
       images,
       isOnSite,
       onSiteFee: isOnSite ? parseFloat(onSiteFee) || 0 : 0,
+      maxGuests: parseInt(slotCapacity) || 3,
       operatingHours,
       packages: packages.map(pkg => ({
         packageName: pkg.packageName,
@@ -475,6 +479,39 @@ export default function ParlorServiceForm() {
                   />
               </View>
           )}
+
+          {/* Slot Capacity / Concurrent Clients */}
+          <View className='mt-5 p-4 rounded-xl border border-slate-100 bg-slate-50'>
+              <Text className='text-sm font-extrabold' style={{color: Colors.textPrimary}}>
+                  Concurrent Clients per Slot
+              </Text>
+              <Text className='text-[10px] font-semibold text-slate-400 mt-0.5 mb-3'>
+                  How many clients can your stylists/chairs accommodate simultaneously in one time slot?
+              </Text>
+              <View className='flex-row items-center gap-3'>
+                  <Pressable
+                      onPress={() => setSlotCapacity(prev => Math.max(1, (parseInt(prev) || 3) - 1).toString())}
+                      className='w-11 h-11 rounded-xl items-center justify-center active:opacity-75'
+                      style={{ backgroundColor: Colors.lightGray }}
+                  >
+                      <Text className='text-xl font-bold' style={{ color: Colors.textPrimary }}>-</Text>
+                  </Pressable>
+                  <TextInput
+                      value={slotCapacity}
+                      onChangeText={setSlotCapacity}
+                      keyboardType="number-pad"
+                      className='flex-1 h-11 border rounded-xl text-center font-extrabold text-base bg-white'
+                      style={{ borderColor: Colors.border, color: Colors.textPrimary }}
+                  />
+                  <Pressable
+                      onPress={() => setSlotCapacity(prev => Math.min(20, (parseInt(prev) || 3) + 1).toString())}
+                      className='w-11 h-11 rounded-xl items-center justify-center active:opacity-75'
+                      style={{ backgroundColor: Colors.parlor }}
+                  >
+                      <Text className='text-xl font-bold text-white'>+</Text>
+                  </Pressable>
+              </View>
+          </View>
         </View>
 
         {/* Salon Branches */}

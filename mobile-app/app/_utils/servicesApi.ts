@@ -569,9 +569,9 @@ export const createVendorService = async (payload: Record<string, any>) => {
     branches: Array.isArray(payload.branches) ? payload.branches : [],
   }
 
-  if (category === 'BANQUET_HALL') {
-    const minGuests = toNumber(firstDefined(payload?.minGuests, payload?.capacity?.minGuests), NaN)
-    const maxGuests = toNumber(firstDefined(payload?.maxGuests, payload?.capacity?.maxGuests), NaN)
+  const minGuests = toNumber(firstDefined(payload?.minGuests, payload?.capacity?.minGuests), NaN)
+  const maxGuests = toNumber(firstDefined(payload?.maxGuests, payload?.capacity?.maxGuests, payload?.slotCapacity), NaN)
+  if (Number.isFinite(minGuests) || Number.isFinite(maxGuests)) {
     requestBody.capacity = {
       ...(Number.isFinite(minGuests) ? { minGuests } : {}),
       ...(Number.isFinite(maxGuests) ? { maxGuests } : {}),

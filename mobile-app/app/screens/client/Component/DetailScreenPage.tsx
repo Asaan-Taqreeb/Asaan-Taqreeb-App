@@ -691,6 +691,8 @@ export default function DetailScreenPage() {
                                             isOnSite: vendor.isOnSite,
                                             onSiteFee: vendor.onSiteFee,
                                             operatingHours: vendor.operatingHours,
+                                            slotCapacity: vendor.maxGuests || vendor.capacity?.maxGuests,
+                                            capacity: vendor.capacity,
                                             optionalServices: vendor.optionalServices || [],
                                             branches: vendor.branches || []
                                         }
@@ -847,6 +849,8 @@ export default function DetailScreenPage() {
                                         isOnSite: vendor.isOnSite,
                                         onSiteFee: vendor.onSiteFee,
                                         operatingHours: vendor.operatingHours,
+                                        slotCapacity: vendor.maxGuests || vendor.capacity?.maxGuests,
+                                        capacity: vendor.capacity,
                                         optionalServices: vendor.optionalServices || [],
                                         branches: vendor.branches || []
                                     }

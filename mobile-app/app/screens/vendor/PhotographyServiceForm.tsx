@@ -33,6 +33,7 @@ export default function PhotographyServiceForm() {
   const [nearbyLandmark, setNearbyLandmark] = useState("");
   const [about, setAbout] = useState("");
   const [images, setImages] = useState<string[]>([]);
+  const [slotCapacity, setSlotCapacity] = useState("1");
   const [isInitialLoading, setIsInitialLoading] = useState(isEditMode);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -82,6 +83,8 @@ export default function PhotographyServiceForm() {
         setImages(data.images || []);
         if (data.latitude) setLatitude(data.latitude);
         if (data.longitude) setLongitude(data.longitude);
+        if (data.maxGuests) setSlotCapacity(data.maxGuests.toString());
+        else if ((data as any).capacity?.maxGuests) setSlotCapacity((data as any).capacity.maxGuests.toString());
         if (data.operatingHours) {
           setOperatingHours(data.operatingHours);
         }
@@ -218,6 +221,7 @@ export default function PhotographyServiceForm() {
       latitude,
       longitude,
       images,
+      maxGuests: parseInt(slotCapacity) || 1,
       operatingHours,
       packages: packages.map(pkg => ({
         packageName: pkg.packageName,
@@ -359,6 +363,39 @@ export default function PhotographyServiceForm() {
             numberOfLines={4}
             textAlignVertical="top"
           />
+
+          {/* Simultaneous Team Capacity */}
+          <View className='mt-5 p-4 rounded-xl border border-slate-100 bg-slate-50'>
+              <Text className='text-sm font-extrabold' style={{color: Colors.textPrimary}}>
+                  Simultaneous Booking Capacity
+              </Text>
+              <Text className='text-[10px] font-semibold text-slate-400 mt-0.5 mb-3'>
+                  Number of photography crews/teams available to cover different events concurrently (Solo photographers leave as 1).
+              </Text>
+              <View className='flex-row items-center gap-3'>
+                  <Pressable
+                      onPress={() => setSlotCapacity(prev => Math.max(1, (parseInt(prev) || 1) - 1).toString())}
+                      className='w-11 h-11 rounded-xl items-center justify-center active:opacity-75'
+                      style={{ backgroundColor: Colors.lightGray }}
+                  >
+                      <Text className='text-xl font-bold' style={{ color: Colors.textPrimary }}>-</Text>
+                  </Pressable>
+                  <TextInput
+                      value={slotCapacity}
+                      onChangeText={setSlotCapacity}
+                      keyboardType="number-pad"
+                      className='flex-1 h-11 border rounded-xl text-center font-extrabold text-base bg-white'
+                      style={{ borderColor: Colors.border, color: Colors.textPrimary }}
+                  />
+                  <Pressable
+                      onPress={() => setSlotCapacity(prev => Math.min(20, (parseInt(prev) || 1) + 1).toString())}
+                      className='w-11 h-11 rounded-xl items-center justify-center active:opacity-75'
+                      style={{ backgroundColor: Colors.photo }}
+                  >
+                      <Text className='text-xl font-bold text-white'>+</Text>
+                  </Pressable>
+              </View>
+          </View>
         </View>
 
         <ImageUploader

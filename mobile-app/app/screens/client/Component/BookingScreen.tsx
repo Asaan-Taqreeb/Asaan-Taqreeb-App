@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router'
-import { ArrowLeft, Circle, Dot, Square, MapPin, Clock } from 'lucide-react-native'
+import { ArrowLeft, Circle, Dot, Square, MapPin, Clock, Users, CheckCircle2, AlertCircle, Sparkles, SlidersHorizontal } from 'lucide-react-native'
 import { useEffect, useMemo, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform } from 'react-native'
 import { Calendar } from "react-native-calendars"
@@ -7,13 +7,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors, getCategoryColor, Shadows } from '@/app/_constants/theme'
 import { createBooking } from '@/app/_utils/bookingsApi'
 import { getVendorAvailability, type VendorAvailabilityDay } from '@/app/_utils/availabilityApi'
-import { parseRange, rangesOverlap, toLocalIsoDate, toMinutes, generateHourlyIntervals } from '@/app/_utils/calendarDateUtils'
+import { parseRange, rangesOverlap, toLocalIsoDate, toMinutes, generateHourlyIntervals, generateParlorSlots, generatePhotographyPresets, formatMinutesTo12Hour, type QuickSlotOption } from '@/app/_utils/calendarDateUtils'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useUser } from '@/app/_context/UserContext'
 import { showAlert } from '@/app/_utils/alert'
 import TimePickerModal from '@/app/_components/TimePickerModal'
-
-
 
 type BookingAddon = {
     id: number
@@ -21,6 +19,7 @@ type BookingAddon = {
     price: number
     items: string[]
 }
+
 export default function BookingScreen() {
     const insets = useSafeAreaInsets()
     const params = useLocalSearchParams()
@@ -55,18 +54,26 @@ export default function BookingScreen() {
     const isParlor = normalizedCategory.includes('parlor') || normalizedCategory.includes('salon') || normalizedCategory.includes('parlour')
     const requiresGuestCount = isBanquet || isCatering
     const vendorAvailabilityId = bookingData?.vendorId || bookingData?.serviceId
-    const isManualTimeCategory = isParlor || isPhoto
 
-
+    // Slot capacity (simultaneous clients/teams allowed per slot)
+    const slotCapacity = useMemo(() => {
+        const cap = Number(bookingData.slotCapacity || bookingData.capacity?.maxGuests)
+        if (Number.isFinite(cap) && cap > 0) return cap
+        if (isParlor) return 3
+        return 1
+    }, [bookingData.slotCapacity, bookingData.capacity, isParlor])
 
     const [selectedDate, setSelectedDate] = useState('')
     const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
+    const [isCustomTimeMode, setIsCustomTimeMode] = useState(false)
+
+    // Custom time states
     const [customStartHour, setCustomStartHour] = useState('09')
     const [customStartMinute, setCustomStartMinute] = useState('00')
     const [customStartPeriod, setCustomStartPeriod] = useState<'AM' | 'PM'>('AM')
-    const [customEndHour, setCustomEndHour] = useState('12')
+    const [customEndHour, setCustomEndHour] = useState('11')
     const [customEndMinute, setCustomEndMinute] = useState('00')
-    const [customEndPeriod, setCustomEndPeriod] = useState<'AM' | 'PM'>('PM')
+    const [customEndPeriod, setCustomEndPeriod] = useState<'AM' | 'PM'>('AM')
 
     const [isStartPickerVisible, setIsStartPickerVisible] = useState(false)
     const [isEndPickerVisible, setIsEndPickerVisible] = useState(false)
@@ -79,10 +86,10 @@ export default function BookingScreen() {
     const [availabilityDays, setAvailabilityDays] = useState<VendorAvailabilityDay[]>([])
     const [isLoadingAvailability, setIsLoadingAvailability] = useState(false)
 
-    const [slots, setSlots] = useState<{id: string, label: string, time: string}[]>([
-        { id: 'morning', label: 'Morning', time: '10 AM to 1 PM' },
-        { id: 'afternoon', label: 'Afternoon', time: '3 PM to 7 PM' },
-        { id: 'evening', label: 'Evening', time: '9 PM to 12 AM' }
+    const [banquetSlots, setBanquetSlots] = useState<{id: string, label: string, time: string}[]>([
+        { id: 'morning', label: 'Morning Session', time: '10:00 AM to 01:00 PM' },
+        { id: 'afternoon', label: 'Afternoon Session', time: '03:00 PM to 07:00 PM' },
+        { id: 'evening', label: 'Evening Session', time: '09:00 PM to 12:00 AM' }
     ])
     const [operatingHours, setOperatingHours] = useState<{ from: string; to: string } | null>(null)
 
@@ -96,7 +103,7 @@ export default function BookingScreen() {
                     const saved = await AsyncStorage.getItem('vendor_slots_' + vendorAvailabilityId);
                     if (saved) {
                         const parsed = JSON.parse(saved);
-                        setSlots(parsed.map((s: any) => ({
+                        setBanquetSlots(parsed.map((s: any) => ({
                             id: s.id,
                             label: s.label,
                             time: `${s.from} to ${s.to}`
@@ -110,7 +117,6 @@ export default function BookingScreen() {
                         if (savedHours) {
                             setOperatingHours(JSON.parse(savedHours));
                         } else {
-                            // Default operating hours if none configured
                             setOperatingHours({ from: '09:00 AM', to: '09:00 PM' });
                         }
                     }
@@ -121,6 +127,24 @@ export default function BookingScreen() {
         };
         loadTimeOptions();
     }, [vendorAvailabilityId, bookingData.category, serializedOperatingHours]);
+
+    // Generate Quick Slots
+    const parlorSlots = useMemo(() => {
+        if (!isParlor) return []
+        return generateParlorSlots(operatingHours)
+    }, [isParlor, operatingHours])
+
+    const photoSlots = useMemo(() => {
+        if (!isPhoto) return []
+        return generatePhotographyPresets(operatingHours)
+    }, [isPhoto, operatingHours])
+
+    const cateringIntervals = useMemo(() => {
+        if (!isCatering) return []
+        const from = operatingHours?.from ?? '09:00 AM';
+        const to = operatingHours?.to ?? '09:00 PM';
+        return generateHourlyIntervals(from, to);
+    }, [isCatering, operatingHours]);
 
     const addons: BookingAddon[] = useMemo(() => {
         const rawOptional: any[] = Array.isArray(bookingData.optionalServices)
@@ -155,7 +179,7 @@ export default function BookingScreen() {
         }))
     }
 
-    // Calculate total price
+    // Pricing calculation
     const addonsTotal = Object.keys(selectedAddons).reduce((sum, key) => {
         if (selectedAddons[parseInt(key)]) {
             const addon = addons.find(a => a.id === parseInt(key))
@@ -168,9 +192,8 @@ export default function BookingScreen() {
     const guestMultiplier = requiresGuestCount ? Number(bookingData.guestCount) : 1
     const travelFeeTotal = (isParlor && isHomeService) ? (Number(bookingData.onSiteFee) || 0) : 0
     const totalPrice = (packagePrice * guestMultiplier) + addonsTotal + travelFeeTotal
-    const advancePayment = Math.round(totalPrice * 0.5) // 50% advance
+    const advancePayment = Math.round(totalPrice * 0.5)
 
-    // Get today's date for min date
     const minDate = toLocalIsoDate(new Date())
 
     useEffect(() => {
@@ -221,7 +244,6 @@ export default function BookingScreen() {
                 const parsedFrom = toMinutes(day.timeSlot.from)
                 const parsedTo = toMinutes(day.timeSlot.to)
                 
-                // Only use the parsed values if BOTH are valid, otherwise fallback to full day
                 if (parsedFrom !== null && parsedTo !== null) {
                     from = parsedFrom
                     to = parsedTo
@@ -239,29 +261,6 @@ export default function BookingScreen() {
             return acc
         }, {})
     }, [availabilityDays])
-
-    const selectedTimeRange = useMemo(() => {
-        if (bookingData.category === 'banquet') {
-            const slot = slots.find((item) => item.id === selectedSlot)
-            if (!slot) return null
-            return parseRange(slot.time)
-        }
-        if (isManualTimeCategory) {
-            const timeStr = getSelectedTime()
-            if (!timeStr) return null
-            return parseRange(timeStr)
-        }
-
-        if (!selectedSlot) return null
-        return parseRange(selectedSlot)
-    }, [bookingData.category, selectedSlot, slots, isManualTimeCategory, customStartHour, customStartMinute, customStartPeriod, customEndHour, customEndMinute, customEndPeriod])
-
-    const intervals = useMemo(() => {
-        if (bookingData.category === 'banquet') return [];
-        const from = operatingHours?.from ?? '09:00 AM';
-        const to = operatingHours?.to ?? '09:00 PM';
-        return generateHourlyIntervals(from, to);
-    }, [operatingHours, bookingData.category]);
 
     const dayStatusMap = useMemo(() => {
         return availabilityDays.reduce<Record<string, { hasBookings: boolean; hasBlocks: boolean; isFullDayBlocked: boolean }>>((acc, day) => {
@@ -284,22 +283,111 @@ export default function BookingScreen() {
         }, {})
     }, [availabilityDays])
 
+    function toTwentyFourHour(value: string, period: 'AM' | 'PM') {
+        const [hourRaw, minuteRaw] = String(value || '').split(':')
+        const hour = Number(hourRaw)
+        const minute = Number(minuteRaw)
+
+        if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null
+        if (hour < 1 || hour > 12 || minute < 0 || minute > 59) return null
+
+        let normalizedHour = hour % 12
+        if (period === 'PM') normalizedHour += 12
+        return `${String(normalizedHour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+    }
+
+    function getCustomTimeString() {
+        if (!customStartHour || !customEndHour) return ''
+        const startMin = (customStartMinute || '00').padStart(2, '0')
+        const endMin = (customEndMinute || '00').padStart(2, '0')
+        return `${customStartHour.padStart(2, '0')}:${startMin} ${customStartPeriod} to ${customEndHour.padStart(2, '0')}:${endMin} ${customEndPeriod}`
+    }
+
+    function getSelectedTime(): string {
+        if (isCustomTimeMode) {
+            return getCustomTimeString()
+        }
+        return selectedSlot || ''
+    }
+
+    // Capacity & Overlap checker for any time range on the selected date
+    const getSlotAvailability = (timeRangeStr: string) => {
+        if (!selectedDate) {
+            return {
+                isBlocked: false,
+                isFull: false,
+                spotsRemaining: slotCapacity,
+                bookedCount: 0,
+                statusText: `${slotCapacity} spot${slotCapacity > 1 ? 's' : ''} available`,
+            }
+        }
+
+        const status = dayStatusMap[selectedDate]
+        if (status?.isFullDayBlocked) {
+            return {
+                isBlocked: true,
+                isFull: true,
+                spotsRemaining: 0,
+                bookedCount: slotCapacity,
+                statusText: 'Day Blocked',
+            }
+        }
+
+        const range = parseRange(timeRangeStr)
+        if (!range) {
+            return {
+                isBlocked: false,
+                isFull: false,
+                spotsRemaining: slotCapacity,
+                bookedCount: 0,
+                statusText: 'Available',
+            }
+        }
+
+        const dayEvents = unavailableRangesMap[selectedDate] || []
+
+        // Check if vendor manually blocked this slot
+        const manualBlock = dayEvents.find(e => e.type === 'blocked' && rangesOverlap(range, e))
+        if (manualBlock) {
+            return {
+                isBlocked: true,
+                isFull: true,
+                spotsRemaining: 0,
+                bookedCount: slotCapacity,
+                statusText: 'Blocked by Vendor',
+            }
+        }
+
+        // Count overlapping active bookings
+        const overlappingBookings = dayEvents.filter(e => e.type === 'booked' && rangesOverlap(range, e))
+        const bookedCount = overlappingBookings.length
+        const spotsRemaining = Math.max(0, slotCapacity - bookedCount)
+        const isFull = spotsRemaining === 0
+
+        let statusText = ''
+        if (isFull) {
+            statusText = 'Fully Booked'
+        } else if (slotCapacity > 1) {
+            statusText = spotsRemaining === 1 ? '1 spot left!' : `${spotsRemaining} spots available`
+        } else {
+            statusText = 'Available'
+        }
+
+        return {
+            isBlocked: false,
+            isFull,
+            spotsRemaining,
+            bookedCount,
+            statusText,
+        }
+    }
+
     const markedDates = useMemo(() => {
         const result: Record<string, any> = {};
         for (const [date, status] of Object.entries(dayStatusMap)) {
-            const ranges = unavailableRangesMap[date] || [];
-            
-            // A date is only disabled if:
-            // 1. It's blocked for the full day
-            // 2. A specific time is selected AND that time overlaps with ANY booked or blocked range
-            const isFullDayBlocked = status.isFullDayBlocked || (ranges.length > 0 && ranges.some(r => r.from === 0 && r.to === 1440 && r.type === 'blocked'));
-            
-            const isBlockedBySelection = Boolean(
-                selectedTimeRange && ranges.some((range) => rangesOverlap(selectedTimeRange, range))
-            )
-            
+            const isFullDayBlocked = status.isFullDayBlocked;
             const isPast = date < minDate;
-            const shouldDisable = isFullDayBlocked || isBlockedBySelection || isPast;
+            const shouldDisable = isFullDayBlocked || isPast;
 
             result[date] = {
                 disabled: shouldDisable,
@@ -334,68 +422,14 @@ export default function BookingScreen() {
         }
 
         return result
-    }, [categoryColor, selectedDate, selectedTimeRange, unavailableRangesMap, dayStatusMap, minDate])
+    }, [categoryColor, selectedDate, dayStatusMap, minDate])
 
-    useEffect(() => {
-        if (selectedDate && selectedSlot) {
-            const blocked = isBanquet
-                ? isBanquetSlotBlocked(selectedSlot)
-                : isTimeBlockedOnSelectedDate(selectedSlot);
-            if (blocked) {
-                setSelectedSlot(null)
-            }
-        }
-    }, [selectedDate, selectedSlot, unavailableRangesMap])
-
-    function isValidTime(value: string) {
-        return /^([01]\d|2[0-3]):([0-5]\d)$/.test(value)
-    }
-
-    function toTwentyFourHour(value: string, period: 'AM' | 'PM') {
-        const [hourRaw, minuteRaw] = String(value || '').split(':')
-        const hour = Number(hourRaw)
-        const minute = Number(minuteRaw)
-
-        if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null
-        if (hour < 1 || hour > 12 || minute < 0 || minute > 59) return null
-
-        let normalizedHour = hour % 12
-        if (period === 'PM') normalizedHour += 12
-        return `${String(normalizedHour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
-    }
-
-    function getSelectedTime() {
-        if (isBanquet) {
-            return selectedSlot ? (slots.find(s => s.id === selectedSlot)?.time ?? '') : ''
-        }
-        if (isManualTimeCategory) {
-            if (!customStartHour || !customEndHour) return ''
-            const startMin = (customStartMinute || '00').padStart(2, '0')
-            const endMin = (customEndMinute || '00').padStart(2, '0')
-            return `${customStartHour.padStart(2, '0')}:${startMin} ${customStartPeriod} to ${customEndHour.padStart(2, '0')}:${endMin} ${customEndPeriod}`
-        }
-        return selectedSlot ?? ''
-    }
-
-    function isTimeBlockedOnSelectedDate(timeRange: string) {
-        if (!selectedDate) return false
-
-        const selectedRange = parseRange(timeRange)
-        if (!selectedRange) return false
-
-        // Check full day block first
-        const status = dayStatusMap[selectedDate]
-        if (status?.isFullDayBlocked) return true
-
-        const blockedRanges = unavailableRangesMap[selectedDate] || []
-        return blockedRanges.some((range) => rangesOverlap(selectedRange, range))
-    }
-
-    function isBanquetSlotBlocked(slotId: string) {
-        const slot = slots.find((item) => item.id === slotId)
-        if (!slot) return false
-        return isTimeBlockedOnSelectedDate(slot.time)
-    }
+    // Current selection availability status
+    const currentSelectedAvailability = useMemo(() => {
+        const timeStr = getSelectedTime()
+        if (!timeStr || !selectedDate) return null
+        return getSlotAvailability(timeStr)
+    }, [selectedDate, selectedSlot, isCustomTimeMode, customStartHour, customStartMinute, customStartPeriod, customEndHour, customEndMinute, customEndPeriod, unavailableRangesMap])
 
     const validateBooking = () => {
         if (!selectedDate) {
@@ -403,22 +437,18 @@ export default function BookingScreen() {
             return false
         }
 
-        if (isManualTimeCategory) {
-            if (!customStartHour || !customEndHour) {
-                showAlert('Missing Time', 'Please enter both start and end times.')
-                return false
-            }
+        const timeStr = getSelectedTime()
+        if (!timeStr) {
+            showAlert('Missing Time', 'Please select a time slot or specify custom hours.')
+            return false
+        }
 
+        if (isCustomTimeMode) {
             const from24 = toTwentyFourHour(`${customStartHour}:${customStartMinute || '00'}`, customStartPeriod)
             const to24 = toTwentyFourHour(`${customEndHour}:${customEndMinute || '00'}`, customEndPeriod)
 
             if (!from24 || !to24) {
-                showAlert('Invalid Time', 'Use 12-hour time values like 09:30 with AM or PM selected.')
-                return false
-            }
-
-            if (!isValidTime(from24) || !isValidTime(to24)) {
-                showAlert('Invalid Time', 'Please enter valid times.')
+                showAlert('Invalid Time', 'Please select valid start and end times.')
                 return false
             }
 
@@ -427,34 +457,34 @@ export default function BookingScreen() {
                 return false
             }
 
-            // Check if selected time is within operating hours
+            // Check if within operating hours
             if (operatingHours) {
                 const opRange = parseRange(`${operatingHours.from} to ${operatingHours.to}`)
-                const selRange = parseRange(getSelectedTime())
+                const selRange = parseRange(timeStr)
                 if (opRange && selRange) {
                     if (selRange.from < opRange.from || selRange.to > opRange.to) {
                         showAlert(
                             'Outside Operating Hours',
-                            `Please select a time within the vendor's operating hours (${operatingHours.from} to ${operatingHours.to}).`
+                            `Please select a time within operating hours (${operatingHours.from} to ${operatingHours.to}).`
                         )
                         return false
                     }
                 }
             }
-        } else {
-            if (!getSelectedTime()) {
-                showAlert('Missing Time', 'Please select or enter event time.')
-                return false
-            }
+        }
+
+        const avail = getSlotAvailability(timeStr)
+        if (avail.isBlocked) {
+            showAlert('Time Not Available', 'This time slot is blocked by the vendor on the selected date.')
+            return false
+        }
+        if (avail.isFull) {
+            showAlert('Slot Fully Booked', `This time slot has reached its maximum capacity (${slotCapacity} booking${slotCapacity > 1 ? 's' : ''}). Please choose another time.`)
+            return false
         }
 
         if (requiresGuestCount && (!bookingData.guestCount || Number(bookingData.guestCount) <= 0)) {
             showAlert('Missing Guests', 'Please provide the number of guests for this booking.')
-            return false
-        }
-
-        if (isTimeBlockedOnSelectedDate(getSelectedTime())) {
-            showAlert('Time Not Available', 'This time slot is blocked by vendor on selected date.')
             return false
         }
 
@@ -525,7 +555,7 @@ export default function BookingScreen() {
             setIsSubmitting(false)
         }
     }
- 
+
   return (
     <KeyboardAvoidingView
         style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}
@@ -565,7 +595,7 @@ export default function BookingScreen() {
             </View>
         ) : (
         <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Selected Package Info - Locked */}
+            {/* Selected Package Info */}
             <View className='mx-5 my-5 rounded-2xl p-5' style={[{backgroundColor: Colors.white, borderWidth: 2, borderColor: categoryColor}, Shadows.medium]}>
                 <Text className='text-xs font-extrabold mb-2' style={{color: Colors.textSecondary}}>SELECTED PACKAGE</Text>
                 <Text className='text-xl font-extrabold mb-3' style={{color: Colors.textPrimary}}>{bookingData.packageName}</Text>
@@ -577,12 +607,10 @@ export default function BookingScreen() {
                         )}
                     </View>
                     <View className='px-3 py-2 rounded-full' style={{backgroundColor: '#dcfce7'}}>
-                        <Text className='text-xs font-extrabold' style={{color: Colors.success}}>✓ Locked</Text>
+                        <Text className='text-xs font-extrabold' style={{color: Colors.success}}>✓ Selected</Text>
                     </View>
                 </View>
             </View>
-
-
 
             {/* Date Selection */}
             <View className='px-5 mb-6'>
@@ -593,16 +621,12 @@ export default function BookingScreen() {
                 <View className='rounded-2xl overflow-hidden' style={[{backgroundColor: Colors.lightGray}, Shadows.medium]}>
                     <Calendar 
                         onDayPress={day => {
-                            if (day.dateString < minDate) {
-                                return;
-                            }
+                            if (day.dateString < minDate) return;
                             const state = dayStatusMap[day.dateString];
-
                             if (state?.isFullDayBlocked) {
-                                showAlert('Date Not Available', 'Vendor has blocked this date.');
+                                showAlert('Date Not Available', 'Vendor has blocked this entire date.');
                                 return;
                             }
-
                             setSelectedDate(day.dateString);
                         }}
                         markingType={'custom'}
@@ -634,11 +658,11 @@ export default function BookingScreen() {
                         </View>
                         <View className='flex-row items-center gap-1'>
                             <Square color={Colors.error} fill={Colors.error} size={12} />
-                            <Text className='text-xs font-medium' style={{color: Colors.textSecondary}}>Locked</Text>
+                            <Text className='text-xs font-medium' style={{color: Colors.textSecondary}}>Blocked</Text>
                         </View>
                         <View className='flex-row items-center gap-1'>
                             <Square color={Colors.vendor} fill={Colors.vendor} size={12} />
-                            <Text className='text-xs font-medium' style={{color: Colors.textSecondary}}>Booked</Text>
+                            <Text className='text-xs font-medium' style={{color: Colors.textSecondary}}>Has Bookings</Text>
                         </View>
                         <View className='flex-row items-center gap-1'>
                             <Square color={categoryColor} fill={categoryColor} size={12} />
@@ -650,42 +674,57 @@ export default function BookingScreen() {
 
             {/* Time Slot Selection */}
             <View className='px-5 mb-6'>
-                <Text className='text-xl font-extrabold mb-4' style={{color: Colors.textPrimary}}>Time Slot</Text>
-                
-                {/* Banquet - Predefined Slots */}
+                <View className='flex-row justify-between items-center mb-3'>
+                    <Text className='text-xl font-extrabold' style={{color: Colors.textPrimary}}>Select Time Slot</Text>
+                    {slotCapacity > 1 && (
+                        <View className='flex-row items-center gap-1.5 px-3 py-1.5 rounded-full' style={{ backgroundColor: `${categoryColor}15` }}>
+                            <Users size={14} color={categoryColor} />
+                            <Text className='text-xs font-extrabold' style={{ color: categoryColor }}>
+                                {slotCapacity} concurrent spots
+                            </Text>
+                        </View>
+                    )}
+                </View>
+
+                {/* 1. Banquet Hall Slots */}
                 {isBanquet && (
                     <View className='gap-3'>
-                        {slots.map((slot) => {
-                            const blocked = isBanquetSlotBlocked(slot.id)
-                            const selected = selectedSlot === slot.id
+                        {banquetSlots.map((slot) => {
+                            const avail = getSlotAvailability(slot.time)
+                            const isSelected = !isCustomTimeMode && selectedSlot === slot.time
 
                             return (
                                 <Pressable 
                                     key={slot.id}
-                                    className='flex-row items-center gap-3 p-4 rounded-2xl active:opacity-80'
+                                    className='flex-row items-center justify-between p-4 rounded-2xl active:opacity-80'
                                     style={[{
                                         borderWidth: 2,
-                                        borderColor: selected ? categoryColor : blocked ? Colors.error : Colors.border,
-                                        backgroundColor: selected ? `${categoryColor}10` : blocked ? '#fee2e2' : Colors.white,
-                                        opacity: blocked ? 0.75 : 1,
+                                        borderColor: isSelected ? categoryColor : avail.isFull ? Colors.error : Colors.border,
+                                        backgroundColor: isSelected ? `${categoryColor}10` : avail.isFull ? '#fee2e2' : Colors.white,
+                                        opacity: avail.isFull ? 0.7 : 1,
                                     }]}
                                     onPress={() => {
-                                        if (blocked) return
-                                        setSelectedSlot(slot.id)
+                                        if (avail.isFull) return
+                                        setSelectedSlot(slot.time)
+                                        setIsCustomTimeMode(false)
                                     }}
-                                    disabled={blocked}
+                                    disabled={avail.isFull}
                                 >
-                                    <Circle 
-                                        size={20} 
-                                        color={selected ? categoryColor : blocked ? Colors.error : Colors.borderDark}
-                                        fill={selected ? categoryColor : 'transparent'} 
-                                    />
-                                    <View>
-                                        <Text className='text-base font-extrabold' style={{color: Colors.textPrimary}}>{slot.label}</Text>
-                                        <Text className='text-sm font-medium' style={{color: Colors.textSecondary}}>{slot.time}</Text>
-                                        {blocked && selectedDate && (
-                                            <Text className='text-xs font-bold mt-1' style={{color: Colors.error}}>Blocked on {selectedDate}</Text>
-                                        )}
+                                    <View className='flex-row items-center gap-3 flex-1'>
+                                        <Circle 
+                                            size={20} 
+                                            color={isSelected ? categoryColor : avail.isFull ? Colors.error : Colors.borderDark}
+                                            fill={isSelected ? categoryColor : 'transparent'} 
+                                        />
+                                        <View className='flex-1'>
+                                            <Text className='text-base font-extrabold' style={{color: Colors.textPrimary}}>{slot.label}</Text>
+                                            <Text className='text-sm font-medium' style={{color: Colors.textSecondary}}>{slot.time}</Text>
+                                        </View>
+                                    </View>
+                                    <View className='px-2.5 py-1 rounded-lg' style={{ backgroundColor: avail.isFull ? '#fecaca' : isSelected ? `${categoryColor}20` : '#f1f5f9' }}>
+                                        <Text className='text-xs font-bold' style={{ color: avail.isFull ? Colors.error : isSelected ? categoryColor : Colors.textSecondary }}>
+                                            {avail.statusText}
+                                        </Text>
                                     </View>
                                 </Pressable>
                             )
@@ -693,22 +732,132 @@ export default function BookingScreen() {
                     </View>
                 )}
 
-                {/* Others - Hourly Slots Selection (e.g. Catering) */}
-                {!isManualTimeCategory && !isBanquet && (
+                {/* 2. Parlor / Salon Quick 1-Tap Slots */}
+                {isParlor && (
+                    <View className='gap-3'>
+                        {parlorSlots.map((slot) => {
+                            const avail = getSlotAvailability(slot.time)
+                            const isSelected = !isCustomTimeMode && selectedSlot === slot.time
+
+                            return (
+                                <Pressable
+                                    key={slot.id}
+                                    className='p-4 rounded-2xl active:opacity-85'
+                                    style={[{
+                                        borderWidth: 2,
+                                        borderColor: isSelected ? categoryColor : avail.isFull ? Colors.error : Colors.border,
+                                        backgroundColor: isSelected ? `${categoryColor}10` : avail.isFull ? '#fee2e2' : Colors.white,
+                                        opacity: avail.isFull ? 0.65 : 1,
+                                    }, Shadows.small]}
+                                    onPress={() => {
+                                        if (avail.isFull) return
+                                        setSelectedSlot(slot.time)
+                                        setIsCustomTimeMode(false)
+                                    }}
+                                    disabled={avail.isFull}
+                                >
+                                    <View className='flex-row justify-between items-center mb-1'>
+                                        <View className='flex-row items-center gap-2'>
+                                            <Circle 
+                                                size={18} 
+                                                color={isSelected ? categoryColor : avail.isFull ? Colors.error : Colors.borderDark}
+                                                fill={isSelected ? categoryColor : 'transparent'} 
+                                            />
+                                            <Text className='text-base font-extrabold' style={{ color: Colors.textPrimary }}>
+                                                {slot.label}
+                                            </Text>
+                                        </View>
+                                        <View className='px-2.5 py-1 rounded-full' style={{ backgroundColor: avail.isFull ? '#fecaca' : avail.spotsRemaining === 1 && slotCapacity > 1 ? '#fef08a' : '#dcfce7' }}>
+                                            <Text className='text-xs font-extrabold' style={{ color: avail.isFull ? Colors.error : avail.spotsRemaining === 1 && slotCapacity > 1 ? '#854d0e' : Colors.success }}>
+                                                {avail.statusText}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                    <View className='flex-row justify-between items-center ml-7 mt-1'>
+                                        <Text className='text-sm font-semibold' style={{ color: Colors.textSecondary }}>
+                                            {slot.time}
+                                        </Text>
+                                        <Text className='text-xs font-bold' style={{ color: Colors.textTertiary }}>
+                                            Duration: 2 hrs
+                                        </Text>
+                                    </View>
+                                </Pressable>
+                            )
+                        })}
+                    </View>
+                )}
+
+                {/* 3. Photography Quick Event Presets */}
+                {isPhoto && (
+                    <View className='gap-3'>
+                        {photoSlots.map((slot) => {
+                            const avail = getSlotAvailability(slot.time)
+                            const isSelected = !isCustomTimeMode && selectedSlot === slot.time
+
+                            return (
+                                <Pressable
+                                    key={slot.id}
+                                    className='p-4 rounded-2xl active:opacity-85'
+                                    style={[{
+                                        borderWidth: 2,
+                                        borderColor: isSelected ? categoryColor : avail.isFull ? Colors.error : Colors.border,
+                                        backgroundColor: isSelected ? `${categoryColor}10` : avail.isFull ? '#fee2e2' : Colors.white,
+                                        opacity: avail.isFull ? 0.65 : 1,
+                                    }, Shadows.small]}
+                                    onPress={() => {
+                                        if (avail.isFull) return
+                                        setSelectedSlot(slot.time)
+                                        setIsCustomTimeMode(false)
+                                    }}
+                                    disabled={avail.isFull}
+                                >
+                                    <View className='flex-row justify-between items-center mb-1'>
+                                        <View className='flex-row items-center gap-2'>
+                                            <Circle 
+                                                size={18} 
+                                                color={isSelected ? categoryColor : avail.isFull ? Colors.error : Colors.borderDark}
+                                                fill={isSelected ? categoryColor : 'transparent'} 
+                                            />
+                                            <Text className='text-base font-extrabold' style={{ color: Colors.textPrimary }}>
+                                                {slot.label}
+                                            </Text>
+                                        </View>
+                                        <View className='px-2.5 py-1 rounded-full' style={{ backgroundColor: avail.isFull ? '#fecaca' : isSelected ? `${categoryColor}20` : '#dcfce7' }}>
+                                            <Text className='text-xs font-extrabold' style={{ color: avail.isFull ? Colors.error : isSelected ? categoryColor : Colors.success }}>
+                                                {avail.statusText}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                    <View className='flex-row justify-between items-center ml-7 mt-1'>
+                                        <Text className='text-sm font-semibold' style={{ color: Colors.textSecondary }}>
+                                            {slot.time}
+                                        </Text>
+                                        <Text className='text-xs font-bold' style={{ color: Colors.textTertiary }}>
+                                            {slot.durationText}
+                                        </Text>
+                                    </View>
+                                </Pressable>
+                            )
+                        })}
+                    </View>
+                )}
+
+                {/* 4. Catering Hourly Grid */}
+                {isCatering && (
                     <View className='rounded-2xl p-4' style={[{backgroundColor: Colors.white, borderWidth: 2, borderColor: Colors.border}, Shadows.medium]}>
                         <View className='flex-row items-center gap-2 mb-4'>
                             <Clock size={20} color={categoryColor} />
-                            <Text className='text-base font-bold' style={{color: Colors.textPrimary}}>Select Start Time</Text>
+                            <Text className='text-base font-bold' style={{color: Colors.textPrimary}}>Select Event Start Time</Text>
                         </View>
-                        {intervals.length === 0 ? (
+                        {cateringIntervals.length === 0 ? (
                             <Text className='text-sm text-center font-medium my-4' style={{color: Colors.textSecondary}}>
                                 No slots available within operating hours.
                             </Text>
                         ) : (
                             <View style={styles.timeGrid}>
-                                {intervals.map((interval: { label: string; value: string }) => {
+                                {cateringIntervals.map((interval: { label: string; value: string }) => {
                                     const isSelected = selectedSlot === interval.value
-                                    const blocked = isTimeBlockedOnSelectedDate(interval.value)
+                                    const avail = getSlotAvailability(interval.value)
 
                                     return (
                                         <Pressable
@@ -716,22 +865,22 @@ export default function BookingScreen() {
                                             style={[
                                                 styles.gridItem,
                                                 {
-                                                    borderColor: isSelected ? categoryColor : blocked ? Colors.error : Colors.border,
-                                                    backgroundColor: isSelected ? `${categoryColor}15` : blocked ? '#fee2e2' : Colors.white,
-                                                    opacity: blocked ? 0.6 : 1,
+                                                    borderColor: isSelected ? categoryColor : avail.isFull ? Colors.error : Colors.border,
+                                                    backgroundColor: isSelected ? `${categoryColor}15` : avail.isFull ? '#fee2e2' : Colors.white,
+                                                    opacity: avail.isFull ? 0.6 : 1,
                                                 }
                                             ]}
                                             onPress={() => {
-                                                if (blocked) return
+                                                if (avail.isFull) return
                                                 setSelectedSlot(interval.value)
                                             }}
-                                            disabled={blocked}
+                                            disabled={avail.isFull}
                                         >
                                             <Text 
                                                 style={[
                                                     styles.gridItemText,
                                                     {
-                                                        color: isSelected ? categoryColor : blocked ? Colors.error : Colors.textPrimary,
+                                                        color: isSelected ? categoryColor : avail.isFull ? Colors.error : Colors.textPrimary,
                                                         fontWeight: isSelected ? '800' : '600',
                                                     }
                                                 ]}
@@ -745,89 +894,146 @@ export default function BookingScreen() {
                             </View>
                         )}
                         <Text className='text-xs font-semibold mt-3 text-center' style={{color: Colors.textTertiary}}>
-                            All bookings have a standard 3-hour session duration.
+                            Includes a standard 3-hour serving window.
                         </Text>
                     </View>
                 )}
 
-                {/* Manual Time Selection for Parlor & Photography */}
-                {isManualTimeCategory && (
-                    <View className='rounded-2xl p-5' style={[{backgroundColor: Colors.white, borderWidth: 2, borderColor: Colors.border}, Shadows.medium]}>
-                        <View className='flex-row items-center gap-2 mb-4'>
-                            <Clock size={20} color={categoryColor} />
-                            <Text className='text-base font-bold' style={{color: Colors.textPrimary}}>Select Booking Time</Text>
-                        </View>
-
-                        {/* Start Time Section */}
-                        <View className='mb-4'>
-                            <Text className='text-[10px] font-bold text-gray-500 mb-2 uppercase tracking-wide'>Start Time</Text>
-                            <Pressable
-                                onPress={() => setIsStartPickerVisible(true)}
-                                className='flex-row items-center justify-between px-4 py-3.5 rounded-xl active:opacity-85'
-                                style={{ borderWidth: 1.5, borderColor: Colors.border, backgroundColor: '#f8fafc' }}
-                            >
-                                <Text className='font-extrabold text-base' style={{ color: Colors.textPrimary }}>
-                                    {customStartHour ? `${customStartHour}:${customStartMinute} ${customStartPeriod}` : 'Choose Start Time'}
+                {/* Custom Time Selector Toggle (for Parlor and Photography) */}
+                {(isParlor || isPhoto) && (
+                    <View className='mt-4'>
+                        <Pressable
+                            onPress={() => {
+                                setIsCustomTimeMode(!isCustomTimeMode)
+                                if (!isCustomTimeMode) {
+                                    setSelectedSlot(null)
+                                }
+                            }}
+                            className='flex-row items-center justify-between p-4 rounded-2xl border active:opacity-85'
+                            style={{
+                                borderColor: isCustomTimeMode ? categoryColor : Colors.border,
+                                backgroundColor: isCustomTimeMode ? `${categoryColor}08` : '#f8fafc',
+                            }}
+                        >
+                            <View className='flex-row items-center gap-2.5'>
+                                <SlidersHorizontal size={18} color={isCustomTimeMode ? categoryColor : Colors.textSecondary} />
+                                <Text className='text-sm font-extrabold' style={{ color: isCustomTimeMode ? categoryColor : Colors.textPrimary }}>
+                                    {isCustomTimeMode ? 'Custom Time Selected' : 'Need a Specific Time? (Choose Custom)'}
                                 </Text>
-                                <Clock size={18} color={categoryColor} />
-                            </Pressable>
-                        </View>
-
-                        {/* End Time Section */}
-                        <View className='mb-2'>
-                            <Text className='text-[10px] font-bold text-gray-500 mb-2 uppercase tracking-wide'>End Time</Text>
-                            <Pressable
-                                onPress={() => setIsEndPickerVisible(true)}
-                                className='flex-row items-center justify-between px-4 py-3.5 rounded-xl active:opacity-85'
-                                style={{ borderWidth: 1.5, borderColor: Colors.border, backgroundColor: '#f8fafc' }}
-                            >
-                                <Text className='font-extrabold text-base' style={{ color: Colors.textPrimary }}>
-                                    {customEndHour ? `${customEndHour}:${customEndMinute} ${customEndPeriod}` : 'Choose End Time'}
+                            </View>
+                            <View className='px-2.5 py-1 rounded-lg' style={{ backgroundColor: isCustomTimeMode ? categoryColor : Colors.lightGray }}>
+                                <Text className='text-xs font-bold' style={{ color: isCustomTimeMode ? Colors.white : Colors.textSecondary }}>
+                                    {isCustomTimeMode ? 'Active' : 'Custom'}
                                 </Text>
-                                <Clock size={18} color={categoryColor} />
-                            </Pressable>
-                        </View>
+                            </View>
+                        </Pressable>
 
-                        {operatingHours && (
-                            <Text className='text-xs font-semibold mt-3 text-center' style={{color: Colors.textSecondary}}>
-                                Vendor Operating Hours: {operatingHours.from} to {operatingHours.to}
-                            </Text>
+                        {/* Custom Time Picker Expander */}
+                        {isCustomTimeMode && (
+                            <View className='mt-3 p-5 rounded-2xl bg-white border border-gray-200' style={Shadows.small}>
+                                <Text className='text-xs font-extrabold uppercase tracking-wide text-gray-500 mb-3'>Pick Custom Start & End Times</Text>
+                                
+                                <View className='flex-row gap-3 mb-3'>
+                                    {/* Start Time */}
+                                    <View className='flex-1'>
+                                        <Text className='text-[10px] font-bold text-gray-400 mb-1 uppercase'>Start Time</Text>
+                                        <Pressable
+                                            onPress={() => setIsStartPickerVisible(true)}
+                                            className='flex-row items-center justify-between px-3 py-3 rounded-xl border border-gray-200 bg-slate-50 active:opacity-80'
+                                        >
+                                            <Text className='font-bold text-sm text-gray-900'>
+                                                {customStartHour}:{customStartMinute} {customStartPeriod}
+                                            </Text>
+                                            <Clock size={16} color={categoryColor} />
+                                        </Pressable>
+                                    </View>
+
+                                    {/* End Time */}
+                                    <View className='flex-1'>
+                                        <Text className='text-[10px] font-bold text-gray-400 mb-1 uppercase'>End Time</Text>
+                                        <Pressable
+                                            onPress={() => setIsEndPickerVisible(true)}
+                                            className='flex-row items-center justify-between px-3 py-3 rounded-xl border border-gray-200 bg-slate-50 active:opacity-80'
+                                        >
+                                            <Text className='font-bold text-sm text-gray-900'>
+                                                {customEndHour}:{customEndMinute} {customEndPeriod}
+                                            </Text>
+                                            <Clock size={16} color={categoryColor} />
+                                        </Pressable>
+                                    </View>
+                                </View>
+
+                                {operatingHours && (
+                                    <Text className='text-[11px] font-semibold text-gray-400 text-center'>
+                                        Operating Hours: {operatingHours.from} to {operatingHours.to}
+                                    </Text>
+                                )}
+                            </View>
                         )}
-
-                        {/* Picker Modals */}
-                        <TimePickerModal
-                            visible={isStartPickerVisible}
-                            title="Select Start Time"
-                            initialHour={customStartHour}
-                            initialMinute={customStartMinute}
-                            initialPeriod={customStartPeriod}
-                            categoryColor={categoryColor}
-                            onClose={() => setIsStartPickerVisible(false)}
-                            onConfirm={(h, m, p) => {
-                                setCustomStartHour(h)
-                                setCustomStartMinute(m)
-                                setCustomStartPeriod(p)
-                                setIsStartPickerVisible(false)
-                            }}
-                        />
-
-                        <TimePickerModal
-                            visible={isEndPickerVisible}
-                            title="Select End Time"
-                            initialHour={customEndHour}
-                            initialMinute={customEndMinute}
-                            initialPeriod={customEndPeriod}
-                            categoryColor={categoryColor}
-                            onClose={() => setIsEndPickerVisible(false)}
-                            onConfirm={(h, m, p) => {
-                                setCustomEndHour(h)
-                                setCustomEndMinute(m)
-                                setCustomEndPeriod(p)
-                                setIsEndPickerVisible(false)
-                            }}
-                        />
                     </View>
                 )}
+
+                {/* Live Availability Status Pill */}
+                {getSelectedTime() && selectedDate && currentSelectedAvailability && (
+                    <View 
+                        className='mt-4 p-3.5 rounded-2xl flex-row items-center gap-3'
+                        style={{
+                            backgroundColor: currentSelectedAvailability.isFull ? '#fee2e2' : '#f0fdf4',
+                            borderWidth: 1.5,
+                            borderColor: currentSelectedAvailability.isFull ? Colors.error : Colors.success,
+                        }}
+                    >
+                        {currentSelectedAvailability.isFull ? (
+                            <AlertCircle size={20} color={Colors.error} />
+                        ) : (
+                            <CheckCircle2 size={20} color={Colors.success} />
+                        )}
+                        <View className='flex-1'>
+                            <Text 
+                                className='text-xs font-extrabold'
+                                style={{ color: currentSelectedAvailability.isFull ? Colors.error : Colors.success }}
+                            >
+                                {currentSelectedAvailability.isFull ? 'Time Slot Unavailable' : 'Slot Available & Confirmed'}
+                            </Text>
+                            <Text className='text-xs font-medium text-gray-600 mt-0.5'>
+                                {getSelectedTime()} • {currentSelectedAvailability.statusText}
+                            </Text>
+                        </View>
+                    </View>
+                )}
+
+                {/* Modals for Custom Time */}
+                <TimePickerModal
+                    visible={isStartPickerVisible}
+                    title="Select Start Time"
+                    initialHour={customStartHour}
+                    initialMinute={customStartMinute}
+                    initialPeriod={customStartPeriod}
+                    categoryColor={categoryColor}
+                    onClose={() => setIsStartPickerVisible(false)}
+                    onConfirm={(h, m, p) => {
+                        setCustomStartHour(h)
+                        setCustomStartMinute(m)
+                        setCustomStartPeriod(p)
+                        setIsStartPickerVisible(false)
+                    }}
+                />
+
+                <TimePickerModal
+                    visible={isEndPickerVisible}
+                    title="Select End Time"
+                    initialHour={customEndHour}
+                    initialMinute={customEndMinute}
+                    initialPeriod={customEndPeriod}
+                    categoryColor={categoryColor}
+                    onClose={() => setIsEndPickerVisible(false)}
+                    onConfirm={(h, m, p) => {
+                        setCustomEndHour(h)
+                        setCustomEndMinute(m)
+                        setCustomEndPeriod(p)
+                        setIsEndPickerVisible(false)
+                    }}
+                />
             </View>
 
             {/* Travel Toggle for Parlor */}
@@ -860,8 +1066,6 @@ export default function BookingScreen() {
                     </View>
                 </View>
             )}
-
-
 
             {/* Location Input - Only for Catering, Photographer & Parlor On-Site */}
             {(isCatering || isPhoto || (isParlor && isHomeService)) && (
@@ -907,46 +1111,48 @@ export default function BookingScreen() {
             </View>
             
             {/* Optional Add-ons */}
-            <View className='px-5 mb-6'>
-                <Text className='text-xl font-extrabold mb-4' style={{color: Colors.textPrimary}}>Optional Add-ons</Text>
-                <View className='gap-3'>
-                    {addons.map((addon) => (
-                        <View key={addon.id} className='rounded-2xl overflow-hidden' style={[{backgroundColor: Colors.white, borderWidth: 2, borderColor: Colors.border}]}>
-                            <Pressable 
-                                className='p-4 flex-row justify-between items-center active:opacity-80'
-                                onPress={() => toggleExpandAddon(addon.id)}
-                            >
-                                <View className='flex-row items-center gap-3 flex-1'>
-                                    <Pressable onPress={() => toggleAddon(addon.id)}>
-                                        <Circle 
-                                            size={20} 
-                                            color={selectedAddons[addon.id] ? categoryColor : Colors.borderDark} 
-                                            fill={selectedAddons[addon.id] ? categoryColor : 'transparent'} 
-                                        />
-                                    </Pressable>
-                                    <View className='flex-1'>
-                                        <Text className='text-sm font-extrabold' style={{color: Colors.textPrimary}} numberOfLines={2}>{addon.name}</Text>
-                                        <Text className='text-sm font-bold mt-1' style={{color: categoryColor}}>
-                                            + PKR {addon.price.toLocaleString()}
-                                        </Text>
-                                    </View>
-                                </View>
-                            </Pressable>
-                            
-                            {expandedAddons[addon.id] && (
-                                <View className='px-4 pb-4 pt-3 ml-12' style={{borderTopWidth: 1, borderTopColor: Colors.border}}>
-                                    {addon.items.map((item, idx) => (
-                                        <View key={idx} className='flex-row items-center mb-1'>
-                                            <Dot size={16} color={categoryColor} />
-                                            <Text className='text-sm flex-1' style={{color: Colors.textSecondary}}>{item}</Text>
+            {addons.length > 0 && (
+                <View className='px-5 mb-6'>
+                    <Text className='text-xl font-extrabold mb-4' style={{color: Colors.textPrimary}}>Optional Add-ons</Text>
+                    <View className='gap-3'>
+                        {addons.map((addon) => (
+                            <View key={addon.id} className='rounded-2xl overflow-hidden' style={[{backgroundColor: Colors.white, borderWidth: 2, borderColor: Colors.border}]}>
+                                <Pressable 
+                                    className='p-4 flex-row justify-between items-center active:opacity-80'
+                                    onPress={() => toggleExpandAddon(addon.id)}
+                                >
+                                    <View className='flex-row items-center gap-3 flex-1'>
+                                        <Pressable onPress={() => toggleAddon(addon.id)}>
+                                            <Circle 
+                                                size={20} 
+                                                color={selectedAddons[addon.id] ? categoryColor : Colors.borderDark} 
+                                                fill={selectedAddons[addon.id] ? categoryColor : 'transparent'} 
+                                            />
+                                        </Pressable>
+                                        <View className='flex-1'>
+                                            <Text className='text-sm font-extrabold' style={{color: Colors.textPrimary}} numberOfLines={2}>{addon.name}</Text>
+                                            <Text className='text-sm font-bold mt-1' style={{color: categoryColor}}>
+                                                + PKR {addon.price.toLocaleString()}
+                                            </Text>
                                         </View>
-                                    ))}
-                                </View>
-                            )}
-                        </View>
-                    ))}
+                                    </View>
+                                </Pressable>
+                                
+                                {expandedAddons[addon.id] && (
+                                    <View className='px-4 pb-4 pt-3 ml-12' style={{borderTopWidth: 1, borderTopColor: Colors.border}}>
+                                        {addon.items.map((item, idx) => (
+                                            <View key={idx} className='flex-row items-center mb-1'>
+                                                <Dot size={16} color={categoryColor} />
+                                                <Text className='text-sm flex-1' style={{color: Colors.textSecondary}}>{item}</Text>
+                                            </View>
+                                        ))}
+                                    </View>
+                                )}
+                            </View>
+                        ))}
+                    </View>
                 </View>
-            </View>
+            )}
 
             {/* Booking Summary */}
             <View className='px-5 mb-6'>
@@ -1063,7 +1269,7 @@ export default function BookingScreen() {
             </Pressable>
         </ScrollView>
         )}
-        </KeyboardAvoidingView>
+    </KeyboardAvoidingView>
   )
 }
 
