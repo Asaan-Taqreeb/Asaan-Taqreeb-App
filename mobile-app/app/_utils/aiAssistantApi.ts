@@ -7,17 +7,13 @@
 // You can get one for free at https://console.groq.com/
 const GROQ_API_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY || ''; 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const DEFAULT_MODEL = process.env.EXPO_PUBLIC_GROQ_MODEL || 'qwen-3.6-27b';
+const DEFAULT_MODEL = process.env.EXPO_PUBLIC_GROQ_MODEL || 'openai/gpt-oss-120b';
 const FALLBACK_MODELS = [
   DEFAULT_MODEL,
-  'qwen-3.6-27b',
-  'qwen3.6-27b',
-  'gpt-oss-120b',
-  'qwen-2.5-32b',
-  'llama-3.1-70b-versatile',
-  'deepseek-r1-distill-llama-70b',
-  'llama3-70b-8192',
-  'llama-3.1-8b-instant',
+  'openai/gpt-oss-120b',
+  'openai/gpt-oss-20b',
+  'qwen/qwen3.6-27b',
+  'minimaxai/minimax-m2.7',
 ];
 
 // Deduplicate fallback list
