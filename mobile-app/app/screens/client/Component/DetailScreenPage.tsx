@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router'
 import { AlertCircle, Dot, MapPin, Star, Circle, ChevronLeft, ChevronRight, X, ArrowLeft, Plus, MessageCircle, Heart } from 'lucide-react-native'
 import { useState, useEffect } from 'react'
-import { Alert, Dimensions, ScrollView, Modal, TextInput , Image, Pressable, StyleSheet, Text, View, KeyboardAvoidingView, Platform, Linking } from 'react-native'
+import { Alert, Dimensions, ScrollView, Modal, TextInput, Image, Pressable, StyleSheet, Text, View, KeyboardAvoidingView, Platform, Linking } from 'react-native'
 import GoogleMapView from '@/app/_components/GoogleMapView'
 import * as ExpoLocation from 'expo-location'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -15,11 +15,11 @@ export default function DetailScreenPage() {
     const insets = useSafeAreaInsets()
     const params = useLocalSearchParams()
     const { user } = useUser()
-    
+
     // ... rest of state ...
-    const [expandedPackages, setExpandedPackages] = useState<{[key: number]: boolean}>({})
+    const [expandedPackages, setExpandedPackages] = useState<{ [key: number]: boolean }>({})
     // ...
-    
+
     const [reviews, setReviews] = useState<Review[]>([])
     const [isFavorite, setIsFavorite] = useState(false)
     const [isTogglingFavorite, setIsTogglingFavorite] = useState(false)
@@ -27,9 +27,6 @@ export default function DetailScreenPage() {
     const [selectedGuestCount, setSelectedGuestCount] = useState<number | null>(null)
     const [guestCountInput, setGuestCountInput] = useState('')
     const [guestCountError, setGuestCountError] = useState('')
-    const [showCustomPackage, setShowCustomPackage] = useState(false)
-    const [customPackageName, setCustomPackageName] = useState('')
-    const [customPackagePrice, setCustomPackagePrice] = useState('')
     const [currentImageIndex, setCurrentImageIndex] = useState(0)
     const [expandedImage, setExpandedImage] = useState(false)
     const imageHeight = Math.max(240, Math.round(Dimensions.get('window').height * 0.3))
@@ -77,7 +74,7 @@ export default function DetailScreenPage() {
         };
     }, [params.id, vendor?.id, vendor?.serviceId]);
 
-    const [fallbackCoords, setFallbackCoords] = useState<{latitude: number, longitude: number} | null>(null)
+    const [fallbackCoords, setFallbackCoords] = useState<{ latitude: number, longitude: number } | null>(null)
 
     const categoryColor = getCategoryColor(params.category as string || vendor?.category)
     const normalizedCategory = String(vendor?.category || params.category || '').trim().toLowerCase()
@@ -89,9 +86,9 @@ export default function DetailScreenPage() {
     useEffect(() => {
         const tryGeocode = async () => {
             if (!vendor) return;
-            const hasCoords = (typeof vendor.latitude === 'number' || typeof vendor.latitude === 'string') && 
-                             (typeof vendor.longitude === 'number' || typeof vendor.longitude === 'string');
-            
+            const hasCoords = (typeof vendor.latitude === 'number' || typeof vendor.latitude === 'string') &&
+                (typeof vendor.longitude === 'number' || typeof vendor.longitude === 'string');
+
             if (!hasCoords && vendor.location && vendor.location !== 'Location not set') {
                 try {
                     let results: any[] = [];
@@ -157,7 +154,7 @@ export default function DetailScreenPage() {
     const setGuestCount = (value: string) => {
         const normalized = value.replace(/[^0-9]/g, '')
         setGuestCountInput(normalized)
-        
+
         if (!normalized) {
             setSelectedGuestCount(null)
             setGuestCountError('')
@@ -231,8 +228,8 @@ export default function DetailScreenPage() {
 
     const renderGuestCountInput = () => (
         <View className='mt-5'>
-            <Text className='text-lg font-extrabold mb-3' style={{color: Colors.textPrimary}}>Write Guest Count</Text>
-            <View className='rounded-2xl px-4 py-4 flex-row items-center' style={[{backgroundColor: Colors.white, borderWidth: 2, borderColor: guestCountError ? Colors.error : Colors.border}, Shadows.medium]}>
+            <Text className='text-lg font-extrabold mb-3' style={{ color: Colors.textPrimary }}>Write Guest Count</Text>
+            <View className='rounded-2xl px-4 py-4 flex-row items-center' style={[{ backgroundColor: Colors.white, borderWidth: 2, borderColor: guestCountError ? Colors.error : Colors.border }, Shadows.medium]}>
                 <TextInput
                     value={guestCountInput}
                     onChangeText={setGuestCount}
@@ -240,16 +237,16 @@ export default function DetailScreenPage() {
                     placeholderTextColor={Colors.textTertiary}
                     keyboardType='number-pad'
                     className='flex-1 text-base font-semibold'
-                    style={{color: Colors.textPrimary}}
+                    style={{ color: Colors.textPrimary }}
                     maxLength={4}
                 />
             </View>
             {guestCountError && (
-                <View className='rounded-xl p-3 mt-2' style={{backgroundColor: '#fee2e2', borderWidth: 1, borderColor: '#fca5a5'}}>
-                    <Text style={{color: Colors.error, fontSize: 13, fontWeight: '500'}}>{guestCountError}</Text>
+                <View className='rounded-xl p-3 mt-2' style={{ backgroundColor: '#fee2e2', borderWidth: 1, borderColor: '#fca5a5' }}>
+                    <Text style={{ color: Colors.error, fontSize: 13, fontWeight: '500' }}>{guestCountError}</Text>
                 </View>
             )}
-            <Text className='text-xs font-medium mt-2' style={{color: Colors.textSecondary}}>
+            <Text className='text-xs font-medium mt-2' style={{ color: Colors.textSecondary }}>
                 You can type the exact number instead of choosing from the suggestions below.
             </Text>
         </View>
@@ -290,8 +287,8 @@ export default function DetailScreenPage() {
 
     if (!vendor) {
         return (
-            <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}>
-                <Text className='text-center mt-10 text-lg' style={{color: Colors.textPrimary}}>Vendor details not available</Text>
+            <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+                <Text className='text-center mt-10 text-lg' style={{ color: Colors.textPrimary }}>Vendor details not available</Text>
             </View>
         )
     }
@@ -317,594 +314,460 @@ export default function DetailScreenPage() {
     };
 
 
-  return (
-    <KeyboardAvoidingView
-        style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={insets.top}
-    > 
-        <View className='flex-row items-center gap-4 px-5 py-4' style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
-            <Pressable className='rounded-full p-2 active:opacity-70' style={{backgroundColor: Colors.lightGray}} onPress={() => router.back()}>
-                <ArrowLeft color={categoryColor} size={24} />
-            </Pressable>
-            <Text className='text-xl font-extrabold flex-1' style={{color: Colors.textPrimary}}>Browse Details</Text>
-            
-            <Pressable 
-                className='rounded-full p-2 active:opacity-70' 
-                style={{backgroundColor: Colors.lightGray}} 
-                onPress={handleToggleFavorite}
-                disabled={isTogglingFavorite}
-            >
-                <Heart color={isFavorite ? Colors.error : Colors.textSecondary} fill={isFavorite ? Colors.error : 'transparent'} size={24} />
-            </Pressable>
-        </View>
-        <View className='flex-1'>
-            <View className='relative'>
-                <Pressable className='active:opacity-95' onPress={() => setExpandedImage(true)}>
-                    <Image 
-                        source={{uri: imageUrls[safeImageIndex]}} 
-                        style={{width: "100%", height: imageHeight}}
-                        resizeMode='cover'
-                    />
+    return (
+        <KeyboardAvoidingView
+            style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={insets.top}
+        >
+            <View className='flex-row items-center gap-4 px-5 py-4' style={{ borderBottomWidth: 1, borderBottomColor: Colors.border }}>
+                <Pressable className='rounded-full p-2 active:opacity-70' style={{ backgroundColor: Colors.lightGray }} onPress={() => router.back()}>
+                    <ArrowLeft color={categoryColor} size={24} />
                 </Pressable>
-                {imageUrls.length > 1 && (
-                    <>
-                        <Pressable
-                            className='absolute left-3 top-1/2 -mt-6 rounded-full p-2 active:opacity-90'
-                            style={{backgroundColor: Colors.overlay}}
-                            onPress={handlePrevImage}
-                        >
-                            <ChevronLeft color={Colors.white} size={24} />
-                        </Pressable>
-                        <Pressable
-                            className='absolute right-3 top-1/2 -mt-6 rounded-full p-2 active:opacity-90'
-                            style={{backgroundColor: Colors.overlay}}
-                            onPress={handleNextImage}
-                        >
-                            <ChevronRight color={Colors.white} size={24} />
-                        </Pressable>
-                        <View className='absolute bottom-4 w-full flex-row justify-center items-center gap-2'>
-                            {imageUrls.map((_: string, index: number) => (
-                                <View
-                                    key={index}
-                                    className='w-2 h-2 rounded-full'
-                                    style={{ backgroundColor: index === safeImageIndex ? categoryColor : Colors.white }}
-                                />
-                            ))}
-                        </View>
-                    </>
-                )}
+                <Text className='text-xl font-extrabold flex-1' style={{ color: Colors.textPrimary }}>Browse Details</Text>
+
+                <Pressable
+                    className='rounded-full p-2 active:opacity-70'
+                    style={{ backgroundColor: Colors.lightGray }}
+                    onPress={handleToggleFavorite}
+                    disabled={isTogglingFavorite}
+                >
+                    <Heart color={isFavorite ? Colors.error : Colors.textSecondary} fill={isFavorite ? Colors.error : 'transparent'} size={24} />
+                </Pressable>
             </View>
-            <Modal
-                visible={expandedImage}
-                transparent={true}
-                animationType='fade'
-                onRequestClose={() => setExpandedImage(false)}
-            >
-                <View className='flex-1 justify-center items-center' style={{backgroundColor: Colors.textPrimary}}>
-                    <Pressable
-                        className='absolute top-12 right-6 p-3 rounded-full active:opacity-80'
-                        style={{backgroundColor: Colors.overlay}}
-                        onPress={() => setExpandedImage(false)}
-                    >
-                        <X color={Colors.white} size={24} />
+            <View className='flex-1'>
+                <View className='relative'>
+                    <Pressable className='active:opacity-95' onPress={() => setExpandedImage(true)}>
+                        <Image
+                            source={{ uri: imageUrls[safeImageIndex] }}
+                            style={{ width: "100%", height: imageHeight }}
+                            resizeMode='cover'
+                        />
                     </Pressable>
-                    <Image
-                        source={{uri: imageUrls[safeImageIndex]}}
-                        style={{width: "95%", height: "70%"}}
-                        resizeMode='contain'
-                    />
+                    {imageUrls.length > 1 && (
+                        <>
+                            <Pressable
+                                className='absolute left-3 top-1/2 -mt-6 rounded-full p-2 active:opacity-90'
+                                style={{ backgroundColor: Colors.overlay }}
+                                onPress={handlePrevImage}
+                            >
+                                <ChevronLeft color={Colors.white} size={24} />
+                            </Pressable>
+                            <Pressable
+                                className='absolute right-3 top-1/2 -mt-6 rounded-full p-2 active:opacity-90'
+                                style={{ backgroundColor: Colors.overlay }}
+                                onPress={handleNextImage}
+                            >
+                                <ChevronRight color={Colors.white} size={24} />
+                            </Pressable>
+                            <View className='absolute bottom-4 w-full flex-row justify-center items-center gap-2'>
+                                {imageUrls.map((_: string, index: number) => (
+                                    <View
+                                        key={index}
+                                        className='w-2 h-2 rounded-full'
+                                        style={{ backgroundColor: index === safeImageIndex ? categoryColor : Colors.white }}
+                                    />
+                                ))}
+                            </View>
+                        </>
+                    )}
                 </View>
-            </Modal>
-            <ScrollView className='flex-1' showsVerticalScrollIndicator={false}>
-                {/* Header Section */}
-                <View className='flex-row justify-between items-start gap-3 px-5 py-5'>
-                    <View className='flex-1'>
-                        <Text className='text-2xl font-extrabold mb-2 leading-tight' style={{color: Colors.textPrimary}}>{vendor.name}</Text>
-                        <View className='flex-row items-start gap-2 mt-1'>
-                            <MapPin size={16} color={Colors.textSecondary} className='mt-1 flex-shrink-0' />
-                            <Text className='text-sm font-medium flex-1' style={{color: Colors.textSecondary}} numberOfLines={2}>{getConciseAddress(vendor.location)}</Text>
+                <Modal
+                    visible={expandedImage}
+                    transparent={true}
+                    animationType='fade'
+                    onRequestClose={() => setExpandedImage(false)}
+                >
+                    <View className='flex-1 justify-center items-center' style={{ backgroundColor: Colors.textPrimary }}>
+                        <Pressable
+                            className='absolute top-12 right-6 p-3 rounded-full active:opacity-80'
+                            style={{ backgroundColor: Colors.overlay }}
+                            onPress={() => setExpandedImage(false)}
+                        >
+                            <X color={Colors.white} size={24} />
+                        </Pressable>
+                        <Image
+                            source={{ uri: imageUrls[safeImageIndex] }}
+                            style={{ width: "95%", height: "70%" }}
+                            resizeMode='contain'
+                        />
+                    </View>
+                </Modal>
+                <ScrollView className='flex-1' showsVerticalScrollIndicator={false}>
+                    {/* Header Section */}
+                    <View className='flex-row justify-between items-start gap-3 px-5 py-5'>
+                        <View className='flex-1'>
+                            <Text className='text-2xl font-extrabold mb-2 leading-tight' style={{ color: Colors.textPrimary }}>{vendor.name}</Text>
+                            <View className='flex-row items-start gap-2 mt-1'>
+                                <MapPin size={16} color={Colors.textSecondary} className='mt-1 flex-shrink-0' />
+                                <Text className='text-sm font-medium flex-1' style={{ color: Colors.textSecondary }} numberOfLines={2}>{getConciseAddress(vendor.location)}</Text>
+                            </View>
+                        </View>
+                        <View className='items-end'>
+                            <Text className='text-xs font-semibold mb-1' style={{ color: Colors.textSecondary }}>FROM</Text>
+                            <Text className='text-lg font-extrabold' style={{ color: categoryColor }}>
+                                PKR {isBanquet ? vendor.price.toLocaleString() : (vendor.packages && vendor.packages[0] ? vendor.packages[0].price.toLocaleString() : "0")}
+                            </Text>
                         </View>
                     </View>
-                    <View className='items-end'>
-                        <Text className='text-xs font-semibold mb-1' style={{color: Colors.textSecondary}}>FROM</Text>
-                        <Text className='text-lg font-extrabold' style={{color: categoryColor}}>
-                            PKR {isBanquet ? vendor.price.toLocaleString() : (vendor.packages && vendor.packages[0] ? vendor.packages[0].price.toLocaleString() : "0")}
+
+                    {/* Rating and Info */}
+                    <View className='flex-row items-center gap-3 px-5 flex-wrap mb-4'>
+                        <View className='flex-row items-center gap-1 px-3 py-2 rounded-lg' style={{ backgroundColor: '#fef3c7' }}>
+                            <Star size={14} color={Colors.rating} fill={Colors.rating} />
+                            <Text className='text-sm font-bold' style={{ color: Colors.rating }}>{vendor.rating}</Text>
+                        </View>
+                        <View className='flex-row items-center gap-1 px-3 py-2 rounded-lg' style={{ backgroundColor: '#dbeafe' }}>
+                            <AlertCircle size={14} color={Colors.info} />
+                            <Text className='text-xs font-bold' style={{ color: Colors.info }}>50% Refundable</Text>
+                        </View>
+                    </View>
+
+                    {/* About Section */}
+                    <View className='px-5 mb-5'>
+                        <Text className='text-xl font-extrabold mb-3' style={{ color: Colors.textPrimary }}>About</Text>
+                        <Text className='text-sm leading-relaxed' style={{ color: Colors.textSecondary }}>{vendor.about}</Text>
+                    </View>
+
+                    {/* Location Map Section */}
+                    <View className='px-5 mb-8'>
+                        <View className='flex-row justify-between items-center mb-4'>
+                            <Text className='text-xl font-extrabold' style={{ color: Colors.textPrimary }}>Location</Text>
+                            {hasAnyCoords && (
+                                <Pressable
+                                    className='flex-row items-center gap-1 active:opacity-70'
+                                    onPress={() => {
+                                        const label = encodeURIComponent(vendor?.name || 'Vendor');
+                                        const url = Platform.select({
+                                            ios: `maps:0,0?q=${label}@${finalLat},${finalLng}`,
+                                            android: `geo:0,0?q=${finalLat},${finalLng}(${label})`,
+                                            default: `https://www.google.com/maps/search/?api=1&query=${finalLat},${finalLng}`
+                                        });
+
+                                        Linking.canOpenURL(url).then(supported => {
+                                            if (supported) {
+                                                Linking.openURL(url);
+                                            } else {
+                                                // Fallback to web browser if map app isn't available
+                                                Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${finalLat},${finalLng}`);
+                                            }
+                                        });
+                                    }}
+                                >
+                                    <Text className='text-sm font-bold' style={{ color: categoryColor }}>Open in Maps</Text>
+                                    <ChevronRight size={16} color={categoryColor} />
+                                </Pressable>
+                            )}
+                        </View>
+
+                        <View className='rounded-3xl overflow-hidden border-2' style={{ borderColor: Colors.border, height: 200 }}>
+                            {hasAnyCoords ? (
+                                <GoogleMapView
+                                    style={{ flex: 1 }}
+                                    latitude={finalLat}
+                                    longitude={finalLng}
+                                    markerPosition={{
+                                        latitude: finalLat,
+                                        longitude: finalLng
+                                    }}
+                                    scrollEnabled={false}
+                                    zoomEnabled={false}
+                                />
+                            ) : (
+                                <View className='flex-1 items-center justify-center bg-gray-50'>
+                                    <MapPin size={40} color={Colors.borderDark} />
+                                    <Text className='text-sm font-bold mt-2' style={{ color: Colors.textTertiary }}>Location not available on map</Text>
+                                </View>
+                            )}
+                        </View>
+                        <Text className='text-sm mt-3 leading-relaxed' style={{ color: Colors.textSecondary }}>
+                            {vendor.location}
                         </Text>
                     </View>
-                </View>
 
-                {/* Rating and Info */}
-                <View className='flex-row items-center gap-3 px-5 flex-wrap mb-4'>
-                    <View className='flex-row items-center gap-1 px-3 py-2 rounded-lg' style={{backgroundColor: '#fef3c7'}}>
-                        <Star size={14} color={Colors.rating} fill={Colors.rating} />
-                        <Text className='text-sm font-bold' style={{color: Colors.rating}}>{vendor.rating}</Text>
-                    </View>
-                    <View className='flex-row items-center gap-1 px-3 py-2 rounded-lg' style={{backgroundColor: '#dbeafe'}}>
-                        <AlertCircle size={14} color={Colors.info} />
-                        <Text className='text-xs font-bold' style={{color: Colors.info}}>50% Refundable</Text>
-                    </View>
-                </View>
-
-                {/* About Section */}
-                <View className='px-5 mb-5'>
-                    <Text className='text-xl font-extrabold mb-3' style={{color: Colors.textPrimary}}>About</Text>
-                    <Text className='text-sm leading-relaxed' style={{color: Colors.textSecondary}}>{vendor.about}</Text>
-                </View>
-
-                {/* Location Map Section */}
-                <View className='px-5 mb-8'>
-                    <View className='flex-row justify-between items-center mb-4'>
-                        <Text className='text-xl font-extrabold' style={{color: Colors.textPrimary}}>Location</Text>
-                        {hasAnyCoords && (
-                            <Pressable 
-                                className='flex-row items-center gap-1 active:opacity-70'
-                                onPress={() => {
-                                    const label = encodeURIComponent(vendor?.name || 'Vendor');
-                                    const url = Platform.select({
-                                        ios: `maps:0,0?q=${label}@${finalLat},${finalLng}`,
-                                        android: `geo:0,0?q=${finalLat},${finalLng}(${label})`,
-                                        default: `https://www.google.com/maps/search/?api=1&query=${finalLat},${finalLng}`
-                                    });
-                                    
-                                    Linking.canOpenURL(url).then(supported => {
-                                        if (supported) {
-                                            Linking.openURL(url);
-                                        } else {
-                                            // Fallback to web browser if map app isn't available
-                                            Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${finalLat},${finalLng}`);
-                                        }
-                                    });
-                                }}
-                            >
-                                <Text className='text-sm font-bold' style={{color: categoryColor}}>Open in Maps</Text>
-                                <ChevronRight size={16} color={categoryColor} />
-                            </Pressable>
-                        )}
-                    </View>
-                    
-                    <View className='rounded-3xl overflow-hidden border-2' style={{borderColor: Colors.border, height: 200}}>
-                        {hasAnyCoords ? (
-                            <GoogleMapView
-                                style={{flex: 1}}
-                                latitude={finalLat}
-                                longitude={finalLng}
-                                markerPosition={{
-                                    latitude: finalLat,
-                                    longitude: finalLng
-                                }}
-                                scrollEnabled={false}
-                                zoomEnabled={false}
-                            />
-                        ) : (
-                            <View className='flex-1 items-center justify-center bg-gray-50'>
-                                <MapPin size={40} color={Colors.borderDark} />
-                                <Text className='text-sm font-bold mt-2' style={{color: Colors.textTertiary}}>Location not available on map</Text>
+                    {/* Banquet Specific Info */}
+                    {isBanquet && (
+                        <View className='px-5 mb-5'>
+                            <Text className='text-lg font-extrabold mb-4' style={{ color: Colors.textPrimary }}>Guest Capacity</Text>
+                            <View className='flex-row gap-3'>
+                                <View className='flex-1 py-4 px-3 rounded-2xl' style={[{ backgroundColor: Colors.white }, Shadows.medium]}>
+                                    <Text className='text-xs font-bold text-center mb-1' style={{ color: Colors.textSecondary }}>MINIMUM</Text>
+                                    <Text className='text-center text-2xl font-extrabold my-2' style={{ color: categoryColor }}>{vendor.minGuests ?? '—'}</Text>
+                                    <Text className='text-center text-xs font-medium' style={{ color: Colors.textSecondary }}>Guests</Text>
+                                </View>
+                                <View className='flex-1 py-4 px-3 rounded-2xl' style={[{ backgroundColor: Colors.white }, Shadows.medium]}>
+                                    <Text className='text-xs font-bold text-center mb-1' style={{ color: Colors.textSecondary }}>MAXIMUM</Text>
+                                    <Text className='text-center text-2xl font-extrabold my-2' style={{ color: categoryColor }}>{vendor.maxGuests ?? '—'}</Text>
+                                    <Text className='text-center text-xs font-medium' style={{ color: Colors.textSecondary }}>Guests</Text>
+                                </View>
                             </View>
-                        )}
-                    </View>
-                    <Text className='text-sm mt-3 leading-relaxed' style={{color: Colors.textSecondary}}>
-                        {vendor.location}
-                    </Text>
-                </View>
 
-                {/* Banquet Specific Info */}
-                {isBanquet && (
-                    <View className='px-5 mb-5'>
-                        <Text className='text-lg font-extrabold mb-4' style={{color: Colors.textPrimary}}>Guest Capacity</Text>
-                        <View className='flex-row gap-3'>
-                            <View className='flex-1 py-4 px-3 rounded-2xl' style={[{backgroundColor: Colors.white}, Shadows.medium]}>
-                                <Text className='text-xs font-bold text-center mb-1' style={{color: Colors.textSecondary}}>MINIMUM</Text>
-                                <Text className='text-center text-2xl font-extrabold my-2' style={{color: categoryColor}}>{vendor.minGuests ?? '—'}</Text>
-                                <Text className='text-center text-xs font-medium' style={{color: Colors.textSecondary}}>Guests</Text>
-                            </View>
-                            <View className='flex-1 py-4 px-3 rounded-2xl' style={[{backgroundColor: Colors.white}, Shadows.medium]}>
-                                <Text className='text-xs font-bold text-center mb-1' style={{color: Colors.textSecondary}}>MAXIMUM</Text>
-                                <Text className='text-center text-2xl font-extrabold my-2' style={{color: categoryColor}}>{vendor.maxGuests ?? '—'}</Text>
-                                <Text className='text-center text-xs font-medium' style={{color: Colors.textSecondary}}>Guests</Text>
-                            </View>
+                            {renderGuestCountInput()}
+
+                            {/* Guest Count Selection */}
+                            {banquetGuestOptions.length > 0 ? (
+                                <View className='mt-5'>
+                                    <Text className='text-lg font-extrabold mb-3' style={{ color: Colors.textPrimary }}>Quick Select</Text>
+                                    <View className='flex-row flex-wrap gap-2'>
+                                        {banquetGuestOptions.map((count) => (
+                                            <Pressable
+                                                key={count}
+                                                className='flex-1 py-3 px-4 rounded-xl min-w-max active:opacity-80'
+                                                style={{ backgroundColor: selectedGuestCount === count ? categoryColor : Colors.lightGray }}
+                                                onPress={() => setGuestCount(String(count))}
+                                            >
+                                                <Text className='text-center font-bold text-sm' style={{ color: selectedGuestCount === count ? Colors.white : Colors.textPrimary }}>{count}</Text>
+                                            </Pressable>
+                                        ))}
+                                    </View>
+                                </View>
+                            ) : (
+                                <View className='mt-5 rounded-xl p-4' style={{ backgroundColor: '#fef3c7', borderWidth: 1, borderColor: '#fcd34d' }}>
+                                    <Text className='text-sm font-bold text-center' style={{ color: Colors.warning }}>
+                                        Guest capacity is not available for this vendor.
+                                    </Text>
+                                </View>
+                            )}
                         </View>
+                    )}
 
-                        {renderGuestCountInput()}
-
-                        {/* Guest Count Selection */}
-                        {banquetGuestOptions.length > 0 ? (
-                            <View className='mt-5'>
-                                <Text className='text-lg font-extrabold mb-3' style={{color: Colors.textPrimary}}>Quick Select</Text>
+                    {/* Catering Guest Count Selection */}
+                    {isCatering && (
+                        <View className='px-5 mb-5'>
+                            {renderGuestCountInput()}
+                            <Text className='text-lg font-extrabold mb-3 mt-5' style={{ color: Colors.textPrimary }}>Quick Select</Text>
+                            {cateringGuestOptions.length > 0 ? (
                                 <View className='flex-row flex-wrap gap-2'>
-                                    {banquetGuestOptions.map((count) => (
+                                    {cateringGuestOptions.map((count) => (
                                         <Pressable
                                             key={count}
-                                            className='flex-1 py-3 px-4 rounded-xl min-w-max active:opacity-80'
-                                            style={{backgroundColor: selectedGuestCount === count ? categoryColor : Colors.lightGray}}
+                                            className='py-3 px-4 rounded-xl min-w-max active:opacity-80'
+                                            style={{ backgroundColor: selectedGuestCount === count ? categoryColor : Colors.lightGray, flex: 1 }}
                                             onPress={() => setGuestCount(String(count))}
                                         >
-                                            <Text className='text-center font-bold text-sm' style={{color: selectedGuestCount === count ? Colors.white : Colors.textPrimary}}>{count}</Text>
+                                            <Text className='text-center font-bold text-sm' style={{ color: selectedGuestCount === count ? Colors.white : Colors.textPrimary }}>{count}</Text>
                                         </Pressable>
                                     ))}
                                 </View>
-                            </View>
-                        ) : (
-                            <View className='mt-5 rounded-xl p-4' style={{backgroundColor: '#fef3c7', borderWidth: 1, borderColor: '#fcd34d'}}>
-                                <Text className='text-sm font-bold text-center' style={{color: Colors.warning}}>
-                                    Guest capacity is not available for this vendor.
-                                </Text>
-                            </View>
-                        )}
-                    </View>
-                )}
+                            ) : (
+                                <View className='rounded-xl p-4' style={{ backgroundColor: '#fef3c7', borderWidth: 1, borderColor: '#fcd34d' }}>
+                                    <Text className='text-sm font-bold text-center' style={{ color: Colors.warning }}>
+                                        Guest count is not available for this vendor.
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
+                    )}
 
-                {/* Catering Guest Count Selection */}
-                {isCatering && (
-                    <View className='px-5 mb-5'>
-                        {renderGuestCountInput()}
-                        <Text className='text-lg font-extrabold mb-3 mt-5' style={{color: Colors.textPrimary}}>Quick Select</Text>
-                        {cateringGuestOptions.length > 0 ? (
-                            <View className='flex-row flex-wrap gap-2'>
-                                {cateringGuestOptions.map((count) => (
+                    {/* Packages Section */}
+                    {vendor.packages && vendor.packages.length > 0 && (selectedGuestCount || isPhoto || isParlor) && (
+                        <View className='px-5 mb-6'>
+                            <Text className='text-xl font-extrabold mb-4' style={{ color: Colors.textPrimary }}>
+                                {isBanquet ? "Banquet Packages" :
+                                    isCatering ? "Catering Packages" :
+                                        isPhoto ? "Photography Packages" :
+                                            "Salon Packages"}
+                            </Text>
+
+                            {/* Dishes-based pricing info for catering */}
+                            {isCatering && selectedGuestCount && (
+                                <View className='rounded-xl p-3 mb-4' style={{ backgroundColor: '#dbeafe', borderWidth: 1, borderColor: '#93c5fd' }}>
+                                    <Text className='text-sm font-bold' style={{ color: Colors.info }}>For <Text className='font-extrabold'>{selectedGuestCount} guests</Text> - prices are per head</Text>
+                                </View>
+                            )}
+
+                            {vendor.packages.map((pkg: any) => (
+                                <View key={pkg.id} className='py-5 px-4 rounded-2xl mb-4' style={[{ backgroundColor: Colors.white, borderWidth: 2, borderColor: Colors.border }, Shadows.medium]}>
+                                    {/* Package Header */}
                                     <Pressable
-                                        key={count}
-                                        className='py-3 px-4 rounded-xl min-w-max active:opacity-80'
-                                        style={{backgroundColor: selectedGuestCount === count ? categoryColor : Colors.lightGray, flex: 1}}
-                                        onPress={() => setGuestCount(String(count))}
+                                        className='flex-row justify-between items-start mb-3'
+                                        onPress={() => togglePackage(pkg.id)}
                                     >
-                                        <Text className='text-center font-bold text-sm' style={{color: selectedGuestCount === count ? Colors.white : Colors.textPrimary}}>{count}</Text>
-                                    </Pressable>
-                                ))}
-                            </View>
-                        ) : (
-                            <View className='rounded-xl p-4' style={{backgroundColor: '#fef3c7', borderWidth: 1, borderColor: '#fcd34d'}}>
-                                <Text className='text-sm font-bold text-center' style={{color: Colors.warning}}>
-                                    Guest count is not available for this vendor.
-                                </Text>
-                            </View>
-                        )}
-                    </View>
-                )}
-
-                {/* Packages Section */}
-                {vendor.packages && vendor.packages.length > 0 && (selectedGuestCount || isPhoto || isParlor) && (
-                    <View className='px-5 mb-6'>
-                        <Text className='text-xl font-extrabold mb-4' style={{color: Colors.textPrimary}}>
-                            {isBanquet ? "Banquet Packages" :
-                             isCatering ? "Catering Packages" : 
-                             isPhoto ? "Photography Packages" :
-                             "Salon Packages"}
-                        </Text>
-
-                        {/* Dishes-based pricing info for catering */}
-                        {isCatering && selectedGuestCount && (
-                            <View className='rounded-xl p-3 mb-4' style={{backgroundColor: '#dbeafe', borderWidth: 1, borderColor: '#93c5fd'}}>
-                                <Text className='text-sm font-bold' style={{color: Colors.info}}>For <Text className='font-extrabold'>{selectedGuestCount} guests</Text> - prices are per head</Text>
-                            </View>
-                        )}
-
-                        {vendor.packages.map((pkg: any) => (
-                            <View key={pkg.id} className='py-5 px-4 rounded-2xl mb-4' style={[{backgroundColor: Colors.white, borderWidth: 2, borderColor: Colors.border}, Shadows.medium]}>
-                                {/* Package Header */}
-                                <Pressable 
-                                    className='flex-row justify-between items-start mb-3'
-                                    onPress={() => togglePackage(pkg.id)}
-                                >
-                                    <View className='flex-row items-start gap-3 flex-1'>
-                                        <Circle 
-                                            size={20} 
-                                            color={expandedPackages[pkg.id] ? categoryColor : Colors.borderDark} 
-                                            fill={expandedPackages[pkg.id] ? categoryColor : Colors.lightGray} 
-                                        />
-                                        <View className='flex-1'>
-                                            <Text className='text-lg font-extrabold mb-1' style={{color: Colors.textPrimary}}>{pkg.packageName}</Text>
-                                            <View className='flex-row gap-2 mt-1 flex-wrap'>
-                                                <Text className='text-base font-bold' style={{color: categoryColor}}>PKR {(pkg.price * (selectedGuestCount || 1)).toLocaleString()}</Text>
-                                                {isCatering && selectedGuestCount && (
-                                                    <Text className='text-sm font-medium' style={{color: Colors.textSecondary}}>(PKR {pkg.price}/per guest)</Text>
-                                                )}
+                                        <View className='flex-row items-start gap-3 flex-1'>
+                                            <Circle
+                                                size={20}
+                                                color={expandedPackages[pkg.id] ? categoryColor : Colors.borderDark}
+                                                fill={expandedPackages[pkg.id] ? categoryColor : Colors.lightGray}
+                                            />
+                                            <View className='flex-1'>
+                                                <Text className='text-lg font-extrabold mb-1' style={{ color: Colors.textPrimary }}>{pkg.packageName}</Text>
+                                                <View className='flex-row gap-2 mt-1 flex-wrap'>
+                                                    <Text className='text-base font-bold' style={{ color: categoryColor }}>PKR {(pkg.price * (selectedGuestCount || 1)).toLocaleString()}</Text>
+                                                    {isCatering && selectedGuestCount && (
+                                                        <Text className='text-sm font-medium' style={{ color: Colors.textSecondary }}>(PKR {pkg.price}/per guest)</Text>
+                                                    )}
+                                                </View>
                                             </View>
                                         </View>
-                                    </View>
-                                </Pressable>
+                                    </Pressable>
 
-                                {/* Package Details - Expandable */}
-                                {expandedPackages[pkg.id] && (
-                                    <View className='mb-4 pt-4' style={{borderTopWidth: 1, borderTopColor: Colors.border}}>
-                                        {/* Banquet */}
-                                        {isBanquet && pkg.items && (
-                                            <View>
-                                                {pkg.items.map((item: string, idx: number) => (
-                                                    <View key={idx} className='flex-row items-center mb-2'>
-                                                        <Dot size={16} color={categoryColor} />
-                                                        <Text className='text-sm flex-1' style={{color: Colors.textSecondary}}>{item}</Text>
-                                                    </View>
-                                                ))}
-                                            </View>
-                                        )}
-
-                                        {/* Catering - Show courses */}
-                                        {isCatering && pkg.mainCourse && (
-                                            <View>
-                                                <View className='mb-4'>
-                                                    <Text className='text-sm font-bold mb-2' style={{color: Colors.textPrimary}}>Main Course</Text>
-                                                    {pkg.mainCourse.map((item: string, idx: number) => (
-                                                        <View key={idx} className='flex-row items-center mb-1'>
-                                                            <Dot size={14} color={categoryColor} />
-                                                            <Text className='text-sm flex-1' style={{color: Colors.textSecondary}}>{item}</Text>
-                                                        </View>
-                                                    ))}
-                                                </View>
-                                                <View className='mb-4'>
-                                                    <Text className='text-sm font-bold mb-2' style={{color: Colors.textPrimary}}>Desserts</Text>
-                                                    {pkg.desserts.map((item: string, idx: number) => (
-                                                        <View key={idx} className='flex-row items-center mb-1'>
-                                                            <Dot size={14} color={categoryColor} />
-                                                            <Text className='text-sm flex-1' style={{color: Colors.textSecondary}}>{item}</Text>
-                                                        </View>
-                                                    ))}
-                                                </View>
+                                    {/* Package Details - Expandable */}
+                                    {expandedPackages[pkg.id] && (
+                                        <View className='mb-4 pt-4' style={{ borderTopWidth: 1, borderTopColor: Colors.border }}>
+                                            {/* Banquet */}
+                                            {isBanquet && pkg.items && (
                                                 <View>
-                                                    <Text className='text-sm font-bold mb-2' style={{color: Colors.textPrimary}}>Drinks</Text>
-                                                    {pkg.drinks.map((item: string, idx: number) => (
-                                                        <View key={idx} className='flex-row items-center mb-1'>
-                                                            <Dot size={14} color={categoryColor} />
-                                                            <Text className='text-sm flex-1' style={{color: Colors.textSecondary}}>{item}</Text>
+                                                    {pkg.items.map((item: string, idx: number) => (
+                                                        <View key={idx} className='flex-row items-center mb-2'>
+                                                            <Dot size={16} color={categoryColor} />
+                                                            <Text className='text-sm flex-1' style={{ color: Colors.textSecondary }}>{item}</Text>
                                                         </View>
                                                     ))}
                                                 </View>
-                                            </View>
-                                        )}
+                                            )}
 
-                                        {/* Photography & Parlor - Show items */}
-                                        {(isPhoto || isParlor) && pkg.items && (
-                                            <View>
-                                                {pkg.items.map((item: string, idx: number) => (
-                                                    <View key={idx} className='flex-row items-center mb-2'>
-                                                        <Dot size={16} color={categoryColor} />
-                                                        <Text className='text-sm flex-1' style={{color: Colors.textSecondary}}>{item}</Text>
+                                            {/* Catering - Show courses */}
+                                            {isCatering && pkg.mainCourse && (
+                                                <View>
+                                                    <View className='mb-4'>
+                                                        <Text className='text-sm font-bold mb-2' style={{ color: Colors.textPrimary }}>Main Course</Text>
+                                                        {pkg.mainCourse.map((item: string, idx: number) => (
+                                                            <View key={idx} className='flex-row items-center mb-1'>
+                                                                <Dot size={14} color={categoryColor} />
+                                                                <Text className='text-sm flex-1' style={{ color: Colors.textSecondary }}>{item}</Text>
+                                                            </View>
+                                                        ))}
                                                     </View>
-                                                ))}
-                                            </View>
-                                        )}
-                                    </View>
-                                )}
+                                                    <View className='mb-4'>
+                                                        <Text className='text-sm font-bold mb-2' style={{ color: Colors.textPrimary }}>Desserts</Text>
+                                                        {pkg.desserts.map((item: string, idx: number) => (
+                                                            <View key={idx} className='flex-row items-center mb-1'>
+                                                                <Dot size={14} color={categoryColor} />
+                                                                <Text className='text-sm flex-1' style={{ color: Colors.textSecondary }}>{item}</Text>
+                                                            </View>
+                                                        ))}
+                                                    </View>
+                                                    <View>
+                                                        <Text className='text-sm font-bold mb-2' style={{ color: Colors.textPrimary }}>Drinks</Text>
+                                                        {pkg.drinks.map((item: string, idx: number) => (
+                                                            <View key={idx} className='flex-row items-center mb-1'>
+                                                                <Dot size={14} color={categoryColor} />
+                                                                <Text className='text-sm flex-1' style={{ color: Colors.textSecondary }}>{item}</Text>
+                                                            </View>
+                                                        ))}
+                                                    </View>
+                                                </View>
+                                            )}
 
-                                {/* Select Package Button */}
-                                <Pressable 
-                                    className='rounded-xl py-4 px-4 mt-3 active:opacity-85'
-                                    style={{backgroundColor: categoryColor}}
-                                    onPress={() => {
-                                        if (user?.isGuest) {
-                                            promptGuestRestriction('request a booking')
-                                            return
-                                        }
+                                            {/* Photography & Parlor - Show items */}
+                                            {(isPhoto || isParlor) && pkg.items && (
+                                                <View>
+                                                    {pkg.items.map((item: string, idx: number) => (
+                                                        <View key={idx} className='flex-row items-center mb-2'>
+                                                            <Dot size={16} color={categoryColor} />
+                                                            <Text className='text-sm flex-1' style={{ color: Colors.textSecondary }}>{item}</Text>
+                                                        </View>
+                                                    ))}
+                                                </View>
+                                            )}
+                                        </View>
+                                    )}
 
-                                        if (guestCountError) {
-                                            return
-                                        }
-                                        const bookingData = {
-                                            serviceId: vendor.serviceId || vendor.id,
-                                            vendorId: vendor.vendorId,
-                                            category: vendor.category,
-                                            packageName: pkg.packageName,
-                                            price: pkg.price,
-                                            guestCount: selectedGuestCount,
-                                            vendorName: vendor.name,
-                                            vendorLocation: vendor.location,
-                                            isOnSite: vendor.isOnSite,
-                                            onSiteFee: vendor.onSiteFee,
-                                            operatingHours: vendor.operatingHours,
-                                            slotCapacity: vendor.maxGuests || vendor.capacity?.maxGuests,
-                                            capacity: vendor.capacity,
-                                            optionalServices: vendor.optionalServices || [],
-                                            branches: vendor.branches || []
-                                        }
-                                        router.push({
-                                            pathname: "/screens/client/Component/BookingScreen",
-                                            params: { bookingData: encodeURIComponent(JSON.stringify(bookingData)) }
-                                        })
-                                    }}
-                                >
-                                    <Text className='text-center font-extrabold text-base' style={{color: Colors.white}}>Select Package</Text>
-                                </Pressable>
+                                    {/* Select Package Button */}
+                                    <Pressable
+                                        className='rounded-xl py-4 px-4 mt-3 active:opacity-85'
+                                        style={{ backgroundColor: categoryColor }}
+                                        onPress={() => {
+                                            if (user?.isGuest) {
+                                                promptGuestRestriction('request a booking')
+                                                return
+                                            }
+
+                                            if (guestCountError) {
+                                                return
+                                            }
+                                            const bookingData = {
+                                                serviceId: vendor.serviceId || vendor.id,
+                                                vendorId: vendor.vendorId,
+                                                category: vendor.category,
+                                                packageName: pkg.packageName,
+                                                price: pkg.price,
+                                                guestCount: selectedGuestCount,
+                                                vendorName: vendor.name,
+                                                vendorLocation: vendor.location,
+                                                isOnSite: vendor.isOnSite,
+                                                onSiteFee: vendor.onSiteFee,
+                                                operatingHours: vendor.operatingHours,
+                                                slotCapacity: vendor.maxGuests || vendor.capacity?.maxGuests,
+                                                capacity: vendor.capacity,
+                                                optionalServices: vendor.optionalServices || [],
+                                                branches: vendor.branches || []
+                                            }
+                                            router.push({
+                                                pathname: "/screens/client/Component/BookingScreen",
+                                                params: { bookingData: encodeURIComponent(JSON.stringify(bookingData)) }
+                                            })
+                                        }}
+                                    >
+                                        <Text className='text-center font-extrabold text-base' style={{ color: Colors.white }}>Select Package</Text>
+                                    </Pressable>
+                                </View>
+                            ))}
+                        </View>
+                    )}
+
+                    {/* No Guest Count Selected Message */}
+                    {isBanquet && !selectedGuestCount && vendor.packages && vendor.packages.length > 0 && (
+                        <View className='px-5 mb-5 rounded-xl p-4' style={{ backgroundColor: '#fef3c7', borderWidth: 1, borderColor: '#fcd34d' }}>
+                            <Text className='text-sm font-bold text-center' style={{ color: Colors.warning }}>Please select guest count to view packages</Text>
+                        </View>
+                    )}
+
+                    {isCatering && !selectedGuestCount && vendor.packages && vendor.packages.length > 0 && (
+                        <View className='px-5 mb-5 rounded-xl p-4' style={{ backgroundColor: '#fef3c7', borderWidth: 1, borderColor: '#fcd34d' }}>
+                            <Text className='text-sm font-bold text-center' style={{ color: Colors.warning }}>Please select guest count to view packages and pricing</Text>
+                        </View>
+                    )}
+
+                    {/* Reviews Section */}
+                    <View className='px-5 mb-10'>
+                        <Text className='text-xl font-extrabold mb-4' style={{ color: Colors.textPrimary }}>Reviews ({reviews.length})</Text>
+
+                        {reviews.length === 0 ? (
+                            <View className='rounded-xl p-4' style={{ backgroundColor: Colors.lightGray }}>
+                                <Text className='text-sm text-center' style={{ color: Colors.textSecondary }}>No reviews yet.</Text>
                             </View>
-                        ))}
-
-                        {/* Custom Package Option for Catering */}
-                        {isCatering && selectedGuestCount && (
-                            <Pressable 
-                                className='rounded-2xl py-5 px-4 mb-4 flex-row items-center justify-center gap-2 active:opacity-80'
-                                style={{backgroundColor: '#fff7ed', borderWidth: 2, borderStyle: 'dashed', borderColor: categoryColor}}
-                                onPress={() => setShowCustomPackage(true)}
-                            >
-                                <Plus size={20} color={categoryColor} />
-                                <Text className='text-base font-extrabold' style={{color: categoryColor}}>Create Custom Package</Text>
-                            </Pressable>
+                        ) : (
+                            reviews.map((review) => (
+                                <View key={review._id} className='mb-4 p-4 rounded-xl' style={[{ backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border }, Shadows.small]}>
+                                    <View className='flex-row justify-between items-center mb-2'>
+                                        <Text className='font-extrabold text-base' style={{ color: Colors.textPrimary }}>{review.client?.name || 'User'}</Text>
+                                        <View className='flex-row items-center'>
+                                            <Star size={12} color={Colors.rating} fill={Colors.rating} />
+                                            <Text className='text-xs font-bold ml-1' style={{ color: Colors.rating }}>{review.rating}</Text>
+                                        </View>
+                                    </View>
+                                    {review.comment ? (
+                                        <Text className='text-sm leading-relaxed mt-1' style={{ color: Colors.textSecondary }}>{review.comment}</Text>
+                                    ) : null}
+                                </View>
+                            ))
                         )}
                     </View>
-                )}
 
-                {/* No Guest Count Selected Message */}
-                {isBanquet && !selectedGuestCount && vendor.packages && vendor.packages.length > 0 && (
-                    <View className='px-5 mb-5 rounded-xl p-4' style={{backgroundColor: '#fef3c7', borderWidth: 1, borderColor: '#fcd34d'}}>
-                        <Text className='text-sm font-bold text-center' style={{color: Colors.warning}}>Please select guest count to view packages</Text>
-                    </View>
-                )}
-
-                {isCatering && !selectedGuestCount && vendor.packages && vendor.packages.length > 0 && (
-                    <View className='px-5 mb-5 rounded-xl p-4' style={{backgroundColor: '#fef3c7', borderWidth: 1, borderColor: '#fcd34d'}}>
-                        <Text className='text-sm font-bold text-center' style={{color: Colors.warning}}>Please select guest count to view packages and pricing</Text>
-                    </View>
-                )}
-
-                {/* Reviews Section */}
-                <View className='px-5 mb-10'>
-                    <Text className='text-xl font-extrabold mb-4' style={{color: Colors.textPrimary}}>Reviews ({reviews.length})</Text>
-                    
-                    {reviews.length === 0 ? (
-                        <View className='rounded-xl p-4' style={{backgroundColor: Colors.lightGray}}>
-                            <Text className='text-sm text-center' style={{color: Colors.textSecondary}}>No reviews yet.</Text>
-                        </View>
-                    ) : (
-                        reviews.map((review) => (
-                            <View key={review._id} className='mb-4 p-4 rounded-xl' style={[{backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border}, Shadows.small]}>
-                                <View className='flex-row justify-between items-center mb-2'>
-                                    <Text className='font-extrabold text-base' style={{color: Colors.textPrimary}}>{review.client?.name || 'User'}</Text>
-                                    <View className='flex-row items-center'>
-                                        <Star size={12} color={Colors.rating} fill={Colors.rating} />
-                                        <Text className='text-xs font-bold ml-1' style={{color: Colors.rating}}>{review.rating}</Text>
-                                    </View>
-                                </View>
-                                {review.comment ? (
-                                    <Text className='text-sm leading-relaxed mt-1' style={{color: Colors.textSecondary}}>{review.comment}</Text>
-                                ) : null}
-                            </View>
-                        ))
-                    )}
-                </View>
-
-            </ScrollView>
-        </View>
-
-        {/* Custom Package Modal for Catering */}
-        <Modal
-            visible={showCustomPackage}
-            animationType="slide"
-            transparent={true}
-            onRequestClose={() => setShowCustomPackage(false)}
-        >
-            <View className='flex-1 justify-end' style={{backgroundColor: Colors.overlay}}>
-                <View className='rounded-t-3xl px-6 py-6' style={{backgroundColor: Colors.white, maxHeight: '80%'}}>
-                    <View className='flex-row justify-between items-center mb-6' style={{borderBottomWidth: 1, borderBottomColor: Colors.border, paddingBottom: Spacing.md}}>
-                        <Text className='text-2xl font-extrabold' style={{color: Colors.textPrimary}}>Custom Package</Text>
-                        <Pressable 
-                            className='rounded-full p-2 active:opacity-70'
-                            style={{backgroundColor: Colors.lightGray}}
-                            onPress={() => {
-                                setShowCustomPackage(false)
-                                setCustomPackageName('')
-                                setCustomPackagePrice('')
-                            }}
-                        >
-                            <X color={categoryColor} size={24} />
-                        </Pressable>
-                    </View>
-
-                    <ScrollView showsVerticalScrollIndicator={false}>
-                        <View className='gap-4'>
-                            <View>
-                                <Text className='text-sm font-bold mb-2' style={{color: Colors.textPrimary}}>Package Name</Text>
-                                <TextInput
-                                    placeholder='e.g., Executive Menu'
-                                    value={customPackageName}
-                                    onChangeText={setCustomPackageName}
-                                    className='rounded-xl px-4 py-4 text-base'
-                                    style={{borderWidth: 2, borderColor: Colors.border, color: Colors.textPrimary}}
-                                    placeholderTextColor={Colors.textTertiary}
-                                />
-                            </View>
-
-                            <View>
-                                <Text className='text-sm font-bold mb-2' style={{color: Colors.textPrimary}}>Price Per Guest (PKR)</Text>
-                                <TextInput
-                                    placeholder='e.g., 2500'
-                                    value={customPackagePrice}
-                                    onChangeText={setCustomPackagePrice}
-                                    keyboardType='numeric'
-                                    className='rounded-xl px-4 py-4 text-base'
-                                    style={{borderWidth: 2, borderColor: Colors.border, color: Colors.textPrimary}}
-                                    placeholderTextColor={Colors.textTertiary}
-                                />
-                            </View>
-
-                            <View className='rounded-xl p-4' style={{backgroundColor: '#dbeafe', borderWidth: 1, borderColor: '#93c5fd'}}>
-                                <Text className='text-sm font-bold' style={{color: Colors.info}}>
-                                    Total for {selectedGuestCount} guests: <Text className='text-base font-extrabold'>
-                                        {customPackagePrice && selectedGuestCount ? `PKR ${(parseInt(customPackagePrice) * selectedGuestCount).toLocaleString()}` : 'Enter price'}
-                                    </Text>
-                                </Text>
-                            </View>
-
-                            <View className='rounded-xl p-4 mt-2' style={{backgroundColor: Colors.lightGray}}>
-                                <Text className='text-sm leading-relaxed' style={{color: Colors.textSecondary}}>
-                                    💡 <Text className='font-bold'>Tip:</Text> Create a package with custom items. You can specify your requirements during the booking process or contact the vendor directly.
-                                </Text>
-                            </View>
-
-                            <Pressable 
-                                className='py-4 rounded-xl mt-6 active:opacity-85'
-                                disabled={!customPackageName || !customPackagePrice || !!guestCountError}
-                                style={{backgroundColor: (!customPackageName || !customPackagePrice || !!guestCountError) ? Colors.borderDark : categoryColor}}
-                                onPress={() => {
-                                    if (guestCountError) {
-                                        return
-                                    }
-                                    const customBookingData = {
-                                        serviceId: vendor.serviceId || vendor.id,
-                                        vendorId: vendor.vendorId,
-                                        category: vendor.category,
-                                        packageName: customPackageName,
-                                        price: parseInt(customPackagePrice),
-                                        guestCount: selectedGuestCount || 1,
-                                        vendorName: vendor.name,
-                                        vendorLocation: vendor.location,
-                                        isCustomPackage: true,
-                                        isOnSite: vendor.isOnSite,
-                                        onSiteFee: vendor.onSiteFee,
-                                        operatingHours: vendor.operatingHours,
-                                        slotCapacity: vendor.maxGuests || vendor.capacity?.maxGuests,
-                                        capacity: vendor.capacity,
-                                        optionalServices: vendor.optionalServices || [],
-                                        branches: vendor.branches || []
-                                    }
-                                    setShowCustomPackage(false)
-                                    setCustomPackageName('')
-                                    setCustomPackagePrice('')
-                                    router.push({
-                                        pathname: "/screens/client/Component/BookingScreen",
-                                        params: {
-                                            bookingData: encodeURIComponent(JSON.stringify(customBookingData))
-                                        }
-                                    })
-                                }}
-                            >
-                                <Text className='text-center font-extrabold text-base' style={{color: Colors.white}}>Proceed with Custom Package</Text>
-                            </Pressable>
-
-                            <Pressable 
-                                className='py-4 rounded-xl active:opacity-80'
-                                style={{borderWidth: 2, borderColor: Colors.border}}
-                                onPress={() => {
-                                    setShowCustomPackage(false)
-                                    setCustomPackageName('')
-                                    setCustomPackagePrice('')
-                                }}
-                            >
-                                <Text className='text-center font-bold text-base' style={{color: Colors.textPrimary}}>Cancel</Text>
-                            </Pressable>
-                        </View>
-                    </ScrollView>
-                </View>
+                </ScrollView>
             </View>
-        </Modal>
 
-        {/* Floating Chat Button */}
-        <Pressable
-            className='absolute bottom-6 right-6 rounded-full p-4 active:opacity-80'
-            style={[{backgroundColor: categoryColor}, Shadows.large]}
-            onPress={() => {
-                if (user?.isGuest) {
-                    promptGuestRestriction('chat with vendors')
-                    return
-                }
+            {/* Floating Chat Button */}
+            <Pressable
+                className='absolute bottom-6 right-6 rounded-full p-4 active:opacity-80'
+                style={[{ backgroundColor: categoryColor }, Shadows.large]}
+                onPress={() => {
+                    if (user?.isGuest) {
+                        promptGuestRestriction('chat with vendors')
+                        return
+                    }
 
-                router.push({
-                    pathname: "/screens/client/Component/VendorChatScreen",
-                    params: { vendor: encodeURIComponent(JSON.stringify(vendor)) }
-                })
-            }}
-        >
-            <MessageCircle color={Colors.white} size={28} fill={Colors.white} />
-        </Pressable>
-    </KeyboardAvoidingView>
-  )
+                    router.push({
+                        pathname: "/screens/client/Component/VendorChatScreen",
+                        params: { vendor: encodeURIComponent(JSON.stringify(vendor)) }
+                    })
+                }}
+            >
+                <MessageCircle color={Colors.white} size={28} fill={Colors.white} />
+            </Pressable>
+        </KeyboardAvoidingView>
+    )
 }
 
 const styles = StyleSheet.create({
