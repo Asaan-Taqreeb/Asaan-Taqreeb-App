@@ -4,9 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors } from '@/app/_constants/theme'
 import { useUnreadNotificationCount, useUnreadMessageCount } from '@/app/_context/NotificationContext'
 import { Home, ShoppingBasket, MessageCircle, User } from 'lucide-react-native'
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
 
-function VendorTabBarComponent({ state, descriptors, navigation }: BottomTabBarProps) {
+function VendorTabBarComponent({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets()
   const unreadCount = useUnreadNotificationCount()
   const unreadMessagesCount = useUnreadMessageCount()
@@ -47,7 +46,7 @@ function VendorTabBarComponent({ state, descriptors, navigation }: BottomTabBarP
       style={[styles.capsule, { bottom: bottomOffset, height: CAPSULE_HEIGHT }]}
       pointerEvents="box-none"
     >
-      {state.routes.map((route) => {
+      {state.routes.map((route: any) => {
         const index = state.routes.indexOf(route)
         const focused = state.index === index
         const showBadge = route.name === 'VendorMessagesScreen' && unreadMessagesCount > 0
@@ -142,7 +141,7 @@ const styles = StyleSheet.create({
 export default function VendorTabLayout() {
   return (
     <Tabs
-      tabBar={(props) => <VendorTabBarComponent {...props} />}
+      tabBar={(props: any) => <VendorTabBarComponent {...props} />}
       screenOptions={{
         headerShown: false,
         tabBarStyle: {

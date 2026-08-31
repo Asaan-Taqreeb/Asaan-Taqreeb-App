@@ -1,4 +1,4 @@
-import { Alert, FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Alert, FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View , ActivityIndicator} from 'react-native'
 import React, { useEffect, useMemo, useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ArrowLeft, MapPin, Star, Users, ArrowUpDown, Map as MapIcon } from 'lucide-react-native'
@@ -261,8 +261,9 @@ export default function VendorListView() {
             ListHeaderComponent={
               <>
                 {loading && (
-                  <View className='px-5 py-4'>
-                    <Text className='text-sm font-medium' style={{color: Colors.textSecondary}}>Loading vendors...</Text>
+                  <View className='flex-1 justify-center items-center py-20'>
+                    <ActivityIndicator size="large" color={Colors.primary} />
+                    <Text className='text-sm font-bold mt-4' style={{color: Colors.textSecondary}}>Loading vendors...</Text>
                   </View>
                 )}
                 {error && !loading && (

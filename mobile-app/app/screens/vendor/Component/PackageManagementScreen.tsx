@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, Plus, Trash2, Edit, Package } from 'lucide-react-native';
 import { Colors, Shadows } from '@/app/_constants/theme';
@@ -219,12 +219,10 @@ export default function PackageManagementScreen() {
     }
   }, [])
 
-  useFocusEffect(
-    React.useCallback(() => {
-      setIsLoading(true)
-      loadPackages()
-    }, [loadPackages])
-  )
+  useEffect(() => {
+    setIsLoading(true)
+    loadPackages()
+  }, [loadPackages])
 
   const handleAddPackage = () => {
     router.push('/screens/vendor/Component/AddEditPackageScreen');

@@ -1,11 +1,11 @@
 import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, type Href } from "expo-router";
-import { useFocusEffect } from '@react-navigation/native'
+
 import { Building2, Utensils, Camera, Sparkles } from "lucide-react-native";
 import { Colors, Shadows } from "@/app/_constants/theme";
 import { getMyVendorServices } from '@/app/_utils/servicesApi'
-import React from 'react'
+import React, { useEffect } from 'react'
 
 interface ServiceType {
   id: string;
@@ -56,40 +56,38 @@ export default function VendorHomeScreen() {
     }
   ];
 
-  useFocusEffect(
-    React.useCallback(() => {
-      let isActive = true
+  useEffect(() => {
+    let isActive = true
 
-      const checkExistingServices = async () => {
-        setIsChecking(true)
-        try {
-          const existingServices = await getMyVendorServices()
-          if (!isActive) return
+    const checkExistingServices = async () => {
+      setIsChecking(true)
+      try {
+        const existingServices = await getMyVendorServices()
+        if (!isActive) return
 
-          if (existingServices.length > 0) {
-            const firstCategory = String(existingServices[0]?.category || '').toLowerCase()
-            setLockedCategory(firstCategory || null)
-            router.replace('/screens/vendor/VendorDashboardHome')
-            return
-          }
+        if (existingServices.length > 0) {
+          const firstCategory = String(existingServices[0]?.category || '').toLowerCase()
+          setLockedCategory(firstCategory || null)
+          router.replace('/screens/vendor/VendorDashboardHome')
+          return
+        }
 
-          setLockedCategory(null)
-        } catch {
-          setLockedCategory(null)
-        } finally {
-          if (isActive) {
-            setIsChecking(false)
-          }
+        setLockedCategory(null)
+      } catch {
+        setLockedCategory(null)
+      } finally {
+        if (isActive) {
+          setIsChecking(false)
         }
       }
+    }
 
-      checkExistingServices()
+    checkExistingServices()
 
-      return () => {
-        isActive = false
-      }
-    }, [])
-  )
+    return () => {
+      isActive = false
+    }
+  }, [])
 
   const handleServiceSelect = (service: ServiceType) => {
     if (lockedCategory && service.id !== lockedCategory) {

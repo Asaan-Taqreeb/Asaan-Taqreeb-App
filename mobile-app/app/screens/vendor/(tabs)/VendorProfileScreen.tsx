@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -29,7 +29,7 @@ import Avatar from '@/app/_components/Avatar';
 import { logoutUser, deleteUserAccount } from '@/app/_utils/authApi';
 import { useLanguage } from '@/app/_context/LanguageContext';
 import VendorHeader from '../Component/VendorHeader';
-import { useFocusEffect } from '@react-navigation/native';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getVendorReviews } from '@/app/_utils/reviewsApi';
 
@@ -100,11 +100,9 @@ export default function VendorProfileScreen() {
     }
   }, [user]);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      loadProfileStats();
-    }, [loadProfileStats])
-  );
+  useEffect(() => {
+    loadProfileStats();
+  }, [loadProfileStats]);
 
   const handleLogout = async () => {
     try {

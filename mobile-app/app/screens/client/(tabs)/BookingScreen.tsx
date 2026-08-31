@@ -1,6 +1,5 @@
 import { ScrollView, StyleSheet, Text, View, Pressable, TextInput, Alert, RefreshControl, Platform } from 'react-native'
 import { useEffect, useState, useCallback } from 'react'
-import { useFocusEffect } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { Clock, MapPin, Users, Calendar, CheckCircle, XCircle, AlertCircle, Star } from 'lucide-react-native'
@@ -53,11 +52,9 @@ export default function BookingScreen() {
       }
     }, [user?.isGuest])
 
-    useFocusEffect(
-      useCallback(() => {
-        loadBookings()
-      }, [loadBookings])
-    )
+    useEffect(() => {
+      loadBookings()
+    }, [loadBookings])
 
   const getStatusConfig = (status: BookingStatus) => {
     switch(status) {

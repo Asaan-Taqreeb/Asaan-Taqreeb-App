@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router'
-import { ArrowLeft, Circle, Dot, Square, MapPin, Clock, Users, CheckCircle2, AlertCircle, Sparkles, SlidersHorizontal } from 'lucide-react-native'
+import { ArrowLeft, Circle, Dot, Square, MapPin, Clock, Users, CheckCircle2, AlertCircle, Sparkles, SlidersHorizontal, ChevronDown } from 'lucide-react-native'
 import { useEffect, useMemo, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform } from 'react-native'
+import { Pressable, ScrollView, StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform , ActivityIndicator} from 'react-native'
 import { Calendar } from "react-native-calendars"
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors, getCategoryColor, Shadows } from '@/app/_constants/theme'
@@ -602,9 +602,9 @@ export default function BookingScreen() {
                 <View className='flex-row justify-between items-center'>
                     <View>
                         <Text className='text-lg font-extrabold' style={{color: categoryColor}}>PKR {packagePrice.toLocaleString()}</Text>
-                        {requiresGuestCount && bookingData.guestCount && (
+                        {requiresGuestCount && bookingData.guestCount ? (
                             <Text className='text-sm font-medium mt-1' style={{color: Colors.textSecondary}}>For {bookingData.guestCount} guests</Text>
-                        )}
+                        ) : null}
                     </View>
                     <View className='px-3 py-2 rounded-full' style={{backgroundColor: '#dcfce7'}}>
                         <Text className='text-xs font-extrabold' style={{color: Colors.success}}>✓ Selected</Text>
@@ -616,7 +616,10 @@ export default function BookingScreen() {
             <View className='px-5 mb-6'>
                 <Text className='text-xl font-extrabold mb-4' style={{color: Colors.textPrimary}}>Select Date</Text>
                 {isLoadingAvailability && (
-                    <Text className='text-xs font-semibold mb-2' style={{color: Colors.textSecondary}}>Loading vendor availability...</Text>
+                    <View className='flex-row items-center gap-2 mb-2'>
+                        <ActivityIndicator size="small" color={Colors.primary} />
+                        <Text className='text-xs font-semibold' style={{color: Colors.textSecondary}}>Loading vendor availability...</Text>
+                    </View>
                 )}
                 <View className='rounded-2xl overflow-hidden' style={[{backgroundColor: Colors.lightGray}, Shadows.medium]}>
                     <Calendar 
@@ -974,7 +977,7 @@ export default function BookingScreen() {
                 )}
 
                 {/* Live Availability Status Pill */}
-                {getSelectedTime() && selectedDate && currentSelectedAvailability && (
+                {getSelectedTime() && selectedDate && currentSelectedAvailability ? (
                     <View 
                         className='mt-4 p-3.5 rounded-2xl flex-row items-center gap-3'
                         style={{
@@ -1000,7 +1003,7 @@ export default function BookingScreen() {
                             </Text>
                         </View>
                     </View>
-                )}
+                ) : null}
 
                 {/* Modals for Custom Time */}
                 <TimePickerModal
@@ -1119,16 +1122,16 @@ export default function BookingScreen() {
                             <View key={addon.id} className='rounded-2xl overflow-hidden' style={[{backgroundColor: Colors.white, borderWidth: 2, borderColor: Colors.border}]}>
                                 <Pressable 
                                     className='p-4 flex-row justify-between items-center active:opacity-80'
-                                    onPress={() => toggleExpandAddon(addon.id)}
+                                    onPress={() => toggleAddon(addon.id)}
                                 >
                                     <View className='flex-row items-center gap-3 flex-1'>
-                                        <Pressable onPress={() => toggleAddon(addon.id)}>
+                                        <View>
                                             <Circle 
                                                 size={20} 
                                                 color={selectedAddons[addon.id] ? categoryColor : Colors.borderDark} 
                                                 fill={selectedAddons[addon.id] ? categoryColor : 'transparent'} 
                                             />
-                                        </Pressable>
+                                        </View>
                                         <View className='flex-1'>
                                             <Text className='text-sm font-extrabold' style={{color: Colors.textPrimary}} numberOfLines={2}>{addon.name}</Text>
                                             <Text className='text-sm font-bold mt-1' style={{color: categoryColor}}>
@@ -1136,6 +1139,17 @@ export default function BookingScreen() {
                                             </Text>
                                         </View>
                                     </View>
+                                    {addon.items && addon.items.length > 0 && (
+                                        <Pressable 
+                                            onPress={(e) => {
+                                                e.stopPropagation();
+                                                toggleExpandAddon(addon.id);
+                                            }}
+                                            className='p-2'
+                                        >
+                                            <ChevronDown size={20} color={Colors.textSecondary} style={{ transform: [{ rotate: expandedAddons[addon.id] ? '180deg' : '0deg' }] }} />
+                                        </Pressable>
+                                    )}
                                 </Pressable>
                                 
                                 {expandedAddons[addon.id] && (
@@ -1168,12 +1182,12 @@ export default function BookingScreen() {
                     </View>
 
                     {/* Guest Count */}
-                    {requiresGuestCount && bookingData.guestCount && (
+                    {requiresGuestCount && bookingData.guestCount ? (
                         <View className='flex-row justify-between items-center mb-3'>
                             <Text className='text-xs font-bold' style={{color: Colors.textSecondary}}>Guests</Text>
                             <Text className='text-sm font-bold' style={{color: Colors.textPrimary}}>{bookingData.guestCount}</Text>
                         </View>
-                    )}
+                    ) : null}
 
                     {/* Time Slot */}
                     <View className='flex-row justify-between items-center mb-3'>
@@ -1202,14 +1216,14 @@ export default function BookingScreen() {
                     )}
 
                     {/* Special Requests */}
-                    {specialRequests && (
+                    {specialRequests ? (
                         <View className='flex-row justify-between items-start mb-3'>
                             <Text className='text-xs font-bold' style={{color: Colors.textSecondary}}>Special Requests</Text>
                             <Text className='text-sm font-bold flex-1 text-right' style={{color: Colors.textPrimary}} numberOfLines={3}>
                                 {specialRequests}
                             </Text>
                         </View>
-                    )}
+                    ) : null}
 
                     {/* Add-ons */}
                     {Object.keys(selectedAddons).some(key => selectedAddons[parseInt(key)]) && (

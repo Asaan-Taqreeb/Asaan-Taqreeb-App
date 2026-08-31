@@ -6,12 +6,11 @@ import { Colors } from '@/app/_constants/theme'
 import { useUnreadNotificationCount, useUnreadMessageCount } from '@/app/_context/NotificationContext'
 import { useUser } from '@/app/_context/UserContext'
 import { Home, NotebookPen, Calendar, MessageCircle, Heart } from 'lucide-react-native'
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
 import * as Location from 'expo-location'
 import LocationPermissionScreen from '../Component/LocationPermissionScreen'
 import { logoutUser } from '@/app/_utils/authApi'
 
-function ClientTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+function ClientTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets()
   const unreadCount = useUnreadNotificationCount()
   const unreadMessagesCount = useUnreadMessageCount()
@@ -23,7 +22,7 @@ function ClientTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
   // FavoritesScreen is accessed via the header heart button — exclude it from the tab bar
   const HIDDEN_ROUTES = ['FavoritesScreen']
-  const visibleRoutes = state.routes.filter((route) => !HIDDEN_ROUTES.includes(route.name))
+  const visibleRoutes = state.routes.filter((route: any) => !HIDDEN_ROUTES.includes(route.name))
 
   const getIcon = (routeName: string, focused: boolean) => {
     switch (routeName) {
@@ -91,8 +90,8 @@ function ClientTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
       style={[styles.capsule, { bottom: bottomOffset, height: CAPSULE_HEIGHT }]}
       pointerEvents="box-none"
     >
-      {visibleRoutes.map((route) => {
-        const globalIndex = state.routes.findIndex((r) => r.key === route.key)
+      {visibleRoutes.map((route: any) => {
+        const globalIndex = state.routes.findIndex((r: any) => r.key === route.key)
         const focused = state.index === globalIndex
         const showBadge = route.name === 'MessagesScreen' && unreadMessagesCount > 0
 
@@ -268,7 +267,7 @@ export default function TabLayout() {
 
   return (
     <Tabs
-      tabBar={(props) => <ClientTabBar {...props} />}
+      tabBar={(props: any) => <ClientTabBar {...props} />}
       screenOptions={{
         headerShown: false,
         tabBarStyle: {

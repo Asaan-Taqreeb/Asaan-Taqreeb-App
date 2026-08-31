@@ -241,11 +241,11 @@ export default function DetailScreenPage() {
                     maxLength={4}
                 />
             </View>
-            {guestCountError && (
+            {guestCountError ? (
                 <View className='rounded-xl p-3 mt-2' style={{ backgroundColor: '#fee2e2', borderWidth: 1, borderColor: '#fca5a5' }}>
                     <Text style={{ color: Colors.error, fontSize: 13, fontWeight: '500' }}>{guestCountError}</Text>
                 </View>
-            )}
+            ) : null}
             <Text className='text-xs font-medium mt-2' style={{ color: Colors.textSecondary }}>
                 You can type the exact number instead of choosing from the suggestions below.
             </Text>
@@ -570,11 +570,11 @@ export default function DetailScreenPage() {
                             </Text>
 
                             {/* Dishes-based pricing info for catering */}
-                            {isCatering && selectedGuestCount && (
+                            {isCatering && selectedGuestCount ? (
                                 <View className='rounded-xl p-3 mb-4' style={{ backgroundColor: '#dbeafe', borderWidth: 1, borderColor: '#93c5fd' }}>
                                     <Text className='text-sm font-bold' style={{ color: Colors.info }}>For <Text className='font-extrabold'>{selectedGuestCount} guests</Text> - prices are per head</Text>
                                 </View>
-                            )}
+                            ) : null}
 
                             {vendor.packages.map((pkg: any) => (
                                 <View key={pkg.id} className='py-5 px-4 rounded-2xl mb-4' style={[{ backgroundColor: Colors.white, borderWidth: 2, borderColor: Colors.border }, Shadows.medium]}>
@@ -593,9 +593,9 @@ export default function DetailScreenPage() {
                                                 <Text className='text-lg font-extrabold mb-1' style={{ color: Colors.textPrimary }}>{pkg.packageName}</Text>
                                                 <View className='flex-row gap-2 mt-1 flex-wrap'>
                                                     <Text className='text-base font-bold' style={{ color: categoryColor }}>PKR {(pkg.price * (selectedGuestCount || 1)).toLocaleString()}</Text>
-                                                    {isCatering && selectedGuestCount && (
+                                                    {isCatering && selectedGuestCount ? (
                                                         <Text className='text-sm font-medium' style={{ color: Colors.textSecondary }}>(PKR {pkg.price}/per guest)</Text>
-                                                    )}
+                                                    ) : null}
                                                 </View>
                                             </View>
                                         </View>

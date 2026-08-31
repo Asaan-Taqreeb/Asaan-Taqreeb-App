@@ -1,6 +1,6 @@
-import { Alert, FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native'
-import React, { useCallback, useState } from 'react'
-import { useFocusEffect } from '@react-navigation/native'
+import { Alert, FlatList, Image, Pressable, StyleSheet, Text, View , ActivityIndicator} from 'react-native'
+import React, { useCallback, useState, useEffect } from 'react'
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { MapPin, Star, Users, Heart, ArrowLeft } from 'lucide-react-native'
 import { router } from 'expo-router'
@@ -35,11 +35,9 @@ export default function FavoritesScreen() {
         }
     }, [user?.isGuest])
 
-    useFocusEffect(
-        useCallback(() => {
-            loadFavorites()
-        }, [loadFavorites])
-    )
+    useEffect(() => {
+        loadFavorites()
+    }, [loadFavorites])
 
     const handleRemoveFavorite = async (serviceId: string) => {
         try {
@@ -85,8 +83,9 @@ export default function FavoritesScreen() {
                 )}
 
                 {!user?.isGuest && loading && (
-                    <View className='px-5 py-4'>
-                        <Text className='text-sm font-medium' style={{color: Colors.textSecondary}}>Loading favorites...</Text>
+                    <View className='flex-1 justify-center items-center py-20'>
+                        <ActivityIndicator size="large" color={Colors.primary} />
+                        <Text className='text-sm font-bold mt-4' style={{color: Colors.textSecondary}}>Loading favorites...</Text>
                     </View>
                 )}
                 {!user?.isGuest && error && !loading && (

@@ -1,7 +1,7 @@
 import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, ActivityIndicator } from 'react-native'
 import { showAlert } from '@/app/_utils/alert'
-import React, { useCallback, useState, useRef } from 'react'
-import { useFocusEffect } from '@react-navigation/native'
+import React, { useCallback, useState, useRef, useEffect } from 'react'
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Calculator, Calendar, CheckCircle, Edit2, Plus, Trash2, X } from 'lucide-react-native'
 import { router } from 'expo-router'
@@ -154,11 +154,9 @@ export default function PlannerScreen() {
         }
     }, [user?.isGuest])
 
-    useFocusEffect(
-        useCallback(() => {
-            loadPlanner()
-        }, [loadPlanner])
-    )
+    useEffect(() => {
+        loadPlanner()
+    }, [loadPlanner])
 
     const handleSaveBudget = async () => {
         if (!planner) return

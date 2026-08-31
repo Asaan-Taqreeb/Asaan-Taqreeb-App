@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity , ActivityIndicator} from 'react-native';
 import { useRouter } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bell, DollarSign, CheckCircle, XCircle, Clock, ChevronRight, Plus, Calendar, Image as ImageIcon, ShoppingBasket, MessageCircle, Star } from 'lucide-react-native';
 import { Colors, Shadows } from '@/app/_constants/theme';
@@ -105,12 +105,10 @@ export default function VendorDashboardHome() {
     }
   }, [user])
 
-  useFocusEffect(
-    React.useCallback(() => {
-      setIsLoading(true)
-      loadDashboard()
-    }, [loadDashboard])
-  )
+  useEffect(() => {
+    setIsLoading(true)
+    loadDashboard()
+  }, [loadDashboard])
 
   // -----------------------------------------------------------------------
   // Real-time refresh: when a new booking arrives via socket, reload data
@@ -297,8 +295,9 @@ export default function VendorDashboardHome() {
           </View>
 
           {isLoading ? (
-            <View className="bg-white rounded-2xl p-6" style={Shadows.small}>
-              <Text className="text-sm font-medium text-center" style={{color: Colors.textTertiary}}>{t('loadingRecentOrders')}</Text>
+            <View className="bg-white rounded-2xl p-6 items-center justify-center py-10" style={Shadows.small}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+              <Text className="text-sm font-bold text-center mt-4" style={{color: Colors.textTertiary}}>{t('loadingRecentOrders')}</Text>
             </View>
           ) : recentOrders.length === 0 ? (
             <View className="bg-white rounded-2xl p-10 items-center justify-center" style={[Shadows.small, {borderWidth: 1, borderColor: Colors.border, borderStyle: 'dashed'}]}>

@@ -1,11 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, Plus, Edit3, Trash2, MapPin, Star, Package } from 'lucide-react-native';
 import { Colors, Shadows } from '@/app/_constants/theme';
 import { getVendorServices, deleteVendorService, type ServiceListItem } from '@/app/_utils/servicesApi';
-import { useFocusEffect } from '@react-navigation/native';
+
 
 export default function ManageServicesScreen() {
   const router = useRouter();
@@ -25,11 +25,9 @@ export default function ManageServicesScreen() {
     }
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadServices();
-    }, [loadServices])
-  );
+  useEffect(() => {
+    loadServices();
+  }, [loadServices]);
 
   const handleDelete = (serviceId: string, name: string) => {
     Alert.alert(

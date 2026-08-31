@@ -1,7 +1,7 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import React, { useState, useCallback, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl , ActivityIndicator} from 'react-native';
 import { useRouter } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Filter, RotateCw } from 'lucide-react-native';
 import { Colors } from '@/app/_constants/theme';
@@ -41,11 +41,9 @@ export default function OrdersScreen() {
     }
   }, [])
 
-  useFocusEffect(
-    useCallback(() => {
-      loadOrders()
-    }, [loadOrders])
-  )
+  useEffect(() => {
+    loadOrders()
+  }, [loadOrders])
 
   // Real-time refresh: auto-reload orders list when a new booking arrives
   React.useEffect(() => {
@@ -167,9 +165,12 @@ export default function OrdersScreen() {
           )}
           
           {isLoading && (
-            <Text className="text-sm font-medium mb-4 text-center" style={{ color: Colors.textTertiary }}>
-              Updating orders...
-            </Text>
+            <View className="flex-row justify-center items-center gap-2 mb-4">
+              <ActivityIndicator size="small" color={Colors.primary} />
+              <Text className="text-sm font-bold text-center" style={{ color: Colors.textTertiary }}>
+                Updating orders...
+              </Text>
+            </View>
           )}
 
           {!isLoading && filteredOrders.length > 0 ? (
