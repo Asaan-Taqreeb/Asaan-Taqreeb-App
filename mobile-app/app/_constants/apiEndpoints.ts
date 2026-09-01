@@ -86,6 +86,7 @@ export const APP_ENDPOINTS = {
   updateInfo: withApiPrefix('/app/update-info'),
   categories: withApiPrefix('/app/categories'),
   categoryByKey: (key: string) => withApiPrefix(`/app/categories/${key}`),
+  categoryRequests: withApiPrefix('/app/category-requests'),
 }
 
 export const REVIEW_ENDPOINTS = {
