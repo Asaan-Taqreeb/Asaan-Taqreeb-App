@@ -32,7 +32,7 @@ export default function TimeSlotsScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useUser();
   const [slots, setSlots] = useState<TimeSlot[]>([]);
-  const [category, setCategory] = useState<'banquet' | 'photo' | 'parlor' | 'catering' | null>(null);
+  const [category, setCategory] = useState<string | null>(null);
   const [serviceId, setServiceId] = useState<string | null>(null);
   const [operatingHours, setOperatingHours] = useState({ from: '09:00 AM', to: '09:00 PM' });
   const [isLoading, setIsLoading] = useState(true);

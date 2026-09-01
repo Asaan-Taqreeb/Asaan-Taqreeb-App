@@ -58,7 +58,7 @@ export default function VendorCalendarScreen() {
   const [bookingsByDate, setBookingsByDate] = useState<Record<string, BookingDetail[]>>({})
   const [isLoading, setIsLoading] = useState(false)
   const [slots, setSlots] = useState<TimeSlot[]>([])
-  const [category, setCategory] = useState<'banquet' | 'photo' | 'parlor' | 'catering' | null>(null)
+  const [category, setCategory] = useState<string | null>(null)
   const [operatingHours, setOperatingHours] = useState<{ from: string; to: string } | null>(null)
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null)
   const [showCustomTime, setShowCustomTime] = useState(false)

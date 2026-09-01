@@ -90,7 +90,67 @@ export default function VendorListView() {
       }
     }, [])
 
-    const categoryData = useMemo(() => buildClientCategoryCards(categories, vendors), [categories, vendors])
+    const categoryData = useMemo(() => buildClientCategoryCards(categories, vendors), [categories, vendors]);
+
+    const matchCategory = (item: ServiceListItem, selectedCat: string) => {
+      if (!selectedCat || selectedCat === 'all' || selectedCat === 'ALL') return true;
+
+      const sel = String(selectedCat).toLowerCase().trim();
+      const itemKey = String(item.key || '').toLowerCase().trim();
+      const itemCat = String(item.category || '').toLowerCase().trim();
+
+      if (itemKey === sel || itemCat === sel) return true;
+
+      // Banquets
+      if ((sel === 'banquet' || sel === 'banquets' || sel === 'banquet_hall') && 
+          (itemKey.includes('banquet') || itemCat.includes('banquet') || itemCat.includes('hall'))) {
+        return true;
+      }
+
+      // Catering
+      if ((sel === 'catering' || sel === 'caterings') && 
+          (itemKey.includes('cater') || itemCat.includes('cater'))) {
+        return true;
+      }
+
+      // Photography
+      if ((sel === 'photo' || sel === 'photographers' || sel === 'photography') && 
+          (itemKey.includes('photo') || itemCat.includes('photo'))) {
+        return true;
+      }
+
+      // Parlor / Women's Salon
+      if ((sel === 'parlor' || sel === 'parlors' || sel === 'parlor_salon' || sel === 'bridal_salon') && 
+          (itemKey.includes('parlor') || itemCat.includes('parlor') || (itemCat.includes('salon') && !itemCat.includes('men')))) {
+        return true;
+      }
+
+      // Men's Salon
+      if ((sel === 'salon_men' || sel === 'mens_salon' || sel === 'groom_salon') && 
+          (itemKey.includes('men') || itemCat.includes('men'))) {
+        return true;
+      }
+
+      // Rent a Car
+      if ((sel === 'rent_car' || sel === 'car' || sel === 'rent_a_car') && 
+          (itemKey.includes('car') || itemCat.includes('car'))) {
+        return true;
+      }
+
+      // Decors
+      if ((sel === 'decors' || sel === 'decor' || sel === 'decorations') && 
+          (itemKey.includes('decor') || itemCat.includes('decor'))) {
+        return true;
+      }
+
+      // Lighting / Stage
+      if ((sel === 'stage_lighting' || sel === 'lighting' || sel === 'sound_stage') && 
+          (itemKey.includes('light') || itemCat.includes('light') || itemKey.includes('stage') || itemCat.includes('stage'))) {
+        return true;
+      }
+
+      return itemKey.includes(sel) || itemCat.includes(sel) || sel.includes(itemKey) || sel.includes(itemCat);
+    };
 
     const filteredData = useMemo(() => {
       const normalizedQuery = query.trim().toLowerCase()
@@ -105,8 +165,7 @@ export default function VendorListView() {
       const hasMaxGuests = Number.isFinite(maxGuestsNumber) && maxGuestsNumber > 0
 
       return vendors.filter((item) => {
-        const matchesCategory =
-          selectedCategory === "all" || item.key === selectedCategory
+        const matchesCategory = matchCategory(item, selectedCategory)
 
         const matchesQuery = !normalizedQuery
           ? true
@@ -238,21 +297,37 @@ export default function VendorListView() {
           <SearchBar value={query} onChange={setQuery} />
           <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
             <View className='flex-row items-center gap-2 px-5' style={{marginTop: Spacing.xs}}>
-              {categoryData.map((item) => (
-                <Pressable
-                  key={item.id} 
-                  className='flex-row items-center gap-2 px-4 py-2.5 rounded-xl active:opacity-70'
-                  style={{ 
-                    backgroundColor: selectedCategory === item.key ? Colors.primary : Colors.white,
-                    borderWidth: 1,
-                    borderColor: selectedCategory === item.key ? Colors.primary : Colors.border
-                  }}
-                  onPress={() => setSelectedCategory(item.key || "all")}
-                >
-                  <item.icon size={16} color={selectedCategory === item.key ? Colors.white : Colors.textPrimary} />
-                  <Text className='text-sm font-semibold' style={{ color: selectedCategory === item.key ? Colors.white : Colors.textPrimary }}>{item.title}</Text>
-                </Pressable>
-              ))}
+              {/* All Categories Option */}
+              <Pressable
+                className='flex-row items-center gap-2 px-4 py-2.5 rounded-xl active:opacity-70'
+                style={{ 
+                  backgroundColor: selectedCategory === "all" ? Colors.primary : Colors.white,
+                  borderWidth: 1,
+                  borderColor: selectedCategory === "all" ? Colors.primary : Colors.border
+                }}
+                onPress={() => setSelectedCategory("all")}
+              >
+                <Text className='text-sm font-semibold' style={{ color: selectedCategory === "all" ? Colors.white : Colors.textPrimary }}>All</Text>
+              </Pressable>
+
+              {categoryData.map((item) => {
+                const isSelected = matchCategory({ key: item.key, category: item.key } as any, selectedCategory);
+                return (
+                  <Pressable
+                    key={item.id} 
+                    className='flex-row items-center gap-2 px-4 py-2.5 rounded-xl active:opacity-70'
+                    style={{ 
+                      backgroundColor: isSelected ? Colors.primary : Colors.white,
+                      borderWidth: 1,
+                      borderColor: isSelected ? Colors.primary : Colors.border
+                    }}
+                    onPress={() => setSelectedCategory(item.key)}
+                  >
+                    <item.icon size={16} color={isSelected ? Colors.white : Colors.textPrimary} />
+                    <Text className='text-sm font-semibold' style={{ color: isSelected ? Colors.white : Colors.textPrimary }}>{item.title}</Text>
+                  </Pressable>
+                );
+              })}
             </View>
           </ScrollView>
         </View>

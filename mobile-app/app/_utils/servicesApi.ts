@@ -49,8 +49,8 @@ export type ServiceListItem = {
   id: string
   serviceId: string
   vendorId?: string | number
-  key: 'banquet' | 'catering' | 'photo' | 'parlor'
-  category: 'banquet' | 'catering' | 'photo' | 'parlor'
+  key: string
+  category: string
   name: string
   location: string
   about: string
@@ -78,15 +78,19 @@ export type ServiceListItem = {
   }>
 }
 
-const toCategoryKey = (value: unknown): ServiceListItem['category'] => {
+const toCategoryKey = (value: unknown): string => {
   const raw = String(value ?? '').toLowerCase().trim()
 
-  if (raw.includes('banquet') || raw.includes('hall')) return 'banquet'
-  if (raw.includes('cater')) return 'catering'
-  if (raw.includes('photo')) return 'photo'
-  if (raw.includes('parlor') || raw.includes('salon')) return 'parlor'
+  if (raw === 'banquet_hall' || raw === 'banquet' || raw === 'banquets' || raw.includes('hall')) return 'banquet'
+  if (raw === 'catering' || raw === 'caterings' || raw.includes('cater')) return 'catering'
+  if (raw === 'photography' || raw === 'photo' || raw === 'photographers') return 'photo'
+  if (raw === 'salon_men' || raw === 'salon for men' || raw === 'mens_salon') return 'salon_men'
+  if (raw === 'parlor_salon' || raw === 'parlor' || raw === 'salon' || raw === 'bridal_salon' || raw === 'parlors') return 'parlor'
+  if (raw === 'rent_car' || raw === 'rent a car' || raw === 'rent_a_car' || raw.includes('car')) return 'rent_car'
+  if (raw === 'decors' || raw === 'decor' || raw === 'decorations') return 'decors'
+  if (raw === 'stage_lighting' || raw.includes('light') || raw.includes('stage')) return 'stage_lighting'
 
-  return 'banquet'
+  return raw || 'banquet'
 }
 
 const toNumber = (value: unknown, fallback = 0) => {
