@@ -705,14 +705,14 @@ export default function VendorChatScreen() {
     }
 
     return (
-        <KeyboardAvoidingView
-            style={{ flex: 1 }}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={0}
-        >
-            <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: Colors.background }}>
-            {/* Header */}
-            <View className='flex-row items-center gap-4 px-5 py-4' style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
+        <View style={{ flex: 1, paddingTop: insets.top, backgroundColor: Colors.background }}>
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+            >
+                {/* Header */}
+                <View className='flex-row items-center gap-4 px-5 py-4' style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
                 <Pressable
                     className='rounded-full p-2 active:opacity-70'
                     style={{backgroundColor: Colors.lightGray}}
@@ -762,7 +762,15 @@ export default function VendorChatScreen() {
             />
 
             {/* Message Input */}
-            <View className='px-5 py-4' style={{borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.white}}>
+            <View
+              className="px-5 pt-3"
+              style={{
+                borderTopWidth: 1,
+                borderTopColor: Colors.border,
+                backgroundColor: Colors.white,
+                paddingBottom: Math.max(insets.bottom, 14),
+              }}
+            >
                 {isUploadingImage && (
                     <View className='mb-3 flex-row items-center gap-2 px-3 py-2 rounded-lg' style={{backgroundColor: Colors.lightGray}}>
                         <ActivityIndicator size='small' color={categoryColor} />
@@ -791,7 +799,7 @@ export default function VendorChatScreen() {
                             </Pressable>
                             <Pressable 
                                 onPress={stopAndSendRecording}
-                                className="px-3 py-1.5 rounded-lg"
+                                className="px-3 py-1.5 rounded-lg active:opacity-80"
                                 style={{ backgroundColor: '#dc2626' }}
                             >
                                 <Text className="text-xs font-bold text-white">Send</Text>
@@ -848,8 +856,8 @@ export default function VendorChatScreen() {
                 index={viewerIndex}
                 onRequestClose={() => setViewerVisible(false)}
             />
-            </View>
-        </KeyboardAvoidingView>
+            </KeyboardAvoidingView>
+        </View>
     )
 }
 

@@ -259,14 +259,14 @@ export default function AIChatScreen() {
     }
 
     return (
-        <KeyboardAvoidingView
-            style={{ flex: 1 }}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={0}
-        >
-            <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: Colors.background }}>
-            {/* Header */}
-            <View className='flex-row items-center gap-4 px-6 py-4' style={{borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.white}}>
+        <View style={{ flex: 1, paddingTop: insets.top, backgroundColor: Colors.background }}>
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+            >
+                {/* Header */}
+                <View className='flex-row items-center gap-4 px-6 py-4' style={{borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.white}}>
                 <Pressable
                     className='rounded-full p-2 active:opacity-70'
                     style={{backgroundColor: Colors.lightGray}}
@@ -348,7 +348,15 @@ export default function AIChatScreen() {
             />
 
             {/* Message Input */}
-            <View className='px-5 py-5' style={{borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.white}}>
+            <View
+              className="px-5 pt-3"
+              style={{
+                borderTopWidth: 1,
+                borderTopColor: Colors.border,
+                backgroundColor: Colors.white,
+                paddingBottom: Math.max(insets.bottom, 14),
+              }}
+            >
                 <View className='flex-row items-center gap-3'>
                     <View className="flex-1 rounded-2xl flex-row items-center px-4 py-1" style={{backgroundColor: Colors.lightGray}}>
                         <TextInput
@@ -375,8 +383,8 @@ export default function AIChatScreen() {
                     Always confirm rates and availability directly with vendors.
                 </Text>
             </View>
-            </View>
-        </KeyboardAvoidingView>
+            </KeyboardAvoidingView>
+        </View>
     )
 }
 
