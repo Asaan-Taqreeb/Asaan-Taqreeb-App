@@ -475,6 +475,10 @@ export const createVendorService = async (payload: Record<string, any>) => {
     salon: 'PARLOR_SALON',
     beauty: 'PARLOR_SALON',
     beautician: 'PARLOR_SALON',
+    salon_men: 'SALON_MEN',
+    'salon for men': 'SALON_MEN',
+    mens_salon: 'SALON_MEN',
+    'men salon': 'SALON_MEN',
   }
 
   const rawCategory = String(firstDefined(payload?.category, payload?.serviceType, '')).toLowerCase().trim()
