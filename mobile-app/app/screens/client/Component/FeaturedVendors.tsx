@@ -82,11 +82,44 @@ export default function FeaturedVendors() {
     });
   }, [vendors]);
 
-  const salonVendors = useMemo(() => {
+  const parlorVendors = useMemo(() => {
     return vendors.filter((v) => {
       const k = String(v.key || '').toLowerCase();
       const c = String(v.category || '').toLowerCase();
-      return k.includes('parlor') || k.includes('salon') || c.includes('salon') || c.includes('parlor');
+      const isMen = k.includes('men') || c.includes('men');
+      return !isMen && (k.includes('parlor') || c.includes('parlor') || c.includes('salon') || k.includes('salon'));
+    });
+  }, [vendors]);
+
+  const salonMenVendors = useMemo(() => {
+    return vendors.filter((v) => {
+      const k = String(v.key || '').toLowerCase();
+      const c = String(v.category || '').toLowerCase();
+      return k === 'salon_men' || c === 'salon_men' || (c.includes('salon') && c.includes('men')) || (k.includes('salon') && k.includes('men')) || c.includes('men') || k.includes('men');
+    });
+  }, [vendors]);
+
+  const carVendors = useMemo(() => {
+    return vendors.filter((v) => {
+      const k = String(v.key || '').toLowerCase();
+      const c = String(v.category || '').toLowerCase();
+      return k.includes('car') || c.includes('car');
+    });
+  }, [vendors]);
+
+  const decorVendors = useMemo(() => {
+    return vendors.filter((v) => {
+      const k = String(v.key || '').toLowerCase();
+      const c = String(v.category || '').toLowerCase();
+      return k.includes('decor') || c.includes('decor');
+    });
+  }, [vendors]);
+
+  const lightingVendors = useMemo(() => {
+    return vendors.filter((v) => {
+      const k = String(v.key || '').toLowerCase();
+      const c = String(v.category || '').toLowerCase();
+      return k.includes('light') || c.includes('light') || k.includes('stage') || c.includes('stage');
     });
   }, [vendors]);
 
@@ -282,12 +315,44 @@ export default function FeaturedVendors() {
         'photographers'
       )}
 
-      {/* 5. Salons & Beauty Section Carousel */}
+      {/* 5. Bridal Salons & Beauty Section Carousel */}
       {renderHorizontalVendorSection(
-        'Bridal Makeup & Groom Salons',
-        'Signature bridal makeup, styling & grooming',
-        salonVendors,
+        'Bridal Salons & Makeup Studios',
+        'Signature bridal makeup, styling & parlor services',
+        parlorVendors,
         'parlor'
+      )}
+
+      {/* 6. Men Salon & Grooming Carousel */}
+      {renderHorizontalVendorSection(
+        'Salon for Men & Groom Styling',
+        'Groom packages, hair styling & beard grooming',
+        salonMenVendors,
+        'salon_men'
+      )}
+
+      {/* 7. Rent a Car & Luxury Fleet Carousel */}
+      {renderHorizontalVendorSection(
+        'Rent a Car & Luxury Fleet',
+        'Decorated wedding cars, SUVs & bridal convoys',
+        carVendors,
+        'rent_car'
+      )}
+
+      {/* 8. Decors & Floral Themes Carousel */}
+      {renderHorizontalVendorSection(
+        'Decors & Floral Arrangements',
+        'Stage decors, lighting & themed entrance setups',
+        decorVendors,
+        'decors'
+      )}
+
+      {/* 9. Stage & Sound Lighting Carousel */}
+      {renderHorizontalVendorSection(
+        'Sound & Stage Lighting',
+        'Concert audio, spotlights & special FX stage setup',
+        lightingVendors,
+        'stage_lighting'
       )}
     </View>
   );
