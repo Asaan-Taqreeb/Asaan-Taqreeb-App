@@ -115,15 +115,6 @@ const CategoriesView = ({ selectedCategory, onSelectCategory }: CategoriesViewPr
               >
                 {data.title}
               </Text>
-
-              <View className="bg-gray-50 px-2 py-0.5 rounded-full mt-1 border border-gray-100">
-                <Text
-                  className="text-[9px] font-bold text-center"
-                  style={{ color: Colors.textTertiary }}
-                >
-                  {data.count}
-                </Text>
-              </View>
             </Pressable>
           );
         })}
