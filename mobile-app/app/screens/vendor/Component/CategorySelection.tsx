@@ -1,48 +1,118 @@
-import React from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator } from 'react-native';
+import { useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, ChevronRight, Building2, Utensils, Camera, Scissors } from 'lucide-react-native';
+import { ArrowLeft, ChevronRight, Building2, Utensils, Camera, Scissors, Sparkles } from 'lucide-react-native';
 import { Colors, Shadows } from '@/app/_constants/theme';
+import { getAllCategories, type Category } from '@/app/_utils/categoriesApi';
+import { getIconComponent } from '@/app/screens/client/Component/_categoryConfig';
 
-const CATEGORIES = [
+const DEFAULT_CATEGORIES: Array<{
+  id: string;
+  key: string;
+  name: string;
+  description: string;
+  icon: string;
+  color: string;
+  sortOrder: number;
+}> = [
   {
     id: 'banquet',
-    title: 'Banquet Hall',
+    key: 'banquet',
+    name: 'Banquet Hall',
     description: 'Venues for weddings and large events',
-    icon: Building2,
-    route: '/screens/vendor/BanquetServiceForm',
-    color: '#6366F1'
+    icon: 'House',
+    color: '#6366F1',
+    sortOrder: 1,
   },
   {
     id: 'catering',
-    title: 'Catering Service',
+    key: 'catering',
+    name: 'Catering Service',
     description: 'Food and beverage services',
-    icon: Utensils,
-    route: '/screens/vendor/CateringServiceForm',
-    color: '#F59E0B'
+    icon: 'Utensils',
+    color: '#F59E0B',
+    sortOrder: 2,
   },
   {
     id: 'photo',
-    title: 'Photography',
+    key: 'photo',
+    name: 'Photography',
     description: 'Wedding and event photography',
-    icon: Camera,
-    route: '/screens/vendor/PhotographyServiceForm',
-    color: '#EC4899'
+    icon: 'Video',
+    color: '#EC4899',
+    sortOrder: 3,
   },
   {
     id: 'parlor',
-    title: 'Salon & Parlor',
+    key: 'parlor',
+    name: 'Salon & Parlor',
     description: 'Makeup and grooming services',
-    icon: Scissors,
-    route: '/screens/vendor/ParlorServiceForm',
-    color: '#8B5CF6'
-  }
+    icon: 'Scissors',
+    color: '#8B5CF6',
+    sortOrder: 4,
+  },
 ];
+
+const getCategoryRoute = (key: string): Href => {
+  switch (key) {
+    case 'banquet':
+      return '/screens/vendor/BanquetServiceForm' as Href;
+    case 'catering':
+      return '/screens/vendor/CateringServiceForm' as Href;
+    case 'photo':
+      return '/screens/vendor/PhotographyServiceForm' as Href;
+    case 'parlor':
+      return '/screens/vendor/ParlorServiceForm' as Href;
+    default:
+      return {
+        pathname: '/screens/vendor/PhotographyServiceForm',
+        params: { category: key },
+      } as Href;
+  }
+};
 
 export default function CategorySelection() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadCategories = async () => {
+      try {
+        setLoading(true);
+        const data = await getAllCategories();
+        if (isActive) {
+          const activeList = (data || []).filter(
+            (c) => c.active && c.key !== 'all' && c.key !== 'request_category'
+          );
+          if (activeList.length > 0) {
+            setCategories(activeList.sort((a, b) => a.sortOrder - b.sortOrder));
+          } else {
+            setCategories(DEFAULT_CATEGORIES as any);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching categories in CategorySelection:', err);
+        if (isActive) {
+          setCategories(DEFAULT_CATEGORIES as any);
+        }
+      } finally {
+        if (isActive) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadCategories();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
@@ -69,40 +139,57 @@ export default function CategorySelection() {
           AVAILABLE CATEGORIES
         </Text>
 
-        {CATEGORIES.map((category) => (
-          <Pressable
-            key={category.id}
-            className="bg-white rounded-[32px] p-6 mb-5 flex-row items-center"
-            style={Shadows.medium}
-            onPress={() => router.push(category.route as any)}
-          >
-            <View 
-              className="w-14 h-14 rounded-2xl items-center justify-center mr-5"
-              style={{ backgroundColor: category.color + '15' }}
-            >
-              <category.icon size={28} color={category.color} />
-            </View>
-            
-            <View className="flex-1">
-              <Text className="text-lg font-black" style={{ color: Colors.textPrimary }}>
-                {category.title}
-              </Text>
-              <Text className="text-xs font-medium text-gray-400 mt-1">
-                {category.description}
-              </Text>
-            </View>
+        {loading && categories.length === 0 ? (
+          <View className="py-12 items-center justify-center">
+            <ActivityIndicator size="large" color={Colors.primary} />
+            <Text className="text-xs text-gray-400 mt-3 font-medium">Loading categories...</Text>
+          </View>
+        ) : (
+          categories.map((category) => {
+            const IconComponent = getIconComponent(category.icon || '');
+            const categoryColor = category.color || '#6366F1';
+            const route = getCategoryRoute(category.key);
 
-            <View className="w-10 h-10 rounded-full items-center justify-center bg-gray-50">
-              <ChevronRight size={18} color={Colors.textTertiary} />
-            </View>
-          </Pressable>
-        ))}
+            return (
+              <Pressable
+                key={category._id || category.key}
+                className="bg-white rounded-[32px] p-6 mb-5 flex-row items-center"
+                style={Shadows.medium}
+                onPress={() => router.push(route)}
+              >
+                <View 
+                  className="w-14 h-14 rounded-2xl items-center justify-center mr-5"
+                  style={{ backgroundColor: (category.backgroundColor || categoryColor) + '20' }}
+                >
+                  <IconComponent size={28} color={categoryColor} />
+                </View>
+                
+                <View className="flex-1">
+                  <Text className="text-lg font-black" style={{ color: Colors.textPrimary }}>
+                    {category.name}
+                  </Text>
+                  <Text className="text-xs font-medium text-gray-400 mt-1">
+                    {category.description || `Manage and receive bookings for ${category.name}`}
+                  </Text>
+                </View>
+
+                <View className="w-10 h-10 rounded-full items-center justify-center bg-gray-50">
+                  <ChevronRight size={18} color={Colors.textTertiary} />
+                </View>
+              </Pressable>
+            );
+          })
+        )}
 
         <View className="mt-8 p-6 bg-gray-50 rounded-3xl mb-10 border border-gray-100">
           <Text className="text-xs font-bold leading-5 text-center text-gray-400 italic">
             &quot;Your service will be listed under the selected category to help clients find you easily.&quot;
           </Text>
-          <Pressable onPress={() => router.push('/screens/vendor/Component/CategoryRequestScreen')} className="mt-4 py-3 rounded-xl items-center" style={{ backgroundColor: Colors.primary }}>
+          <Pressable 
+            onPress={() => router.push('/screens/vendor/Component/CategoryRequestScreen' as Href)} 
+            className="mt-4 py-3 rounded-xl items-center" 
+            style={{ backgroundColor: Colors.primary }}
+          >
             <Text className="text-sm font-bold text-white">Request a new category</Text>
           </Pressable>
         </View>
