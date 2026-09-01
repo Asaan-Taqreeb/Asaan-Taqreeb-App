@@ -121,9 +121,15 @@ export default function VendorHomeScreen() {
   };
 
   const handleAcceptAgreement = async () => {
-    const accepted = await acceptAgreement();
-    if (accepted) {
-      router.replace('/screens/vendor/Component/CategorySelection');
+    try {
+      const accepted = await acceptAgreement();
+      if (accepted) {
+        router.replace('/screens/vendor/Component/CategorySelection');
+      } else {
+        Alert.alert('Error', 'Failed to accept agreement. Please ensure your backend is up to date and try again.');
+      }
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'Failed to accept agreement. Please try again.');
     }
   };
 

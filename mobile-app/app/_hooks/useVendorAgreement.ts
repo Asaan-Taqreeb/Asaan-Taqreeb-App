@@ -65,10 +65,11 @@ export const useVendorAgreement = (): UseAgreementReturn => {
           setError('Failed to accept agreement');
           return false;
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error accepting agreement:', err);
-        setError('Failed to accept agreement');
-        return false;
+        const msg = err?.message || 'Failed to accept agreement';
+        setError(msg);
+        throw err;
       } finally {
         setLoading(false);
       }

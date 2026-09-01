@@ -159,28 +159,24 @@ export default function AgreementModal({
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
           <Pressable
-            style={[styles.button, styles.rejectButton]}
+            style={[styles.button, styles.rejectButton, loading && styles.buttonDisabled]}
             onPress={onReject}
             disabled={loading}
           >
-            {loading ? (
-              <ActivityIndicator color={Colors.error} />
-            ) : (
-              <Text style={styles.rejectButtonText}>Decline</Text>
-            )}
+            <Text style={styles.rejectButtonText}>Decline</Text>
           </Pressable>
 
           <Pressable
             style={[
               styles.button,
               styles.acceptButton,
-              (!agreedText || !agreed) && styles.buttonDisabled,
+              (loading || !agreedText || !agreed) && styles.buttonDisabled,
             ]}
             onPress={handleAccept}
             disabled={loading || !agreedText || !agreed}
           >
             {loading ? (
-              <ActivityIndicator color="white" />
+              <ActivityIndicator color="white" size="small" />
             ) : (
               <Text style={styles.acceptButtonText}>Accept & Continue</Text>
             )}
