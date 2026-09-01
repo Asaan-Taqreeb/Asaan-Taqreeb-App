@@ -129,12 +129,6 @@ export default function VendorChatScreen() {
     const typingTimeoutRef = useRef<any>(null)
     const isTypingRef = useRef(false)
 
-    // Consultation Scheduler States
-    const [showSchedulerModal, setShowSchedulerModal] = useState(false)
-    const [schedType, setSchedType] = useState('Video Call')
-    const [schedDateIndex, setSchedDateIndex] = useState(0)
-    const [schedTime, setSchedTime] = useState('10:00 AM')
-    const [schedNote, setSchedNote] = useState('')
 
     const schedDates = Array.from({ length: 7 }, (_, i) => {
         const d = new Date()
@@ -168,51 +162,6 @@ export default function VendorChatScreen() {
         }
     }
 
-    const handleSendScheduler = async () => {
-        if (!targetUserId) return
-        const type = schedType
-        const date = schedDates[schedDateIndex].label
-        const time = schedTime
-        const note = schedNote.trim()
-
-        const text = `[Consultation Request]\nType: ${type}\nDate: ${date}\nTime: ${time}\nNote: ${note}\nStatus: Pending`
-        
-        const optimisticId = Date.now().toString()
-        const optimisticMessage: Message = {
-            _id: optimisticId,
-            chatId,
-            senderId: { _id: user?.id as string, name: user?.name as string, email: '' },
-            receiverId: { _id: targetUserId, name: vendorName, email: '' },
-            text,
-            isRead: false,
-            createdAt: new Date().toISOString()
-        }
-        setMessages(prev => [optimisticMessage, ...prev])
-        setShowSchedulerModal(false)
-        setSchedNote('')
-
-        try {
-            const savedMessage = await sendMessage(chatId, targetUserId, text)
-            setMessages(prev => prev.map(m => m._id === optimisticId ? savedMessage : m))
-
-            // Simulated auto-approval after 3 seconds for client testing
-            setTimeout(async () => {
-                const mockReply: Message = {
-                    _id: (Date.now() + 1).toString(),
-                    chatId,
-                    senderId: { _id: targetUserId, name: vendorName, email: '' },
-                    receiverId: { _id: user?.id as string, name: user?.name as string, email: '' },
-                    text: `[Consultation Approved] Looking forward to our discussion!`,
-                    isRead: false,
-                    createdAt: new Date().toISOString()
-                }
-                setMessages(prev => [mockReply, ...prev])
-            }, 3000)
-
-        } catch (error) {
-            Alert.alert('Error', 'Failed to send consultation request.')
-        }
-    }
 
     let vendor = null
     if (params.vendor) {
@@ -858,15 +807,7 @@ export default function VendorChatScreen() {
                             >
                                 <Paperclip color={categoryColor} size={22} />
                             </Pressable>
-                            <Pressable
-                                className='w-12 h-12 rounded-full items-center justify-center active:opacity-75'
-                                style={{backgroundColor: Colors.lightGray}}
-                                onPress={() => setShowSchedulerModal(true)}
-                                disabled={isUploadingImage || isUploadingVoice}
-                            >
-                                <Calendar color={categoryColor} size={22} />
-                            </Pressable>
-                            <TextInput
+                                                        <TextInput
                                 value={message}
                                 onChangeText={handleTextChange}
                                 placeholder='Add a note...'
@@ -900,130 +841,6 @@ export default function VendorChatScreen() {
                 </View>
                 <Text className='text-xs mt-2 px-1' style={{color: Colors.textTertiary}}>Tip: Use the microphone to record voice messages, or attachment for screenshots</Text>
             </View>
-
-            {/* Consultation Scheduler Modal */}
-            <Modal
-                visible={showSchedulerModal}
-                transparent={true}
-                animationType="slide"
-                onRequestClose={() => setShowSchedulerModal(false)}
-            >
-                <View className="flex-1 justify-end bg-black/40">
-                    <View className="bg-white rounded-t-3xl p-6 pb-8" style={Shadows.large}>
-                        <View className="flex-row items-center justify-between mb-5">
-                            <View>
-                                <Text className="text-xl font-black" style={{ color: Colors.textPrimary }}>Schedule Consultation</Text>
-                                <Text className="text-xs font-semibold text-slate-400 mt-0.5">With {vendorName}</Text>
-                            </View>
-                            <Pressable 
-                                onPress={() => setShowSchedulerModal(false)}
-                                className="p-2 rounded-full active:opacity-75"
-                                style={{ backgroundColor: Colors.lightGray }}
-                            >
-                                <X size={20} color={Colors.textPrimary} />
-                            </Pressable>
-                        </View>
-
-                        {/* Consultation Type Selector */}
-                        <Text className="text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Consultation Type</Text>
-                        <View className="flex-row gap-3 mb-4">
-                            <Pressable 
-                                onPress={() => setSchedType('Video Call')}
-                                className="flex-1 p-3 rounded-xl border-2 items-center"
-                                style={{
-                                    borderColor: schedType === 'Video Call' ? categoryColor : Colors.border,
-                                    backgroundColor: schedType === 'Video Call' ? categoryColor + '08' : 'transparent'
-                                }}
-                            >
-                                <Video color={schedType === 'Video Call' ? categoryColor : Colors.textSecondary} size={20} />
-                                <Text className="text-xs font-bold mt-1" style={{ color: schedType === 'Video Call' ? categoryColor : Colors.textSecondary }}>Video Call</Text>
-                            </Pressable>
-                            <Pressable 
-                                onPress={() => setSchedType('Venue Visit')}
-                                className="flex-1 p-3 rounded-xl border-2 items-center"
-                                style={{
-                                    borderColor: schedType === 'Venue Visit' ? categoryColor : Colors.border,
-                                    backgroundColor: schedType === 'Venue Visit' ? categoryColor + '08' : 'transparent'
-                                }}
-                            >
-                                <MapPin color={schedType === 'Venue Visit' ? categoryColor : Colors.textSecondary} size={20} />
-                                <Text className="text-xs font-bold mt-1" style={{ color: schedType === 'Venue Visit' ? categoryColor : Colors.textSecondary }}>Venue Visit</Text>
-                            </Pressable>
-                        </View>
-
-                        {/* Date Picker (Horizontal List) */}
-                        <Text className="text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Select Date</Text>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
-                            {schedDates.map((d, index) => (
-                                <Pressable 
-                                    key={index}
-                                    onPress={() => setSchedDateIndex(index)}
-                                    className="px-4 py-3 rounded-xl border-2 mr-2 items-center justify-center"
-                                    style={{
-                                        borderColor: schedDateIndex === index ? categoryColor : Colors.border,
-                                        backgroundColor: schedDateIndex === index ? categoryColor + '08' : 'transparent',
-                                        minWidth: 80
-                                    }}
-                                >
-                                    <Text className="text-xs font-bold" style={{ color: schedDateIndex === index ? categoryColor : Colors.textPrimary }}>
-                                        {d.label.split(',')[0]}
-                                    </Text>
-                                    <Text className="text-[10px] font-bold text-slate-400 mt-0.5">
-                                        {d.label.split(',')[1]}
-                                    </Text>
-                                </Pressable>
-                            ))}
-                        </ScrollView>
-
-                        {/* Time Slot Selector */}
-                        <Text className="text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Select Time Slot</Text>
-                        <View className="flex-row flex-wrap gap-2 mb-4">
-                            {['10:00 AM', '11:30 AM', '02:00 PM', '04:30 PM'].map((t) => (
-                                <Pressable 
-                                    key={t}
-                                    onPress={() => setSchedTime(t)}
-                                    className="px-3 py-2.5 rounded-lg border-2 items-center justify-center"
-                                    style={{
-                                        borderColor: schedTime === t ? categoryColor : Colors.border,
-                                        backgroundColor: schedTime === t ? categoryColor + '08' : 'transparent',
-                                        width: '48%'
-                                    }}
-                                >
-                                    <Text className="text-xs font-bold" style={{ color: schedTime === t ? categoryColor : Colors.textPrimary }}>{t}</Text>
-                                </Pressable>
-                            ))}
-                        </View>
-
-                        {/* Special Note */}
-                        <Text className="text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">What would you like to discuss?</Text>
-                        <TextInput 
-                            value={schedNote}
-                            onChangeText={setSchedNote}
-                            placeholder="Add brief details (e.g. customized packages)..."
-                            placeholderTextColor={Colors.textTertiary}
-                            className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm mb-5"
-                            style={{ color: Colors.textPrimary }}
-                        />
-
-                        {/* Action buttons */}
-                        <View className="flex-row gap-3">
-                            <Pressable 
-                                onPress={() => setShowSchedulerModal(false)}
-                                className="flex-1 py-3.5 rounded-xl border border-slate-200 items-center justify-center"
-                            >
-                                <Text className="font-bold text-slate-500">Cancel</Text>
-                            </Pressable>
-                            <Pressable 
-                                onPress={handleSendScheduler}
-                                className="flex-2 py-3.5 rounded-xl items-center justify-center"
-                                style={{ backgroundColor: categoryColor, flex: 2 }}
-                            >
-                                <Text className="font-extrabold text-white text-base">Send Request</Text>
-                            </Pressable>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
 
             <ImageViewerModal
                 visible={viewerVisible}

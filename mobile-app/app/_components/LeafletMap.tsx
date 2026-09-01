@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
         height: '100%',
     },
     loading: {
-        ...StyleSheet.absoluteFillObject,
+        ...StyleSheet.absoluteFill,
         backgroundColor: '#f3f4f6',
         justifyContent: 'center',
         alignItems: 'center',

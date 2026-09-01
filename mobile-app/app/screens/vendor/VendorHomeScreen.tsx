@@ -5,6 +5,8 @@ import { router, type Href } from "expo-router";
 import { Building2, Utensils, Camera, Sparkles } from "lucide-react-native";
 import { Colors, Shadows } from "@/app/_constants/theme";
 import { getMyVendorServices } from '@/app/_utils/servicesApi'
+import AgreementModal from '@/app/_components/AgreementModal'
+import useVendorAgreement from '@/app/_hooks/useVendorAgreement'
 import React, { useEffect } from 'react'
 
 interface ServiceType {
@@ -20,6 +22,12 @@ export default function VendorHomeScreen() {
   const insets = useSafeAreaInsets();
   const [isChecking, setIsChecking] = React.useState(true)
   const [lockedCategory, setLockedCategory] = React.useState<string | null>(null)
+  const {
+    showAgreement,
+    loading: agreementLoading,
+    acceptAgreement,
+    rejectAgreement,
+  } = useVendorAgreement();
 
   const services: ServiceType[] = [
     {
@@ -99,6 +107,17 @@ export default function VendorHomeScreen() {
     }
 
     router.push(service.route);
+  };
+
+  const handleRejectAgreement = async () => {
+    Alert.alert(
+      'Agreement Required',
+      'You must accept the vendor agreement to continue using Asaan Taqreeb. Would you like to reconsider?',
+      [
+        { text: 'Re-read Agreement', onPress: rejectAgreement },
+        { text: 'Logout', onPress: () => router.push('/screens/vendor/VendorLoginScreen'), style: 'destructive' }
+      ]
+    );
   };
 
   if (isChecking) {
@@ -203,6 +222,14 @@ export default function VendorHomeScreen() {
           </Text>
         </View>
       </ScrollView>
+
+      {/* Agreement Modal */}
+      <AgreementModal
+        visible={showAgreement}
+        onAccept={acceptAgreement}
+        onReject={handleRejectAgreement}
+        loading={agreementLoading}
+      />
     </View>
   );
 }

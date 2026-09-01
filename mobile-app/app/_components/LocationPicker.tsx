@@ -770,7 +770,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     modalLoading: {
-        ...StyleSheet.absoluteFillObject,
+        ...StyleSheet.absoluteFill,
         backgroundColor: '#F3F4F6',
         justifyContent: 'center',
         alignItems: 'center',

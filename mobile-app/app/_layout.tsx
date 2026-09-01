@@ -66,7 +66,7 @@ function AppContent({ stackContent }: { stackContent: React.ReactNode }) {
     <>
       <StatusBar 
         style={isDark ? 'light' : 'dark'} 
-        backgroundColor={colors.background} 
+        
       />
       {Platform.OS === 'web' ? (
         <View style={[styles.webContainer, { backgroundColor: isDark ? '#090C04' : '#F1F5F9' }]}>

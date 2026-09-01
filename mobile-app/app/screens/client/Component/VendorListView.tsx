@@ -7,13 +7,15 @@ import SearchBar from './SearchBar'
 import FilterComponent from './FilterComponent'
 import { Colors, Shadows, Spacing, getCategoryColor } from '@/app/_constants/theme'
 import { getAllServices, ServiceListItem, getConciseAddress } from '@/app/_utils/servicesApi'
-import { buildClientCategoryCards } from './categoryConfig'
+import { getAllCategories, type Category } from '@/app/_utils/categoriesApi'
+import { buildClientCategoryCards } from './_categoryConfig'
 import GoogleMapView from '@/app/_components/GoogleMapView'
 
 export default function VendorListView() {
     const insets = useSafeAreaInsets()
     const params = useLocalSearchParams<{ query?: string; category?: string; mapMode?: string }>()
   const [vendors, setVendors] = useState<ServiceListItem[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -58,13 +60,17 @@ export default function VendorListView() {
     useEffect(() => {
       let mounted = true
 
-      const loadServices = async () => {
+      const loadData = async () => {
         try {
           setLoading(true)
           setError(null)
-          const services = await getAllServices()
+          const [services, cats] = await Promise.all([
+            getAllServices(),
+            getAllCategories(),
+          ])
           if (mounted) {
             setVendors(services)
+            setCategories(cats)
           }
         } catch (apiError: any) {
           if (mounted) {
@@ -77,14 +83,14 @@ export default function VendorListView() {
         }
       }
 
-      loadServices()
+      loadData()
 
       return () => {
         mounted = false
       }
     }, [])
 
-    const categoryData = useMemo(() => buildClientCategoryCards(vendors), [vendors])
+    const categoryData = useMemo(() => buildClientCategoryCards(categories, vendors), [categories, vendors])
 
     const filteredData = useMemo(() => {
       const normalizedQuery = query.trim().toLowerCase()

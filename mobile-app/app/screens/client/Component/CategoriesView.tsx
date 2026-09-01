@@ -1,44 +1,53 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import React, { useEffect, useMemo, useState } from 'react'
 import { router } from 'expo-router'
-import { buildClientCategoryCards } from './categoryConfig'
+import { buildClientCategoryCards } from './_categoryConfig'
 import { Colors, Spacing, Shadows } from '@/app/_constants/theme'
 import { getAllServices, type ServiceListItem } from '@/app/_utils/servicesApi'
+import { getAllCategories, type Category } from '@/app/_utils/categoriesApi'
 import { useLanguage } from '@/app/_context/LanguageContext'
 
 const CategoriesView = () => {
     const [services, setServices] = useState<ServiceListItem[]>([])
+    const [categories, setCategories] = useState<Category[]>([])
     const { t } = useLanguage()
 
     useEffect(() => {
       let mounted = true
 
-      const loadServices = async () => {
+      const loadData = async () => {
         try {
-          const data = await getAllServices()
+          const [servicesData, categoriesData] = await Promise.all([
+            getAllServices(),
+            getAllCategories(),
+          ])
           if (mounted) {
-            setServices(data)
+            setServices(servicesData)
+            setCategories(categoriesData)
           }
-        } catch {
+        } catch (error) {
+          console.error('Error loading categories or services:', error)
           if (mounted) {
             setServices([])
+            setCategories([])
           }
         }
       }
 
-      loadServices()
+      loadData()
 
       return () => {
         mounted = false
       }
     }, [])
 
-    const categories = useMemo(() => buildClientCategoryCards(services), [services])
+    const categoryCards = useMemo(() => buildClientCategoryCards(categories, services), [categories, services])
+
   return (
     <View style={styles.container}>
       <Text className='text-lg font-bold px-4 mb-3' style={{color: Colors.textPrimary}}>{t('categories')}</Text>
       <View className='flex-row justify-evenly items-center px-2 flex-wrap'>
-        {categories.map(data => {
+        {categoryCards.map(data => {
           const IconComponent = data.icon
 
           return (
@@ -66,7 +75,7 @@ const CategoriesView = () => {
                 <IconComponent size={28} color={data.color} />
               </View>
               <Text className='text-[11px] mt-2 font-bold text-center' style={{color: Colors.textPrimary}} numberOfLines={1}>
-                {t(data.key === 'photo' ? 'photoShoot' : data.key === 'banquet' ? 'banquets' : data.key)}
+                {data.title}
               </Text>
               <View className="bg-white px-2 py-0.5 rounded-full mt-1 border border-gray-100">
                 <Text className='text-[8px] font-black uppercase tracking-widest text-center' style={{color: Colors.textTertiary}}>

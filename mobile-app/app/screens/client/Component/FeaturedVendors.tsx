@@ -6,7 +6,7 @@ import { Colors, Shadows, Spacing } from "@/app/_constants/theme";
 import { getAllServices, ServiceListItem, getConciseAddress } from '@/app/_utils/servicesApi'
 import { getCategoryColor } from '@/app/_constants/theme'
 import { useLanguage } from '@/app/_context/LanguageContext'
-import useLocation from "./hooks/useLocation";
+import { useLocationContext } from "@/app/_context/LocationContext";
 import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -52,7 +52,7 @@ export default function FeaturedVendors() {
   const [error, setError] = useState<string | null>(null)
   const [geocodedCoords, setGeocodedCoords] = useState<Record<string, { latitude: number; longitude: number }>>({})
   const { t } = useLanguage()
-  const { latitude: userLat, longitude: userLon } = useLocation()
+  const { latitude: userLat, longitude: userLon } = useLocationContext()
 
   // Load geocode cache from AsyncStorage on mount
   useEffect(() => {

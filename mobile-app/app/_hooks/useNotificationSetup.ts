@@ -1,13 +1,30 @@
 import { useEffect, useRef } from 'react';
 import { InteractionManager, Platform } from 'react-native';
+import Constants from 'expo-constants';
 import {
   registerForPushNotificationsAsync,
   handleNotificationResponse,
 } from '@/app/_utils/pushNotificationService';
 import { updatePushTokens } from '@/app/_utils/pushTokenManager';
-import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { useUser } from '@/app/_context/UserContext';
+
+// Conditionally import Notifications (not available in Expo Go on Android SDK 53+)
+let Notifications: any = null;
+let notificationsAvailable = false;
+
+if (Platform.OS !== 'web') {
+  const isExpoGo = Constants.appOwnership === 'expo' || (Constants as any).executionEnvironment === 'storeClient';
+  if (!isExpoGo) {
+    try {
+      Notifications = require('expo-notifications');
+      notificationsAvailable = true;
+    } catch (e) {
+      console.warn('⚠️ Notifications not available in this environment');
+      notificationsAvailable = false;
+    }
+  }
+}
 
 /**
  * Hook to set up all push notification handlers
@@ -25,9 +42,11 @@ export function useNotificationSetup() {
     let interactionHandle: { cancel: () => void } | null = null;
     let cancelled = false;
 
-    // Web Platform Setup (Disabled in favor of Native APK)
-    if (Platform.OS === 'web') {
-      console.log('ℹ️ Web/PWA notifications are disabled (focusing on native APK).');
+    const isExpoGo = Constants.appOwnership === 'expo' || (Constants as any).executionEnvironment === 'storeClient';
+
+    // Disable in Web & Expo Go (since SDK 53+ remote notifications require development builds)
+    if (Platform.OS === 'web' || isExpoGo || !notificationsAvailable) {
+      console.log('ℹ️ Push notifications setup bypassed for Web / Expo Go.');
       return () => {};
     }
 
@@ -50,28 +69,31 @@ export function useNotificationSetup() {
           }
         }
 
-        // Set up handler for foreground notifications
-        const foregroundSub = Notifications.addNotificationReceivedListener(notification => {
-          console.log('🔔 Notification received in foreground:', notification);
-        });
+        // Only set up listeners if Notifications is available
+        if (Notifications) {
+          // Set up handler for foreground notifications
+          const foregroundSub = Notifications.addNotificationReceivedListener((notification: any) => {
+            console.log('🔔 Notification received in foreground:', notification);
+          });
 
-        // Set up handler for Expo notifications tap / click response
-        const responseSub = Notifications.addNotificationResponseReceivedListener(response => {
-          handleNotificationResponse(response, router, user?.role);
-        });
-
-        // Handle cold start notifications (getLastNotificationResponseAsync)
-        Notifications.getLastNotificationResponseAsync().then(response => {
-          if (response && !cancelled) {
-            console.log('Cold start notification response:', response);
+          // Set up handler for Expo notifications tap / click response
+          const responseSub = Notifications.addNotificationResponseReceivedListener((response: any) => {
             handleNotificationResponse(response, router, user?.role);
-          }
-        });
+          });
 
-        unsubscribesRef.current.push(
-          () => foregroundSub.remove(),
-          () => responseSub.remove()
-        );
+          // Handle cold start notifications (getLastNotificationResponseAsync)
+          Notifications.getLastNotificationResponseAsync().then((response: any) => {
+            if (response && !cancelled) {
+              console.log('Cold start notification response:', response);
+              handleNotificationResponse(response, router, user?.role);
+            }
+          });
+
+          unsubscribesRef.current.push(
+            () => foregroundSub.remove(),
+            () => responseSub.remove()
+          );
+        }
 
         console.log('✅ Native Push notifications initialized successfully');
       } catch (error) {
