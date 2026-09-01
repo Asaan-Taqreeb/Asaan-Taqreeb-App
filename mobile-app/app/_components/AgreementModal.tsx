@@ -9,7 +9,8 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { Colors, Spacing } from '@/app/_constants/theme';
+import { FileText, ShieldCheck, Check, X } from 'lucide-react-native';
+import { Colors, Shadows, Spacing } from '@/app/_constants/theme';
 
 interface AgreementModalProps {
   visible: boolean;
@@ -24,12 +25,12 @@ export default function AgreementModal({
   onReject,
   loading = false,
 }: AgreementModalProps) {
-  const [agreed, setAgreed] = useState(false);
   const [agreedText, setAgreedText] = useState(false);
+  const [agreedTerms, setAgreedTerms] = useState(false);
 
   const handleAccept = () => {
-    if (!agreedText || !agreed) {
-      Alert.alert('Error', 'Please read and agree to all terms');
+    if (!agreedText || !agreedTerms) {
+      Alert.alert('Agreement Required', 'Please confirm both check boxes to proceed.');
       return;
     }
     onAccept();
@@ -38,149 +39,127 @@ export default function AgreementModal({
   return (
     <Modal
       visible={visible}
-      animationType="slide"
-      transparent={false}
+      animationType="fade"
+      transparent
       onRequestClose={() => {
         if (!loading) {
           onReject();
         }
       }}
     >
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Vendor Agreement</Text>
-          <Text style={styles.headerSubtitle}>Commission Terms & Conditions</Text>
-        </View>
+      <View style={styles.overlay}>
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={() => {
+            if (!loading) onReject();
+          }}
+          accessibilityLabel="Close modal"
+        />
 
-        <ScrollView
-          style={styles.content}
-          showsVerticalScrollIndicator={true}
-          scrollEnabled={true}
-          contentContainerStyle={{ paddingBottom: Spacing.lg }}
-        >
-          {/* Agreement Text */}
-          <View style={styles.agreementTextContainer}>
-            <Text style={styles.sectionTitle}>VENDOR COMMISSION AGREEMENT</Text>
-
-            <Text style={styles.sectionText}>
-              This agreement outlines the commission structure between Asaan Taqreeb and our
-              vendor partners.
-            </Text>
-
-            <Text style={styles.sectionHeading}>1. COMMISSION RATE:</Text>
-            <Text style={styles.sectionText}>
-              • Commission Rate: 5% of every booking amount{'\n'}• Commission is calculated on the
-              total amount charged to the customer
-            </Text>
-
-            <Text style={styles.sectionHeading}>2. PAYMENT PROCESS:</Text>
-            <Text style={styles.sectionText}>
-              • You will be provided with our bank details{'\n'}• Please transfer the commission
-              amount and attach a screenshot as proof{'\n'}• We will verify and confirm receipt of
-              payment
-            </Text>
-
-            <Text style={styles.sectionHeading}>3. OUTSTANDING COMMISSION:</Text>
-            <Text style={styles.sectionText}>
-              • If commission is not paid on time, you will receive a notification reminder
-              {'\n'}• Failure to pay outstanding commission may result in account suspension or
-              termination{'\n'}• We maintain the right to suspend your account if payments are
-              consistently overdue
-            </Text>
-
-            <Text style={styles.sectionHeading}>4. COMMISSION TRACKING:</Text>
-            <Text style={styles.sectionText}>
-              Your commission dashboard will show:{'\n'}• Outstanding commission (unpaid)
-              {'\n'}• Commission history{'\n'}• Previous payments{'\n'}• Due dates
-            </Text>
-
-            <Text style={styles.sectionHeading}>5. TERMINATION:</Text>
-            <Text style={styles.sectionText}>
-              • Non-payment of commissions may lead to immediate account deactivation
-              {'\n'}• We will attempt to contact you before taking any action
-            </Text>
-
-            <View style={styles.acknowledgment}>
-              <Text style={styles.acknowledgmentText}>
-                By accepting this agreement, you acknowledge and agree to all terms outlined
-                above.
-              </Text>
+        <View style={[styles.modalCard, Shadows.large]}>
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.headerIconContainer}>
+              <ShieldCheck size={24} color={Colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.headerTitle}>Vendor Partnership Agreement</Text>
+              <Text style={styles.headerSubtitle}>Commission terms & partner obligations</Text>
             </View>
           </View>
 
-          {/* Read Checkbox */}
-          <Pressable
-            style={styles.checkboxContainer}
-            onPress={() => setAgreedText(!agreedText)}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: agreedText }}
-            accessibilityLabel="I have read and understand the agreement above"
+          {/* Document Content */}
+          <ScrollView
+            style={styles.content}
+            showsVerticalScrollIndicator
+            contentContainerStyle={styles.scrollContainer}
           >
-            <View style={styles.checkbox}>
-              <View
-                style={[
-                  styles.checkboxInner,
-                  agreedText && styles.checkboxInnerChecked,
-                ]}
-              >
-                {agreedText && <Text style={styles.checkmark}>✓</Text>}
+            <View style={styles.termsBox}>
+              <View style={styles.badgeRow}>
+                <View style={styles.rateBadge}>
+                  <Text style={styles.rateBadgeText}>5% Flat Commission</Text>
+                </View>
+                <Text style={styles.versionText}>Standard Partner V1.2</Text>
               </View>
-            </View>
-            <Text style={styles.checkboxLabel}>
-              I have read and understand the agreement above
-            </Text>
-          </Pressable>
 
-          {/* Agree Checkbox */}
-          <Pressable
-            style={styles.checkboxContainer}
-            onPress={() => setAgreed(!agreed)}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: agreed }}
-            accessibilityLabel="I agree to this Vendor Agreement and Commission Terms"
-          >
-            <View style={styles.checkbox}>
-              <View
-                style={[
-                  styles.checkboxInner,
-                  agreed && styles.checkboxInnerChecked,
-                ]}
-              >
-                {agreed && <Text style={styles.checkmark}>✓</Text>}
+              <Text style={styles.sectionHeading}>1. Commission Structure</Text>
+              <Text style={styles.sectionText}>
+                Asaan Taqreeb charges a standard 5% platform fee on all confirmed customer bookings. The fee is calculated from the total finalized invoice amount.
+              </Text>
+
+              <Text style={styles.sectionHeading}>2. Payment & Settlement</Text>
+              <Text style={styles.sectionText}>
+                Commission is payable within 7 calendar days of event completion or booking payout. Proof of payment (bank transfer screenshot or transaction ID) must be uploaded via your vendor dashboard.
+              </Text>
+
+              <Text style={styles.sectionHeading}>3. Account Standing</Text>
+              <Text style={styles.sectionText}>
+                Maintaining an active and verified listing requires timely commission clearing. Repeated overdue balances may result in listing de-ranking or temporary booking holds.
+              </Text>
+
+              <Text style={styles.sectionHeading}>4. Quality & Commitment</Text>
+              <Text style={styles.sectionText}>
+                Vendors commit to honoring confirmed booking slots, transparent customer pricing, and maintaining professional quality standards.
+              </Text>
+            </View>
+
+            {/* Checkbox 1 */}
+            <Pressable
+              style={[styles.checkboxRow, agreedText && styles.checkboxRowActive]}
+              onPress={() => setAgreedText(!agreedText)}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: agreedText }}
+            >
+              <View style={[styles.checkbox, agreedText && styles.checkboxChecked]}>
+                {agreedText && <Check size={14} color={Colors.white} strokeWidth={3} />}
               </View>
-            </View>
-            <Text style={styles.checkboxLabel}>
-              I agree to this Vendor Agreement and Commission Terms
-            </Text>
-          </Pressable>
-        </ScrollView>
+              <Text style={styles.checkboxLabel}>
+                I have read and thoroughly reviewed the partnership terms above.
+              </Text>
+            </Pressable>
 
-        {/* Action Buttons */}
-        <View style={styles.buttonContainer}>
-          <Pressable
-            style={[styles.button, styles.rejectButton, loading && styles.buttonDisabled]}
-            onPress={onReject}
-            disabled={loading}
-          >
-            <Text style={styles.rejectButtonText}>Decline</Text>
-          </Pressable>
+            {/* Checkbox 2 */}
+            <Pressable
+              style={[styles.checkboxRow, agreedTerms && styles.checkboxRowActive]}
+              onPress={() => setAgreedTerms(!agreedTerms)}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: agreedTerms }}
+            >
+              <View style={[styles.checkbox, agreedTerms && styles.checkboxChecked]}>
+                {agreedTerms && <Check size={14} color={Colors.white} strokeWidth={3} />}
+              </View>
+              <Text style={styles.checkboxLabel}>
+                I accept the 5% platform commission and partner conditions.
+              </Text>
+            </Pressable>
+          </ScrollView>
 
-          <Pressable
-            style={[
-              styles.button,
-              styles.acceptButton,
-              (loading || !agreedText || !agreed) && styles.buttonDisabled,
-            ]}
-            onPress={handleAccept}
-            disabled={loading || !agreedText || !agreed}
-          >
-            {loading ? (
-              <ActivityIndicator color="white" size="small" />
-            ) : (
-              <Text style={styles.acceptButtonText}>Accept & Continue</Text>
-            )}
-          </Pressable>
+          {/* Action Buttons */}
+          <View style={styles.buttonContainer}>
+            <Pressable
+              style={[styles.button, styles.rejectButton, loading && styles.buttonDisabled]}
+              onPress={onReject}
+              disabled={loading}
+            >
+              <Text style={styles.rejectButtonText}>Decline</Text>
+            </Pressable>
+
+            <Pressable
+              style={[
+                styles.button,
+                styles.acceptButton,
+                (loading || !agreedText || !agreedTerms) && styles.buttonDisabled,
+              ]}
+              onPress={handleAccept}
+              disabled={loading || !agreedText || !agreedTerms}
+            >
+              {loading ? (
+                <ActivityIndicator color="white" size="small" />
+              ) : (
+                <Text style={styles.acceptButtonText}>Accept & Continue</Text>
+              )}
+            </Pressable>
+          </View>
         </View>
       </View>
     </Modal>
@@ -188,202 +167,165 @@ export default function AgreementModal({
 }
 
 const styles = StyleSheet.create({
-  container: {
+  overlay: {
     flex: 1,
-    backgroundColor: Colors.background,
-    paddingTop: 50,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 500,
+    maxHeight: '85%',
+    backgroundColor: Colors.white,
+    borderRadius: 32,
+    overflow: 'hidden',
   },
   header: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 22,
+    paddingVertical: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderColor: Colors.border,
+    backgroundColor: Colors.white,
+  },
+  headerIconContainer: {
+    width: 46,
+    height: 46,
+    borderRadius: 16,
+    backgroundColor: `${Colors.primary}12`,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '800',
     color: Colors.textPrimary,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: Colors.textTertiary,
-    marginTop: 4,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.lg,
-  },
-  agreementTextContainer: {
-    marginBottom: Spacing.lg,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.textPrimary,
-    marginBottom: Spacing.md,
-    textAlign: 'center',
-  },
-  sectionText: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    lineHeight: 20,
-    marginBottom: Spacing.md,
-  },
-  sectionHeading: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginTop: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  frequencyOption: {
-    marginLeft: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  optionLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
-  optionText: {
     fontSize: 12,
-    color: Colors.textSecondary,
-    marginTop: 4,
-  },
-  acknowledgment: {
-    backgroundColor: '#FFF3CD',
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF9800',
-    padding: Spacing.md,
-    marginTop: Spacing.lg,
-    borderRadius: 4,
-  },
-  acknowledgmentText: {
-    fontSize: 12,
-    color: '#856404',
     fontWeight: '500',
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginVertical: Spacing.md,
-    paddingHorizontal: Spacing.sm,
-  },
-  checkbox: {
-    marginRight: Spacing.md,
+    color: Colors.textSecondary,
     marginTop: 2,
   },
-  checkboxInner: {
-    width: 24,
-    height: 24,
-    borderWidth: 2,
-    borderColor: '#BDBDBD',
-    borderRadius: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
+  content: {
+    paddingHorizontal: 22,
   },
-  checkboxInnerChecked: {
+  scrollContainer: {
+    paddingVertical: 18,
+  },
+  termsBox: {
+    backgroundColor: Colors.lightGray,
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: 16,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  rateBadge: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  rateBadgeText: {
+    color: Colors.white,
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  versionText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.textTertiary,
+  },
+  sectionHeading: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  sectionText: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: Colors.textSecondary,
+    marginBottom: 8,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: 10,
+  },
+  checkboxRowActive: {
+    borderColor: Colors.primary,
+    backgroundColor: `${Colors.primary}08`,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.white,
+  },
+  checkboxChecked: {
     backgroundColor: Colors.primary,
     borderColor: Colors.primary,
-  },
-  checkmark: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   checkboxLabel: {
     flex: 1,
-    fontSize: 13,
-    color: Colors.textSecondary,
-    lineHeight: 18,
-  },
-  frequencySelection: {
-    marginVertical: Spacing.lg,
-  },
-  frequencyTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-    marginBottom: Spacing.md,
-  },
-  frequencyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#E0E0E0',
-    borderRadius: 8,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
-  },
-  frequencyButtonActive: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primary + '10',
-  },
-  radioButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#BDBDBD',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.md,
-  },
-  radioButtonActive: {
-    borderColor: Colors.primary,
-  },
-  radioButtonDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: Colors.primary,
-  },
-  frequencyContent: {
-    flex: 1,
-  },
-  frequencyButtonLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
-  frequencyButtonDesc: {
     fontSize: 12,
-    color: Colors.textTertiary,
-    marginTop: 2,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    lineHeight: 17,
   },
   buttonContainer: {
     flexDirection: 'row',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.lg,
-    gap: Spacing.md,
+    gap: 12,
+    padding: 20,
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-    backgroundColor: Colors.background,
+    borderColor: Colors.border,
+    backgroundColor: Colors.white,
   },
   button: {
     flex: 1,
-    paddingVertical: Spacing.md,
-    borderRadius: 8,
-    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 16,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   rejectButton: {
-    borderWidth: 2,
-    borderColor: Colors.error,
+    backgroundColor: Colors.lightGray,
   },
   rejectButtonText: {
-    color: Colors.error,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
+    color: Colors.textSecondary,
   },
   acceptButton: {
     backgroundColor: Colors.primary,
   },
   acceptButtonText: {
-    color: 'white',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '800',
+    color: Colors.white,
   },
   buttonDisabled: {
     opacity: 0.5,
