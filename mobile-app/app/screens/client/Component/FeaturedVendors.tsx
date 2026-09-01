@@ -1,14 +1,13 @@
-import { View, Text, StyleSheet, Image, Pressable, FlatList, Platform } from "react-native";
-import { Star, MapPin, Users } from "lucide-react-native";
-import { router } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
-import { Colors, Shadows, Spacing } from "@/app/_constants/theme";
-import { getAllServices, ServiceListItem, getConciseAddress } from '@/app/_utils/servicesApi'
-import { getCategoryColor } from '@/app/_constants/theme'
-import { useLanguage } from '@/app/_context/LanguageContext'
-import { useLocationContext } from "@/app/_context/LocationContext";
-import * as Location from "expo-location";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { View, Text, StyleSheet, Image, Pressable } from 'react-native';
+import { Star, MapPin, Users, Sparkles, ChevronRight } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
+import { Colors, Shadows, Spacing } from '@/app/_constants/theme';
+import { getAllServices, ServiceListItem, getConciseAddress } from '@/app/_utils/servicesApi';
+import { getCategoryColor } from '@/app/_constants/theme';
+import { useLanguage } from '@/app/_context/LanguageContext';
+import { useLocationContext } from '@/app/_context/LocationContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type FeaturedVendorListItem = ServiceListItem & {
   distance?: number;
@@ -32,27 +31,15 @@ const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c;
 };
 
-const KARACHI_AREA_COORDS = [
-  { keys: ['clifton'], latitude: 24.8138, longitude: 67.0336 },
-  { keys: ['defence', 'dha'], latitude: 24.8238, longitude: 67.0681 },
-  { keys: ['gulshan', 'iqbal'], latitude: 24.9180, longitude: 67.0971 },
-  { keys: ['north nazimabad'], latitude: 24.9372, longitude: 67.0416 },
-  { keys: ['saddar', 'tariq', 'pechs'], latitude: 24.8615, longitude: 67.0423 },
-  { keys: ['fb area', 'federal b'], latitude: 24.9312, longitude: 67.0794 },
-  { keys: ['bahria'], latitude: 25.0252, longitude: 67.3294 },
-  { keys: ['malir'], latitude: 24.8986, longitude: 67.1908 },
-  { keys: ['korangi'], latitude: 24.8322, longitude: 67.1265 },
-  { keys: ['nazimabad'], latitude: 24.9122, longitude: 67.0265 },
-  { keys: ['johar', 'gulistan'], latitude: 24.9114, longitude: 67.1353 },
-];
-
 export default function FeaturedVendors() {
-  const [vendors, setVendors] = useState<ServiceListItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [geocodedCoords, setGeocodedCoords] = useState<Record<string, { latitude: number; longitude: number }>>({})
-  const { t } = useLanguage()
-  const { latitude: userLat, longitude: userLon } = useLocationContext()
+  const [vendors, setVendors] = useState<ServiceListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [geocodedCoords, setGeocodedCoords] = useState<
+    Record<string, { latitude: number; longitude: number }>
+  >({});
+  const { t } = useLanguage();
+  const { latitude: userLat, longitude: userLon } = useLocationContext();
 
   // Load geocode cache from AsyncStorage on mount
   useEffect(() => {
@@ -65,155 +52,69 @@ export default function FeaturedVendors() {
           setGeocodedCoords({ ...GEOCODE_CACHE });
         }
       } catch (e) {
-        console.log("Failed to load geocode cache:", e);
+        console.log('Failed to load geocode cache:', e);
       }
     };
     loadCache();
   }, []);
 
   useEffect(() => {
-    let mounted = true
+    let mounted = true;
 
     const loadServices = async () => {
       try {
-        setLoading(true)
-        setError(null)
-        
+        setLoading(true);
+        setError(null);
+
         // 1. Get cached services first for instant display
-        const cachedServices = await getAllServices(false)
+        const cachedServices = await getAllServices(false);
         if (mounted && cachedServices.length > 0) {
-          setVendors(cachedServices)
-          setLoading(false)
+          setVendors(cachedServices);
+          setLoading(false);
         }
-        
+
         // 2. Fetch fresh services in the background and update UI state
-        const freshServices = await getAllServices(true)
+        const freshServices = await getAllServices(true);
         if (mounted) {
-          setVendors(freshServices)
+          setVendors(freshServices);
         }
       } catch (apiError: any) {
         if (mounted && vendors.length === 0) {
-          setError(apiError?.message || t('loadingVendors'))
+          setError(apiError?.message || t('loadingVendors'));
         }
       } finally {
         if (mounted) {
-          setLoading(false)
+          setLoading(false);
         }
       }
-    }
+    };
 
-    loadServices()
+    loadServices();
 
     return () => {
-      mounted = false
-    }
-  }, [])
-
-  // Geocode any vendors that do not have coordinates from the backend
-  useEffect(() => {
-    let active = true
-
-    const geocodeAll = async () => {
-      let cacheUpdated = false
-      const newCoords: Record<string, { latitude: number; longitude: number }> = {}
-
-      for (const vendor of vendors) {
-        const hasLat = vendor.latitude !== undefined && vendor.latitude !== null
-        const hasLon = vendor.longitude !== undefined && vendor.longitude !== null
-        
-        if (!hasLat || !hasLon) {
-          // If already in memory cache, use it immediately
-          if (GEOCODE_CACHE[vendor.id]) {
-            newCoords[vendor.id] = GEOCODE_CACHE[vendor.id]
-            continue
-          }
-
-          if (vendor.location && vendor.location !== 'Location not set') {
-            const locLower = vendor.location.toLowerCase();
-            const areaMatch = KARACHI_AREA_COORDS.find(item => item.keys.some(k => locLower.includes(k)));
-            
-            if (areaMatch) {
-              const coord = { latitude: areaMatch.latitude, longitude: areaMatch.longitude };
-              newCoords[vendor.id] = coord;
-              GEOCODE_CACHE[vendor.id] = coord;
-              cacheUpdated = true;
-              continue;
-            }
-
-            try {
-              let results: any[] = []
-              try {
-                results = await Location.geocodeAsync(vendor.location)
-              } catch (nativeGeocodeErr) {
-                let query = vendor.location;
-                if (!query.toLowerCase().includes('karachi')) {
-                  query += ', Karachi, Pakistan';
-                }
-                const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
-                const headers: Record<string, string> = {}
-                if ((Platform.OS as string) !== 'web') {
-                  headers['User-Agent'] = 'AsaanTaqreebApp/1.0'
-                }
-                const res = await fetch(url, { headers });
-                const data = await res.json();
-                if (Array.isArray(data) && data.length > 0) {
-                  results = [{
-                    latitude: parseFloat(data[0].lat),
-                    longitude: parseFloat(data[0].lon)
-                  }];
-                }
-              }
-
-              if (results && results.length > 0) {
-                const coord = {
-                  latitude: results[0].latitude,
-                  longitude: results[0].longitude
-                }
-                newCoords[vendor.id] = coord
-                GEOCODE_CACHE[vendor.id] = coord
-                cacheUpdated = true
-              }
-            } catch (e) {
-              console.log(`Failed to geocode address "${vendor.location}":`, e)
-            }
-          }
-        }
-      }
-
-      if (active && Object.keys(newCoords).length > 0) {
-        setGeocodedCoords(prev => ({ ...prev, ...newCoords }))
-        if (cacheUpdated) {
-          try {
-            await AsyncStorage.setItem(GEOCODE_CACHE_KEY, JSON.stringify(GEOCODE_CACHE))
-          } catch (e) {
-            console.log("Failed to save geocode cache:", e)
-          }
-        }
-      }
-    }
-
-    if (vendors.length > 0) {
-      geocodeAll()
-    }
-
-    return () => {
-      active = false
-    }
-  }, [vendors])
+      mounted = false;
+    };
+  }, []);
 
   const sortedVendors = useMemo(() => {
     if (userLat === undefined || userLon === undefined) {
       return [...vendors]
         .sort((a, b) => (b.rating || 0) - (a.rating || 0))
-        .map(v => ({ ...v, distance: undefined }))
-        .slice(0, 6);
+        .map((v) => ({ ...v, distance: undefined }))
+        .slice(0, 8);
     }
 
     return [...vendors]
-      .map(vendor => {
+      .map((vendor) => {
         let distance: number | undefined = undefined;
-        const lat = (vendor.latitude !== undefined && vendor.latitude !== null) ? vendor.latitude : geocodedCoords[vendor.id]?.latitude;
-        const lon = (vendor.longitude !== undefined && vendor.longitude !== null) ? vendor.longitude : geocodedCoords[vendor.id]?.longitude;
+        const lat =
+          vendor.latitude !== undefined && vendor.latitude !== null
+            ? vendor.latitude
+            : geocodedCoords[vendor.id]?.latitude;
+        const lon =
+          vendor.longitude !== undefined && vendor.longitude !== null
+            ? vendor.longitude
+            : geocodedCoords[vendor.id]?.longitude;
 
         if (lat !== undefined && lon !== undefined) {
           distance = calculateDistance(userLat, userLon, lat, lon);
@@ -228,116 +129,166 @@ export default function FeaturedVendors() {
         if (b.distance !== undefined) return 1;
         return (b.rating || 0) - (a.rating || 0);
       })
-      .slice(0, 6);
+      .slice(0, 8);
   }, [vendors, userLat, userLon, geocodedCoords]);
 
   return (
     <View style={styles.container}>
-        <View className="mt-2">
-          <View className="flex-row justify-between items-center px-4 mb-3">
-            <Text className="text-lg font-bold" style={{color: Colors.textPrimary}}>
+      <View className="mt-4">
+        <View className="flex-row justify-between items-center px-5 mb-4">
+          <View>
+            <Text className="text-xl font-extrabold" style={{ color: Colors.textPrimary }}>
               {userLat !== undefined && userLon !== undefined ? t('nearbyVendors') : t('topRated')}
             </Text>
-            <Pressable className="active:opacity-70" onPress={() => router.push("/screens/client/Component/VendorListView")}>
-              <Text className="text-sm font-semibold" style={{color: Colors.primary}}>{t('seeAll')}</Text>
-            </Pressable>
+            <Text className="text-xs font-medium mt-0.5" style={{ color: Colors.textTertiary }}>
+              Top verified event partners in Karachi
+            </Text>
           </View>
-          {loading && (
-            <Text className="px-4 py-2 text-sm" style={{color: Colors.textSecondary}}>{t('loadingVendors')}</Text>
-          )}
-          {error && !loading && (
-            <Text className="px-4 py-2 text-sm" style={{color: Colors.error}}>{error}</Text>
-          )}
-          <View style={{ paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md }}>
-            {sortedVendors.map((item, index) => {
-              const catColor = getCategoryColor(item.key)
-              const isNearest = index === 0 && item.distance !== undefined && item.distance <= 15
-              return (
-                <Pressable key={item.id.toString()} className="mb-4 active:opacity-90" onPress={() => router.push({
-                  pathname: "/screens/client/Component/DetailScreenPage",
-                  params: { vendor: encodeURIComponent(JSON.stringify(item)), category: item.key }
-                })}>
-                  <View 
-                    className="rounded-3xl p-4 flex-row items-center gap-4 relative overflow-hidden" 
-                    style={[
-                      {
-                        backgroundColor: Colors.white, 
-                        borderLeftWidth: 6, 
-                        borderLeftColor: isNearest ? '#10B981' : catColor,
-                        borderColor: isNearest ? '#10B981' : 'transparent',
-                        borderWidth: isNearest ? 1.5 : 0,
-                      }, 
-                      Shadows.medium
-                    ]}
-                  > 
-                    <Image 
-                      className="rounded-2xl" 
+          <Pressable
+            className="flex-row items-center gap-1 active:opacity-70 px-3 py-1.5 rounded-full bg-white border border-gray-100"
+            style={Shadows.small}
+            onPress={() => router.push('/screens/client/Component/VendorListView')}
+          >
+            <Text className="text-xs font-bold" style={{ color: Colors.primary }}>
+              {t('seeAll')}
+            </Text>
+            <ChevronRight size={14} color={Colors.primary} />
+          </Pressable>
+        </View>
+
+        {loading && vendors.length === 0 && (
+          <View className="py-8 items-center justify-center">
+            <Text className="text-sm font-medium" style={{ color: Colors.textSecondary }}>
+              {t('loadingVendors')}
+            </Text>
+          </View>
+        )}
+
+        {error && !loading && vendors.length === 0 && (
+          <View className="py-8 px-5 items-center justify-center">
+            <Text className="text-sm font-medium text-center" style={{ color: Colors.error }}>
+              {error}
+            </Text>
+          </View>
+        )}
+
+        <View style={{ paddingHorizontal: 20, paddingBottom: Spacing.md }}>
+          {sortedVendors.map((item, index) => {
+            const catColor = getCategoryColor(item.key);
+            const isNearest = index === 0 && item.distance !== undefined && item.distance <= 15;
+            const startingPrice =
+              item.category === 'banquet'
+                ? item.price ?? 0
+                : item.packages?.[0]?.price ?? item.price ?? 0;
+
+            return (
+              <Pressable
+                key={item.id.toString()}
+                className="mb-4 rounded-3xl bg-white border border-gray-100 overflow-hidden active:opacity-90"
+                style={Shadows.medium}
+                onPress={() =>
+                  router.push({
+                    pathname: '/screens/client/Component/DetailScreenPage',
+                    params: {
+                      vendor: encodeURIComponent(JSON.stringify(item)),
+                      category: item.key,
+                    },
+                  })
+                }
+              >
+                <View className="p-3.5 flex-row gap-3.5 items-center">
+                  <View className="relative">
+                    <Image
+                      className="rounded-2xl"
                       source={{ uri: item.images[0] }}
-                      accessibilityLabel={item.name} 
-                      style={{ width: 100, height: 110 }} 
+                      accessibilityLabel={item.name}
+                      style={{ width: 104, height: 114 }}
                       resizeMode="cover"
                     />
-                    <View className="flex-col flex-1 justify-between py-1">
-                      <View>
-                        {isNearest && (
-                          <View className="flex-row items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 self-start mb-1">
-                            <Text className="text-[10px] font-bold text-emerald-700">⚡ Nearest to you</Text>
-                          </View>
-                        )}
-                        <View className="flex-row justify-between items-start mb-1">
-                          <Text className="text-base font-black flex-1 mr-2" style={{color: Colors.textPrimary}} numberOfLines={1}>{item.name}</Text>
-                          <View className="flex-row items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-100">
-                            <Star size={10} fill={Colors.rating} color={Colors.rating} />
-                            <Text className="text-[10px] font-black" style={{color: Colors.rating}}>{item.rating}</Text>
-                          </View>
-                        </View>
-                        
-                        <View className="flex-row items-center mb-1.5 flex-wrap gap-1">
-                          <View className="flex-row items-center flex-1">
-                            <MapPin size={12} color={Colors.textTertiary} />
-                            <Text className="text-xs font-bold ml-1 flex-1" style={{color: Colors.textSecondary}} numberOfLines={1}>
-                              {getConciseAddress(item.location)}
-                            </Text>
-                          </View>
-                          {item.distance !== undefined && (
-                            <View className="bg-slate-100 px-2 py-0.5 rounded-md">
-                              <Text className="text-[10px] font-bold text-slate-700">
-                                📍 {item.distance.toFixed(1)} km
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-
-                        {item.category === "banquet" && (
-                          <View className="flex-row items-center mb-1.5">
-                            <Users size={12} color={Colors.textTertiary} />
-                            <Text className="text-xs font-bold ml-1" style={{color: Colors.textSecondary}}>{item.minGuests}-{item.maxGuests} {t('guests')}</Text>
-                          </View>
-                        )}
-                      </View>
-
-                      <View className="flex-row justify-between items-center mt-auto">
-                        <View className="bg-gray-50 px-2 py-1 rounded-lg">
-                          <Text className="text-[10px] font-black uppercase tracking-widest" style={{color: Colors.textTertiary}}>{t('startingFrom')}</Text>
-                        </View>
-                        <Text className="text-base font-black" style={{color: Colors.primary}}>
-                          PKR {item.category === "banquet" ? (item.price ?? 0).toLocaleString() : (item.packages?.[0]?.price ?? 0).toLocaleString()}
-                        </Text>
-                      </View>
+                    <View
+                      className="absolute top-2 left-2 px-2 py-0.5 rounded-full"
+                      style={{ backgroundColor: `${catColor}EE` }}
+                    >
+                      <Text className="text-[9px] font-black text-white uppercase tracking-wider">
+                        {item.key}
+                      </Text>
                     </View>
                   </View>
-                </Pressable>
-              )
-            })}
-          </View>
+
+                  <View className="flex-col flex-1 justify-between py-0.5 min-h-[114px]">
+                    <View>
+                      {isNearest && (
+                        <View className="flex-row items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 self-start mb-1">
+                          <Sparkles size={10} color="#047857" />
+                          <Text className="text-[9px] font-bold text-emerald-700">Nearest to you</Text>
+                        </View>
+                      )}
+
+                      <View className="flex-row justify-between items-start mb-1">
+                        <Text
+                          className="text-base font-extrabold flex-1 mr-2"
+                          style={{ color: Colors.textPrimary }}
+                          numberOfLines={1}
+                        >
+                          {item.name}
+                        </Text>
+                        <View className="flex-row items-center gap-1 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200/60">
+                          <Star size={11} fill={Colors.rating} color={Colors.rating} />
+                          <Text className="text-[11px] font-black" style={{ color: '#B45309' }}>
+                            {item.rating || '4.8'}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View className="flex-row items-center mb-1 flex-wrap gap-1">
+                        <MapPin size={12} color={Colors.textTertiary} />
+                        <Text
+                          className="text-xs font-semibold text-gray-500 flex-1"
+                          numberOfLines={1}
+                        >
+                          {getConciseAddress(item.location)}
+                        </Text>
+                        {item.distance !== undefined && (
+                          <View className="bg-gray-100 px-1.5 py-0.5 rounded">
+                            <Text className="text-[10px] font-bold text-gray-600">
+                              {item.distance.toFixed(1)} km
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+
+                      {item.category === 'banquet' && (
+                        <View className="flex-row items-center mb-1">
+                          <Users size={12} color={Colors.textTertiary} />
+                          <Text className="text-xs font-semibold text-gray-500 ml-1">
+                            {item.minGuests}-{item.maxGuests} {t('guests')}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+
+                    <View className="flex-row justify-between items-baseline pt-1.5 border-t border-gray-100">
+                      <Text className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                        {t('startingFrom')}
+                      </Text>
+                      <Text className="text-sm font-black" style={{ color: Colors.primary }}>
+                        PKR {startingPrice.toLocaleString()}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </Pressable>
+            );
+          })}
         </View>
+      </View>
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        width: "100%",
-        flex: 1,
-    },
-})
+  container: {
+    width: '100%',
+    flex: 1,
+  },
+});

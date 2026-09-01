@@ -38,18 +38,33 @@ export default function ClientHomeScreen() {
 
         {/* Explore on Map Banner */}
         <Pressable
-          className="mx-5 my-2 rounded-3xl p-5 overflow-hidden flex-row items-center justify-between"
-          style={[{ backgroundColor: Colors.primary + '12', borderWidth: 1, borderColor: Colors.primary + '20' }]}
-          onPress={() => router.push({
-            pathname: "/screens/client/Component/VendorListView",
-            params: { mapMode: 'true' }
-          })}
+          className="mx-5 my-2.5 rounded-3xl p-5 overflow-hidden flex-row items-center justify-between bg-white border border-gray-100 active:opacity-85"
+          style={Shadows.medium}
+          onPress={() =>
+            router.push({
+              pathname: '/screens/client/Component/VendorListView',
+              params: { mapMode: 'true' },
+            })
+          }
         >
           <View className="flex-1 mr-4">
-            <Text className="text-base font-black" style={{ color: Colors.primary }}>Explore Vendors on Map</Text>
-            <Text className="text-xs font-semibold mt-1" style={{ color: Colors.textSecondary }}>Find venues, caterers, and salons near you visually</Text>
+            <View className="flex-row items-center gap-1.5 mb-1">
+              <View className="w-2 h-2 rounded-full bg-emerald-500" />
+              <Text className="text-[10px] font-black uppercase tracking-wider text-emerald-600">
+                Live Interactive Map
+              </Text>
+            </View>
+            <Text className="text-base font-extrabold" style={{ color: Colors.textPrimary }}>
+              Explore Vendors Near You
+            </Text>
+            <Text className="text-xs font-medium text-gray-400 mt-0.5">
+              Locate luxury venues, caterers, and salons on the map
+            </Text>
           </View>
-          <View className="p-3 rounded-2xl bg-white" style={Shadows.small}>
+          <View
+            className="w-12 h-12 rounded-2xl items-center justify-center"
+            style={{ backgroundColor: `${Colors.primary}12` }}
+          >
             <MapIcon color={Colors.primary} size={22} />
           </View>
         </Pressable>
