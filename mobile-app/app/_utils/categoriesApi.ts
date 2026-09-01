@@ -27,18 +27,25 @@ export const getAllCategories = async (forceRefresh = false): Promise<Category[]
     }
 
     const url = APP_ENDPOINTS.categories;
-    const response = await apiFetchJson<{ success: boolean; data: Category[] }>(url, {
+    const response = await apiFetchJson<any>(url, {
       method: 'GET',
       auth: false,
     });
 
-    if (response.success && response.data) {
-      cachedCategories = response.data;
-      cacheTimestamp = Date.now();
-      return response.data;
+    let list: Category[] = [];
+    if (Array.isArray(response)) {
+      list = response;
+    } else if (Array.isArray(response?.data)) {
+      list = response.data;
     }
 
-    return [];
+    if (list.length > 0) {
+      cachedCategories = list;
+      cacheTimestamp = Date.now();
+      return list;
+    }
+
+    return cachedCategories || [];
   } catch (error) {
     console.error('Error fetching categories:', error);
     // Return cached data if available, otherwise empty array
@@ -49,13 +56,16 @@ export const getAllCategories = async (forceRefresh = false): Promise<Category[]
 export const getCategoryByKey = async (key: string): Promise<Category | null> => {
   try {
     const url = APP_ENDPOINTS.categoryByKey(key);
-    const response = await apiFetchJson<{ success: boolean; data: Category }>(url, {
+    const response = await apiFetchJson<any>(url, {
       method: 'GET',
       auth: false,
     });
 
-    if (response.success && response.data) {
-      return response.data;
+    if (response?.key) {
+      return response as Category;
+    }
+    if (response?.data?.key) {
+      return response.data as Category;
     }
 
     return null;
@@ -63,9 +73,4 @@ export const getCategoryByKey = async (key: string): Promise<Category | null> =>
     console.error(`Error fetching category ${key}:`, error);
     return null;
   }
-};
-
-export default {
-  getAllCategories,
-  getCategoryByKey,
 };

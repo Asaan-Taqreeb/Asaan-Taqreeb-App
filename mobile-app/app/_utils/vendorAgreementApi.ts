@@ -24,9 +24,9 @@ export const getAgreementText = async (): Promise<string> => {
       }
     );
 
-    if (response.success && response.data?.text) {
-      return response.data.text;
-    }
+    if (typeof response === 'string') return response;
+    if (typeof response?.text === 'string') return response.text;
+    if (typeof response?.data?.text === 'string') return response.data.text;
 
     return '';
   } catch (error) {
@@ -37,7 +37,7 @@ export const getAgreementText = async (): Promise<string> => {
 
 export const getMyAgreement = async (): Promise<VendorAgreement | null> => {
   try {
-    const response = await apiFetchJson<{ success: boolean; data: VendorAgreement }>(
+    const response = await apiFetchJson<any>(
       `${VENDOR_API}/agreement`,
       {
         method: 'GET',
@@ -45,11 +45,11 @@ export const getMyAgreement = async (): Promise<VendorAgreement | null> => {
       }
     );
 
-    if (response.success && response.data) {
-      return response.data;
+    if (!response) return null;
+    if (response.data && typeof response.data === 'object') {
+      return response.data as VendorAgreement;
     }
-
-    return null;
+    return response as VendorAgreement;
   } catch (error) {
     console.error('Error fetching my agreement:', error);
     return null;
@@ -58,7 +58,7 @@ export const getMyAgreement = async (): Promise<VendorAgreement | null> => {
 
 export const acceptAgreement = async (): Promise<VendorAgreement | null> => {
   try {
-    const response = await apiFetchJson<{ success: boolean; data: VendorAgreement }>(
+    const response = await apiFetchJson<any>(
       `${VENDOR_API}/agreement/accept`,
       {
         method: 'POST',
@@ -70,11 +70,11 @@ export const acceptAgreement = async (): Promise<VendorAgreement | null> => {
       }
     );
 
-    if (response.success && response.data) {
-      return response.data;
+    if (!response) return null;
+    if (response.data && typeof response.data === 'object') {
+      return response.data as VendorAgreement;
     }
-
-    return null;
+    return response as VendorAgreement;
   } catch (error) {
     console.error('Error accepting agreement:', error);
     throw error;
@@ -83,7 +83,7 @@ export const acceptAgreement = async (): Promise<VendorAgreement | null> => {
 
 export const rejectAgreement = async (): Promise<boolean> => {
   try {
-    const response = await apiFetchJson<{ success: boolean }>(
+    const response = await apiFetchJson<any>(
       `${VENDOR_API}/agreement/reject`,
       {
         method: 'POST',
@@ -91,7 +91,7 @@ export const rejectAgreement = async (): Promise<boolean> => {
       }
     );
 
-    return response.success;
+    return response?.success !== false;
   } catch (error) {
     console.error('Error rejecting agreement:', error);
     return false;
@@ -100,10 +100,7 @@ export const rejectAgreement = async (): Promise<boolean> => {
 
 export const getOutstandingCommission = async (): Promise<number> => {
   try {
-    const response = await apiFetchJson<{
-      success: boolean;
-      data: { outstandingCommission: number };
-    }>(
+    const response = await apiFetchJson<any>(
       `${VENDOR_API}/agreement/commission/outstanding`,
       {
         method: 'GET',
@@ -111,7 +108,10 @@ export const getOutstandingCommission = async (): Promise<number> => {
       }
     );
 
-    if (response.success && response.data) {
+    if (typeof response?.outstandingCommission === 'number') {
+      return response.outstandingCommission;
+    }
+    if (typeof response?.data?.outstandingCommission === 'number') {
       return response.data.outstandingCommission;
     }
 
@@ -120,12 +120,4 @@ export const getOutstandingCommission = async (): Promise<number> => {
     console.error('Error fetching outstanding commission:', error);
     return 0;
   }
-};
-
-export default {
-  getAgreementText,
-  getMyAgreement,
-  acceptAgreement,
-  rejectAgreement,
-  getOutstandingCommission,
 };
