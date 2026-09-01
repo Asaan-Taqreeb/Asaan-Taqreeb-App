@@ -13,3 +13,4 @@ export const safeGoBack = (
     router.replace(fallbackHref);
   }
 };
+
