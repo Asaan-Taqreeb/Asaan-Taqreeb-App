@@ -232,12 +232,20 @@ export default function FeaturedVendors() {
                         >
                           {item.name}
                         </Text>
-                        <View className="flex-row items-center gap-1 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200/60">
-                          <Star size={11} fill={Colors.rating} color={Colors.rating} />
-                          <Text className="text-[11px] font-black" style={{ color: '#B45309' }}>
-                            {item.rating || '4.8'}
-                          </Text>
-                        </View>
+                        {item.rating && item.rating > 0 ? (
+                          <View className="flex-row items-center gap-1 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200/60">
+                            <Star size={11} fill={Colors.rating} color={Colors.rating} />
+                            <Text className="text-[11px] font-black" style={{ color: '#B45309' }}>
+                              {Number(item.rating).toFixed(1)}
+                            </Text>
+                          </View>
+                        ) : (
+                          <View className="bg-gray-100 px-1.5 py-0.5 rounded-md border border-gray-200/60">
+                            <Text className="text-[10px] font-semibold text-gray-500">
+                              No reviews
+                            </Text>
+                          </View>
+                        )}
                       </View>
 
                       <View className="flex-row items-center mb-1 flex-wrap gap-1">

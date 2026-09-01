@@ -287,62 +287,105 @@ export default function VendorListView() {
                 </View>
               ) : null
             }
-            renderItem={({item}) => {
-              const catColor = getCategoryColor(item.key)
-              return (
-              <Pressable className="mb-4 active:opacity-90" onPress={() => router.push({
-                pathname: "/screens/client/Component/DetailScreenPage",
-                params: { vendor: encodeURIComponent(JSON.stringify(item)), category: item.key }
-              })}>
-                <View 
-                  className="rounded-3xl p-4 flex-row items-center gap-4" 
-                  style={[
-                    {backgroundColor: Colors.white, borderLeftWidth: 6, borderLeftColor: catColor}, 
-                    Shadows.medium
-                  ]}
-                > 
-                  <Image 
-                    className="rounded-2xl" 
-                    source={{ uri: item.images[0] }}
-                    accessibilityLabel={item.name} 
-                    style={{ width: 100, height: 110 }} 
-                    resizeMode="cover" 
-                  />
-                  <View className="flex-col flex-1 justify-between py-1">
-                    <View>
-                      <View className="flex-row justify-between items-start mb-1">
-                        <Text className="text-base font-black flex-1 mr-2" style={{color: Colors.textPrimary}} numberOfLines={1}>{item.name}</Text>
-                        <View className="flex-row items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-100">
-                          <Star size={10} fill={Colors.rating} color={Colors.rating} />
-                          <Text className="text-[10px] font-black" style={{color: Colors.rating}}>{item.rating}</Text>
-                        </View>
-                      </View>
-                      
-                      <View className="flex-row items-center mb-1.5">
-                        <MapPin size={12} color={Colors.textTertiary} />
-                        <Text className="text-xs font-bold ml-1 flex-1" style={{color: Colors.textSecondary}} numberOfLines={1}>{getConciseAddress(item.location)}</Text>
-                      </View>
+            renderItem={({ item }) => {
+              const catColor = getCategoryColor(item.key);
+              const startingPrice =
+                item.category === 'banquet'
+                  ? item.price ?? 0
+                  : item.packages?.[0]?.price ?? item.price ?? 0;
 
-                      {item.category === "banquet" && (
-                        <View className="flex-row items-center mb-1.5">
-                          <Users size={12} color={Colors.textTertiary} />
-                          <Text className="text-xs font-bold ml-1" style={{color: Colors.textSecondary}}>{item.minGuests}-{item.maxGuests} Guests</Text>
-                        </View>
-                      )}
+              return (
+                <Pressable
+                  className="mb-4 rounded-3xl bg-white border border-gray-100 overflow-hidden active:opacity-90"
+                  style={Shadows.medium}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/screens/client/Component/DetailScreenPage',
+                      params: {
+                        vendor: encodeURIComponent(JSON.stringify(item)),
+                        category: item.key,
+                      },
+                    })
+                  }
+                >
+                  <View className="p-3.5 flex-row gap-3.5 items-center">
+                    <View className="relative">
+                      <Image
+                        className="rounded-2xl"
+                        source={{ uri: item.images[0] }}
+                        accessibilityLabel={item.name}
+                        style={{ width: 104, height: 114 }}
+                        resizeMode="cover"
+                      />
+                      <View
+                        className="absolute top-2 left-2 px-2 py-0.5 rounded-full"
+                        style={{ backgroundColor: `${catColor}EE` }}
+                      >
+                        <Text className="text-[9px] font-black text-white uppercase tracking-wider">
+                          {item.key}
+                        </Text>
+                      </View>
                     </View>
 
-                    <View className="flex-row justify-between items-center mt-auto">
-                      <View className="bg-gray-50 px-2 py-1 rounded-lg">
-                        <Text className="text-[10px] font-black uppercase tracking-widest" style={{color: Colors.textTertiary}}>Starting From</Text>
+                    <View className="flex-col flex-1 justify-between py-0.5 min-h-[114px]">
+                      <View>
+                        <View className="flex-row justify-between items-start mb-1">
+                          <Text
+                            className="text-base font-extrabold flex-1 mr-2"
+                            style={{ color: Colors.textPrimary }}
+                            numberOfLines={1}
+                          >
+                            {item.name}
+                          </Text>
+                          {item.rating && item.rating > 0 ? (
+                            <View className="flex-row items-center gap-1 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200/60">
+                              <Star size={11} fill={Colors.rating} color={Colors.rating} />
+                              <Text className="text-[11px] font-black" style={{ color: '#B45309' }}>
+                                {Number(item.rating).toFixed(1)}
+                              </Text>
+                            </View>
+                          ) : (
+                            <View className="bg-gray-100 px-1.5 py-0.5 rounded-md border border-gray-200/60">
+                              <Text className="text-[10px] font-semibold text-gray-500">
+                                No reviews
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+
+                        <View className="flex-row items-center mb-1 flex-wrap gap-1">
+                          <MapPin size={12} color={Colors.textTertiary} />
+                          <Text
+                            className="text-xs font-semibold text-gray-500 flex-1"
+                            numberOfLines={1}
+                          >
+                            {getConciseAddress(item.location)}
+                          </Text>
+                        </View>
+
+                        {item.category === 'banquet' && (
+                          <View className="flex-row items-center mb-1">
+                            <Users size={12} color={Colors.textTertiary} />
+                            <Text className="text-xs font-semibold text-gray-500 ml-1">
+                              {item.minGuests}-{item.maxGuests} Guests
+                            </Text>
+                          </View>
+                        )}
                       </View>
-                      <Text className="text-base font-black" style={{color: Colors.primary}}>
-                        PKR {item.category === "banquet" ? (item.price ?? 0).toLocaleString() : (item.packages?.[0]?.price ?? 0).toLocaleString()}
-                      </Text>
+
+                      <View className="flex-row justify-between items-baseline pt-1.5 border-t border-gray-100">
+                        <Text className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                          Starting From
+                        </Text>
+                        <Text className="text-sm font-black" style={{ color: Colors.primary }}>
+                          PKR {startingPrice.toLocaleString()}
+                        </Text>
+                      </View>
                     </View>
                   </View>
-                </View>
-              </Pressable>
-            )}}
+                </Pressable>
+              );
+            }}
           />
         )}
 

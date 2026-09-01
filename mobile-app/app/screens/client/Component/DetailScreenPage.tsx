@@ -1,14 +1,13 @@
+import { useState, useEffect } from 'react'
 import { router, useLocalSearchParams } from 'expo-router'
 import { AlertCircle, Dot, MapPin, Star, Circle, ChevronLeft, ChevronRight, X, ArrowLeft, Plus, MessageCircle, Heart } from 'lucide-react-native'
-import { useState, useEffect } from 'react'
 import { Alert, Dimensions, ScrollView, Modal, TextInput, Image, Pressable, StyleSheet, Text, View, KeyboardAvoidingView, Platform, Linking } from 'react-native'
-import GoogleMapView from '@/app/_components/GoogleMapView'
 import * as ExpoLocation from 'expo-location'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors, getCategoryColor, Shadows, Spacing } from '@/app/_constants/theme'
 import { getConciseAddress, getServiceById } from '@/app/_utils/servicesApi'
 import { useUser } from '@/app/_context/UserContext'
-import { getVendorReviews, Review } from '@/app/_utils/reviewsApi'
+import { getVendorReviews, getServiceReviews, Review } from '@/app/_utils/reviewsApi'
 import { toggleFavorite, getMyFavoriteIds } from '@/app/_utils/favoritesApi'
 
 export default function DetailScreenPage() {
@@ -128,8 +127,19 @@ export default function DetailScreenPage() {
         };
         tryGeocode();
 
-        if (vendor?.vendorId) {
-            getVendorReviews(vendor.vendorId).then(setReviews);
+        const targetVendorId = vendor?.vendorId || vendor?.user?._id || vendor?.user?.id || vendor?.user;
+        const targetServiceId = vendor?.serviceId || vendor?.id || vendor?._id;
+
+        if (targetVendorId) {
+            getVendorReviews(targetVendorId).then((revs) => {
+                if (revs && revs.length > 0) {
+                    setReviews(revs);
+                } else if (targetServiceId) {
+                    getServiceReviews(targetServiceId).then(setReviews);
+                }
+            });
+        } else if (targetServiceId) {
+            getServiceReviews(targetServiceId).then(setReviews);
         }
 
         if (user && !user.isGuest && (vendor?.serviceId || vendor?.id)) {
@@ -140,7 +150,7 @@ export default function DetailScreenPage() {
                 }
             });
         }
-    }, [vendor?.location, vendor?.latitude, vendor?.longitude, vendor?.vendorId, user]);
+    }, [vendor?.location, vendor?.latitude, vendor?.longitude, vendor?.vendorId, vendor?.serviceId, vendor?.id, user]);
 
     const finalLat = Number(vendor?.latitude || vendor?.basicInfo?.latitude || fallbackCoords?.latitude);
     const finalLng = Number(vendor?.longitude || vendor?.basicInfo?.longitude || fallbackCoords?.longitude);
@@ -417,11 +427,21 @@ export default function DetailScreenPage() {
 
                     {/* Rating and Info */}
                     <View className='flex-row items-center gap-3 px-5 flex-wrap mb-4'>
-                        <View className='flex-row items-center gap-1 px-3 py-2 rounded-lg' style={{ backgroundColor: '#fef3c7' }}>
-                            <Star size={14} color={Colors.rating} fill={Colors.rating} />
-                            <Text className='text-sm font-bold' style={{ color: Colors.rating }}>{vendor.rating}</Text>
-                        </View>
-                        <View className='flex-row items-center gap-1 px-3 py-2 rounded-lg' style={{ backgroundColor: '#dbeafe' }}>
+                        {reviews.length > 0 || (vendor.rating && vendor.rating > 0) ? (
+                            <View className='flex-row items-center gap-1.5 px-3 py-2 rounded-xl' style={{ backgroundColor: '#fef3c7' }}>
+                                <Star size={14} color={Colors.rating} fill={Colors.rating} />
+                                <Text className='text-sm font-bold' style={{ color: '#B45309' }}>
+                                    {reviews.length > 0 
+                                        ? (reviews.reduce((acc, r) => acc + (r.rating || 0), 0) / reviews.length).toFixed(1)
+                                        : Number(vendor.rating).toFixed(1)} ({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})
+                                </Text>
+                            </View>
+                        ) : (
+                            <View className='px-3 py-2 rounded-xl bg-gray-100'>
+                                <Text className='text-xs font-semibold text-gray-500'>No reviews yet</Text>
+                            </View>
+                        )}
+                        <View className='flex-row items-center gap-1 px-3 py-2 rounded-xl' style={{ backgroundColor: '#dbeafe' }}>
                             <AlertCircle size={14} color={Colors.info} />
                             <Text className='text-xs font-bold' style={{ color: Colors.info }}>50% Refundable</Text>
                         </View>
@@ -433,13 +453,23 @@ export default function DetailScreenPage() {
                         <Text className='text-sm leading-relaxed' style={{ color: Colors.textSecondary }}>{vendor.about}</Text>
                     </View>
 
-                    {/* Location Map Section */}
+                    {/* Location Card Section */}
                     <View className='px-5 mb-8'>
-                        <View className='flex-row justify-between items-center mb-4'>
-                            <Text className='text-xl font-extrabold' style={{ color: Colors.textPrimary }}>Location</Text>
+                        <Text className='text-xl font-extrabold mb-3' style={{ color: Colors.textPrimary }}>Location & Address</Text>
+                        <View className='p-4 rounded-2xl bg-white border border-gray-100' style={Shadows.small}>
+                            <View className='flex-row items-start gap-3'>
+                                <View className='p-2.5 rounded-xl' style={{ backgroundColor: `${categoryColor}15` }}>
+                                    <MapPin size={20} color={categoryColor} />
+                                </View>
+                                <View className='flex-1'>
+                                    <Text className='text-base font-bold' style={{ color: Colors.textPrimary }}>{vendor.name}</Text>
+                                    <Text className='text-xs font-medium text-gray-500 mt-1 leading-relaxed'>{vendor.location}</Text>
+                                </View>
+                            </View>
+
                             {hasAnyCoords && (
                                 <Pressable
-                                    className='flex-row items-center gap-1 active:opacity-70'
+                                    className='mt-3.5 pt-3 border-t border-gray-100 flex-row items-center justify-between active:opacity-75'
                                     onPress={() => {
                                         const label = encodeURIComponent(vendor?.name || 'Vendor');
                                         const url = Platform.select({
@@ -452,41 +482,16 @@ export default function DetailScreenPage() {
                                             if (supported) {
                                                 Linking.openURL(url);
                                             } else {
-                                                // Fallback to web browser if map app isn't available
                                                 Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${finalLat},${finalLng}`);
                                             }
                                         });
                                     }}
                                 >
-                                    <Text className='text-sm font-bold' style={{ color: categoryColor }}>Open in Maps</Text>
+                                    <Text className='text-xs font-bold' style={{ color: categoryColor }}>Open in Google Maps / Navigation</Text>
                                     <ChevronRight size={16} color={categoryColor} />
                                 </Pressable>
                             )}
                         </View>
-
-                        <View className='rounded-3xl overflow-hidden border-2' style={{ borderColor: Colors.border, height: 200 }}>
-                            {hasAnyCoords ? (
-                                <GoogleMapView
-                                    style={{ flex: 1 }}
-                                    latitude={finalLat}
-                                    longitude={finalLng}
-                                    markerPosition={{
-                                        latitude: finalLat,
-                                        longitude: finalLng
-                                    }}
-                                    scrollEnabled={false}
-                                    zoomEnabled={false}
-                                />
-                            ) : (
-                                <View className='flex-1 items-center justify-center bg-gray-50'>
-                                    <MapPin size={40} color={Colors.borderDark} />
-                                    <Text className='text-sm font-bold mt-2' style={{ color: Colors.textTertiary }}>Location not available on map</Text>
-                                </View>
-                            )}
-                        </View>
-                        <Text className='text-sm mt-3 leading-relaxed' style={{ color: Colors.textSecondary }}>
-                            {vendor.location}
-                        </Text>
                     </View>
 
                     {/* Banquet Specific Info */}

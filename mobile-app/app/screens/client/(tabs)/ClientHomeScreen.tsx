@@ -1,7 +1,7 @@
 import { Alert, View, StyleSheet, ScrollView, Pressable, Text, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { Bot, Map as MapIcon } from "lucide-react-native";
+import { Bot } from "lucide-react-native";
 import Header from "../Component/Header";
 import CategoriesView from "../Component/CategoriesView";
 import FeaturedVendors from "../Component/FeaturedVendors";
@@ -35,39 +35,6 @@ export default function ClientHomeScreen() {
       <Header />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
         <CategoriesView />
-
-        {/* Explore on Map Banner */}
-        <Pressable
-          className="mx-5 my-2.5 rounded-3xl p-5 overflow-hidden flex-row items-center justify-between bg-white border border-gray-100 active:opacity-85"
-          style={Shadows.medium}
-          onPress={() =>
-            router.push({
-              pathname: '/screens/client/Component/VendorListView',
-              params: { mapMode: 'true' },
-            })
-          }
-        >
-          <View className="flex-1 mr-4">
-            <View className="flex-row items-center gap-1.5 mb-1">
-              <View className="w-2 h-2 rounded-full bg-emerald-500" />
-              <Text className="text-[10px] font-black uppercase tracking-wider text-emerald-600">
-                Live Interactive Map
-              </Text>
-            </View>
-            <Text className="text-base font-extrabold" style={{ color: Colors.textPrimary }}>
-              Explore Vendors Near You
-            </Text>
-            <Text className="text-xs font-medium text-gray-400 mt-0.5">
-              Locate luxury venues, caterers, and salons on the map
-            </Text>
-          </View>
-          <View
-            className="w-12 h-12 rounded-2xl items-center justify-center"
-            style={{ backgroundColor: `${Colors.primary}12` }}
-          >
-            <MapIcon color={Colors.primary} size={22} />
-          </View>
-        </Pressable>
 
         <FeaturedVendors />
       </ScrollView>
