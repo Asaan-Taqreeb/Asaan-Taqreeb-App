@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, Pressable, Animated } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, Pressable, Animated, KeyboardAvoidingView, Platform } from 'react-native';
 import { Star, X, CheckCircle2 } from 'lucide-react-native';
 import { Colors, Shadows } from '@/app/_constants/theme';
 
@@ -37,14 +37,15 @@ export default function RatingModal({ isVisible, onClose, vendorName, onConfirm 
   };
 
   return (
-    <Modal visible={isVisible} transparent animationType="fade">
-      <View style={styles.overlay}>
+    <Modal visible={isVisible} transparent animationType="fade" onRequestClose={isSubmitted ? undefined : onClose}>
+      <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={isSubmitted ? undefined : onClose} accessibilityLabel="Close rating dialog" />
         <View style={styles.modalContent}>
           {!isSubmitted ? (
             <>
               <View className="flex-row justify-between items-center mb-6">
                 <Text className="text-xl font-bold" style={{ color: Colors.textPrimary }}>Rate Your Experience</Text>
-                <TouchableOpacity onPress={onClose} className="p-2">
+                <TouchableOpacity onPress={onClose} className="p-2" hitSlop={10} accessibilityRole="button" accessibilityLabel="Close rating dialog">
                   <X size={20} color={Colors.textTertiary} />
                 </TouchableOpacity>
               </View>
@@ -55,7 +56,7 @@ export default function RatingModal({ isVisible, onClose, vendorName, onConfirm 
 
               <View className="flex-row justify-center gap-3 mb-8">
                 {[0, 1, 2, 3, 4].map((index) => (
-                  <Pressable key={index} onPress={() => handleStarPress(index)}>
+                  <Pressable key={index} onPress={() => handleStarPress(index)} hitSlop={6} accessibilityRole="button" accessibilityLabel={`${index + 1} star${index === 0 ? '' : 's'}`}>
                     <Animated.View style={{ transform: [{ scale: starsScale[index] }] }}>
                       <Star 
                         size={32} 
@@ -107,7 +108,7 @@ export default function RatingModal({ isVisible, onClose, vendorName, onConfirm 
             </View>
           )}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

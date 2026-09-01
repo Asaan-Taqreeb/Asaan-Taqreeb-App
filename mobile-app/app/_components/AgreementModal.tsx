@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Modal,
   View,
@@ -7,7 +7,6 @@ import {
   Pressable,
   StyleSheet,
   ActivityIndicator,
-  Switch,
   Alert,
 } from 'react-native';
 import { Colors, Spacing } from '@/app/_constants/theme';
@@ -59,6 +58,7 @@ export default function AgreementModal({
           style={styles.content}
           showsVerticalScrollIndicator={true}
           scrollEnabled={true}
+          contentContainerStyle={{ paddingBottom: Spacing.lg }}
         >
           {/* Agreement Text */}
           <View style={styles.agreementTextContainer}>
@@ -129,11 +129,14 @@ export default function AgreementModal({
           </View>
 
           {/* Read Checkbox */}
-          <View style={styles.checkboxContainer}>
-            <Pressable
-              style={styles.checkbox}
-              onPress={() => setAgreedText(!agreedText)}
-            >
+          <Pressable
+            style={styles.checkboxContainer}
+            onPress={() => setAgreedText(!agreedText)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: agreedText }}
+            accessibilityLabel="I have read and understand the agreement above"
+          >
+            <View style={styles.checkbox}>
               <View
                 style={[
                   styles.checkboxInner,
@@ -142,11 +145,11 @@ export default function AgreementModal({
               >
                 {agreedText && <Text style={styles.checkmark}>✓</Text>}
               </View>
-            </Pressable>
+            </View>
             <Text style={styles.checkboxLabel}>
               I have read and understand the agreement above
             </Text>
-          </View>
+          </Pressable>
 
           {/* Payment Frequency Selection */}
           <View style={styles.frequencySelection}>
@@ -204,11 +207,14 @@ export default function AgreementModal({
           </View>
 
           {/* Agree Checkbox */}
-          <View style={styles.checkboxContainer}>
-            <Pressable
-              style={styles.checkbox}
-              onPress={() => setAgreed(!agreed)}
-            >
+          <Pressable
+            style={styles.checkboxContainer}
+            onPress={() => setAgreed(!agreed)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: agreed }}
+            accessibilityLabel="I agree to this Vendor Agreement and Commission Terms"
+          >
+            <View style={styles.checkbox}>
               <View
                 style={[
                   styles.checkboxInner,
@@ -217,11 +223,11 @@ export default function AgreementModal({
               >
                 {agreed && <Text style={styles.checkmark}>✓</Text>}
               </View>
-            </Pressable>
+            </View>
             <Text style={styles.checkboxLabel}>
               I agree to this Vendor Agreement and Commission Terms
             </Text>
-          </View>
+          </Pressable>
         </ScrollView>
 
         {/* Action Buttons */}

@@ -378,11 +378,15 @@ export default function DetailScreenPage() {
                     animationType='fade'
                     onRequestClose={() => setExpandedImage(false)}
                 >
-                    <View className='flex-1 justify-center items-center' style={{ backgroundColor: Colors.textPrimary }}>
+                    <View className='flex-1 justify-center items-center' style={{ backgroundColor: Colors.textPrimary }} accessibilityViewIsModal>
+                        <Pressable style={StyleSheet.absoluteFill} onPress={() => setExpandedImage(false)} accessibilityLabel="Close expanded image" />
                         <Pressable
                             className='absolute top-12 right-6 p-3 rounded-full active:opacity-80'
                             style={{ backgroundColor: Colors.overlay }}
                             onPress={() => setExpandedImage(false)}
+                            hitSlop={10}
+                            accessibilityRole="button"
+                            accessibilityLabel="Close expanded image"
                         >
                             <X color={Colors.white} size={24} />
                         </Pressable>

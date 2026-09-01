@@ -1,5 +1,5 @@
 import "../global.css";
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { LogBox, View, StyleSheet, Platform } from 'react-native';
@@ -11,7 +11,6 @@ import { LocationProvider } from '@/app/_context/LocationContext';
 import { useNotificationSetup } from '@/app/_hooks/useNotificationSetup';
 import { useAppUpdateCheck } from '@/app/_hooks/useAppUpdateCheck';
 import AppUpdateModal from '@/app/_components/AppUpdateModal';
-import { useEffect, useState } from 'react';
 
 LogBox.ignoreLogs([
   'expo-notifications: Android Push notifications',
@@ -47,20 +46,8 @@ function UpdateInitializer() {
   );
 }
 
-import { useWindowDimensions } from 'react-native';
-
 function AppContent({ stackContent }: { stackContent: React.ReactNode }) {
   const { isDark, colors } = useTheme();
-  const { width } = useWindowDimensions();
-  const webZoom = Platform.OS === 'web'
-    ? width < 360
-      ? 0.88
-      : width < 768
-        ? 0.92
-        : width < 1200
-          ? 0.96
-          : 1
-    : 1;
 
   return (
     <>
@@ -70,7 +57,7 @@ function AppContent({ stackContent }: { stackContent: React.ReactNode }) {
       />
       {Platform.OS === 'web' ? (
         <View style={[styles.webContainer, { backgroundColor: isDark ? '#090C04' : '#F1F5F9' }]}>
-          <View style={[styles.webContent, { backgroundColor: colors.background, zoom: webZoom } as any]}>
+          <View style={[styles.webContent, { backgroundColor: colors.background }]}>
             {stackContent}
           </View>
         </View>
@@ -112,17 +99,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
-    height: '100%',
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
+    minHeight: '100%',
   },
   webContent: {
     width: '100%',
     maxWidth: 1200,
-    height: '100%',
+    flex: 1,
     backgroundColor: '#FFFFFF',
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 4 },

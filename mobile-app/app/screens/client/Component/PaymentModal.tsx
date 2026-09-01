@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Modal, Pressable, TextInput, ActivityIndicator, Animated, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Modal, Pressable, TextInput, ActivityIndicator, Animated, Dimensions, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { CreditCard, X, ShieldCheck, CheckCircle2, Wallet, Building2 } from 'lucide-react-native';
 import { Colors, Shadows } from '@/app/_constants/theme';
 
@@ -182,28 +182,41 @@ export default function PaymentModal({ isVisible, onClose, amount, onPaymentSucc
     </View>
   );
 
+  const canDismiss = step !== 'processing' && step !== 'success';
+
   return (
-    <Modal visible={isVisible} transparent animationType="fade" onRequestClose={resetAndClose}>
-      <View style={styles.overlay}>
-        <Animated.View style={[styles.content, Shadows.large]}>
+    <Modal visible={isVisible} transparent animationType="fade" onRequestClose={canDismiss ? resetAndClose : undefined}>
+      <KeyboardAvoidingView
+        style={styles.overlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <Pressable style={StyleSheet.absoluteFill} onPress={canDismiss ? resetAndClose : undefined} accessibilityLabel="Close payment dialog" />
+        <Animated.View style={[styles.content, Shadows.large]} accessibilityViewIsModal>
           {step !== 'processing' && step !== 'success' && (
             <View className="flex-row justify-between items-center mb-6">
               <View>
                 <Text className="text-xs font-bold text-gray-400 uppercase tracking-widest">Secure Checkout</Text>
                 <Text className="text-xl font-extrabold" style={{ color: categoryColor }}>PKR {amount.toLocaleString()}</Text>
               </View>
-              <Pressable onPress={resetAndClose} className="p-2 rounded-full bg-gray-100">
+              <Pressable onPress={resetAndClose} hitSlop={10} className="p-2 rounded-full bg-gray-100" accessibilityRole="button" accessibilityLabel="Close payment dialog">
                 <X size={20} color={Colors.textPrimary} />
               </Pressable>
             </View>
           )}
 
-          {step === 'method' && renderMethod()}
-          {step === 'details' && renderDetails()}
-          {step === 'processing' && renderProcessing()}
-          {step === 'success' && renderSuccess()}
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            contentContainerStyle={styles.scrollContent}
+          >
+            {step === 'method' && renderMethod()}
+            {step === 'details' && renderDetails()}
+            {step === 'processing' && renderProcessing()}
+            {step === 'success' && renderSuccess()}
+          </ScrollView>
         </Animated.View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -216,9 +229,17 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   content: {
+    width: '100%',
+    maxWidth: 520,
+    alignSelf: 'center',
+    maxHeight: height - 40,
     backgroundColor: Colors.white,
     borderRadius: 32,
     padding: 24,
     minHeight: height * 0.45,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 4,
   },
 });

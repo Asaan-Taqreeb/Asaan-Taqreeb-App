@@ -84,8 +84,8 @@ export const NOTIFICATION_ENDPOINTS = {
 
 export const APP_ENDPOINTS = {
   updateInfo: withApiPrefix('/app/update-info'),
-  categories: withApiPrefix('/categories'),
-  categoryByKey: (key: string) => withApiPrefix(`/categories/${key}`),
+  categories: withApiPrefix('/app/categories'),
+  categoryByKey: (key: string) => withApiPrefix(`/app/categories/${key}`),
 }
 
 export const REVIEW_ENDPOINTS = {

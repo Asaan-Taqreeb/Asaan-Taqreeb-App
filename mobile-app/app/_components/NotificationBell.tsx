@@ -199,6 +199,11 @@ export default function NotificationBell({ userId, userRole }: NotificationBellP
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setModalVisible(false)}
+            accessibilityLabel="Close notifications"
+          />
           <View 
             style={[
               styles.modalContent, 
@@ -226,6 +231,9 @@ export default function NotificationBell({ userId, userRole }: NotificationBellP
               <TouchableOpacity
                 onPress={() => setModalVisible(false)}
                 className="w-8 h-8 rounded-full items-center justify-center bg-slate-100 active:bg-slate-200"
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Close notifications"
               >
                 <X size={16} color={Colors.textSecondary} />
               </TouchableOpacity>

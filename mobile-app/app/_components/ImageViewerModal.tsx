@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, Modal, View, Image, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { Platform, Modal, View, Image, TouchableOpacity, Pressable, Text, StyleSheet } from 'react-native';
 
 type Props = {
   visible: boolean;
@@ -17,8 +17,9 @@ export default function ImageViewerModal({ visible, images, index = 0, onRequest
 
     return (
       <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onRequestClose}>
-        <View style={styles.webContainer}>
-          <TouchableOpacity style={styles.closeButton} onPress={onRequestClose}>
+        <View style={styles.webContainer} accessibilityViewIsModal>
+          <Pressable style={StyleSheet.absoluteFill} onPress={onRequestClose} accessibilityLabel="Close image viewer" />
+          <TouchableOpacity style={styles.closeButton} onPress={onRequestClose} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close image viewer">
             <Text style={styles.closeText}>✕</Text>
           </TouchableOpacity>
           {currentImage ? (
@@ -58,7 +59,9 @@ const styles = StyleSheet.create({
     top: 30,
     right: 30,
     zIndex: 99,
-    padding: 10,
+    padding: 12,
+    borderRadius: 24,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
   },
   closeText: {
     color: '#ffffff',

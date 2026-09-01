@@ -15,9 +15,9 @@ type Props = {
 export default function LanguagePickerModal({ visible, currentLanguage, options, onSelect, onClose }: Props) {
   return (
     <Modal visible={visible} transparent animationType='fade' onRequestClose={onClose}>
-      <Pressable className='flex-1' style={{ backgroundColor: 'rgba(15, 23, 42, 0.45)' }} onPress={onClose}>
+      <Pressable className='flex-1' style={{ backgroundColor: 'rgba(15, 23, 42, 0.45)' }} onPress={onClose} accessibilityLabel="Close language selector">
         <Pressable
-          className='absolute left-4 right-4 top-24 rounded-3xl bg-white overflow-hidden'
+          className='absolute left-4 right-4 top-12 rounded-3xl bg-white overflow-hidden'
           onPress={() => undefined}
         >
           <View className='px-5 py-4 border-b border-gray-100'>
@@ -29,13 +29,15 @@ export default function LanguagePickerModal({ visible, currentLanguage, options,
             </Text>
           </View>
 
-          <ScrollView style={{ maxHeight: 420 }}>
+          <ScrollView style={{ maxHeight: 420 }} keyboardShouldPersistTaps="handled">
             {options.map((option) => {
               const isSelected = option.code === currentLanguage
               return (
                 <Pressable
                   key={option.code}
                   onPress={() => onSelect(option.code)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: isSelected }}
                   className='px-5 py-4 flex-row items-center justify-between border-b border-gray-100'
                   style={{ backgroundColor: isSelected ? Colors.primary + '08' : Colors.white }}
                 >

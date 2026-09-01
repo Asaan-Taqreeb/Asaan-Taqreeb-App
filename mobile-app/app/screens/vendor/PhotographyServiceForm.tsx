@@ -315,7 +315,7 @@ export default function PhotographyServiceForm() {
       </View>
 
       {/* Form Content */}
-      <ScrollView className='flex-1 px-5 py-6' showsVerticalScrollIndicator={false}>
+      <ScrollView className='flex-1 px-5 py-6' showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={{ paddingBottom: 56 + insets.bottom }}>
         {/* Common Fields */}
         <View className='rounded-2xl p-5 mb-4' style={[{backgroundColor: Colors.white}, Shadows.medium]}>
           <Text className='text-lg font-extrabold mb-4' style={{color: Colors.textPrimary}}>Basic Information</Text>

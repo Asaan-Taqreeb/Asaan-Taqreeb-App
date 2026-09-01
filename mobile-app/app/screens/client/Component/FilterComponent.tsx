@@ -66,7 +66,7 @@ export default function FilterComponent({ values, onApply, onReset, locations = 
 
     return (
     <View>
-        <Pressable className='p-2 active:opacity-70' onPress={toggleModal}>
+        <Pressable className='p-2 active:opacity-70' onPress={toggleModal} hitSlop={8} accessibilityRole="button" accessibilityLabel="Open filters">
             <SlidersHorizontal size={24} color={Colors.textPrimary} />
         </Pressable>
 
@@ -78,8 +78,7 @@ export default function FilterComponent({ values, onApply, onReset, locations = 
         >
             <KeyboardAvoidingView 
                 className='flex-1 justify-end'
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 25}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
                 {/* Background overlay */}
                 <Pressable onPress={toggleModal} style={styles.overlay} />
@@ -88,11 +87,11 @@ export default function FilterComponent({ values, onApply, onReset, locations = 
                 <View className='rounded-t-3xl z-10' style={[styles.modalContent, {height: '80%'}]}>
                     <View className='flex-row justify-between items-center px-6 py-5' style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
                         <Text className='text-2xl font-extrabold' style={{color: Colors.textPrimary}}>Filters</Text>
-                        <Pressable className='p-2 rounded-full active:opacity-70' style={{backgroundColor: Colors.lightGray}} onPress={toggleModal}>
+                        <Pressable className='p-2 rounded-full active:opacity-70' style={{backgroundColor: Colors.lightGray}} onPress={toggleModal} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close filters">
                             <X size={22} color={Colors.textPrimary} />
                         </Pressable>
                     </View>
-                    <ScrollView className='px-6' style={{flex: 1}} showsVerticalScrollIndicator={false}>
+                    <ScrollView className='px-6' style={{flex: 1}} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={{ paddingBottom: 24 }}>
                         <View className='mt-6'>
                             <Text className='text-lg font-bold mb-3' style={{color: Colors.textPrimary}}>Location</Text>
                             <View className='flex-row flex-wrap gap-3'>
