@@ -254,10 +254,10 @@ export default function VendorHomeScreen() {
                   {/* Arrow Indicator */}
                   <View className="ml-2">
                     <View 
-                      className="rounded-full p-2"
+                      className="rounded-full p-2.5"
                       style={{ backgroundColor: categoryColor }}
                     >
-                      <Text className="text-white text-lg font-bold">→</Text>
+                      <ChevronRight size={18} color={Colors.white} />
                     </View>
                   </View>
                 </View>
