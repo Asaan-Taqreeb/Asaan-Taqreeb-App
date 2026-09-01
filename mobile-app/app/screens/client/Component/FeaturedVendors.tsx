@@ -1,62 +1,17 @@
-import { View, Text, StyleSheet, Image, Pressable } from 'react-native';
-import { Star, MapPin, Users, Sparkles, ChevronRight } from 'lucide-react-native';
+import { View, Text, StyleSheet, Image, Pressable, ScrollView } from 'react-native';
+import { Star, MapPin, Users, ChevronRight } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Colors, Shadows, Spacing } from '@/app/_constants/theme';
 import { getAllServices, ServiceListItem, getConciseAddress } from '@/app/_utils/servicesApi';
 import { getCategoryColor } from '@/app/_constants/theme';
 import { useLanguage } from '@/app/_context/LanguageContext';
-import { useLocationContext } from '@/app/_context/LocationContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-type FeaturedVendorListItem = ServiceListItem & {
-  distance?: number;
-};
-
-const GEOCODE_CACHE_KEY = '@vendor_geocode_cache';
-const GEOCODE_CACHE: Record<string, { latitude: number; longitude: number }> = {};
-
-// Haversine formula to calculate distance in kilometers
-const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-  const R = 6371; // Radius of the Earth in km
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
 
 export default function FeaturedVendors() {
   const [vendors, setVendors] = useState<ServiceListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [geocodedCoords, setGeocodedCoords] = useState<
-    Record<string, { latitude: number; longitude: number }>
-  >({});
   const { t } = useLanguage();
-  const { latitude: userLat, longitude: userLon } = useLocationContext();
-
-  // Load geocode cache from AsyncStorage on mount
-  useEffect(() => {
-    const loadCache = async () => {
-      try {
-        const cached = await AsyncStorage.getItem(GEOCODE_CACHE_KEY);
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          Object.assign(GEOCODE_CACHE, parsed);
-          setGeocodedCoords({ ...GEOCODE_CACHE });
-        }
-      } catch (e) {
-        console.log('Failed to load geocode cache:', e);
-      }
-    };
-    loadCache();
-  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -73,7 +28,7 @@ export default function FeaturedVendors() {
           setLoading(false);
         }
 
-        // 2. Fetch fresh services in the background and update UI state
+        // 2. Fetch fresh services in the background
         const freshServices = await getAllServices(true);
         if (mounted) {
           setVendors(freshServices);
@@ -96,58 +51,71 @@ export default function FeaturedVendors() {
     };
   }, []);
 
-  const sortedVendors = useMemo(() => {
-    if (userLat === undefined || userLon === undefined) {
-      return [...vendors]
-        .sort((a, b) => (b.rating || 0) - (a.rating || 0))
-        .map((v) => ({ ...v, distance: undefined }))
-        .slice(0, 8);
-    }
-
+  // Filter vendors into clean category groups
+  const topRatedVendors = useMemo(() => {
     return [...vendors]
-      .map((vendor) => {
-        let distance: number | undefined = undefined;
-        const lat =
-          vendor.latitude !== undefined && vendor.latitude !== null
-            ? vendor.latitude
-            : geocodedCoords[vendor.id]?.latitude;
-        const lon =
-          vendor.longitude !== undefined && vendor.longitude !== null
-            ? vendor.longitude
-            : geocodedCoords[vendor.id]?.longitude;
-
-        if (lat !== undefined && lon !== undefined) {
-          distance = calculateDistance(userLat, userLon, lat, lon);
-        }
-        return { ...vendor, distance } as FeaturedVendorListItem;
-      })
-      .sort((a, b) => {
-        if (a.distance !== undefined && b.distance !== undefined) {
-          return a.distance - b.distance;
-        }
-        if (a.distance !== undefined) return -1;
-        if (b.distance !== undefined) return 1;
-        return (b.rating || 0) - (a.rating || 0);
-      })
+      .sort((a, b) => (b.rating || 0) - (a.rating || 0))
       .slice(0, 8);
-  }, [vendors, userLat, userLon, geocodedCoords]);
+  }, [vendors]);
 
-  return (
-    <View style={styles.container}>
-      <View className="mt-4">
-        <View className="flex-row justify-between items-center px-5 mb-4">
+  const banquetVendors = useMemo(() => {
+    return vendors.filter((v) => {
+      const k = String(v.key || '').toLowerCase();
+      const c = String(v.category || '').toLowerCase();
+      return k.includes('banquet') || c.includes('banquet') || c.includes('hall');
+    });
+  }, [vendors]);
+
+  const cateringVendors = useMemo(() => {
+    return vendors.filter((v) => {
+      const k = String(v.key || '').toLowerCase();
+      const c = String(v.category || '').toLowerCase();
+      return k.includes('cater') || c.includes('cater');
+    });
+  }, [vendors]);
+
+  const photoVendors = useMemo(() => {
+    return vendors.filter((v) => {
+      const k = String(v.key || '').toLowerCase();
+      const c = String(v.category || '').toLowerCase();
+      return k.includes('photo') || c.includes('photo');
+    });
+  }, [vendors]);
+
+  const salonVendors = useMemo(() => {
+    return vendors.filter((v) => {
+      const k = String(v.key || '').toLowerCase();
+      const c = String(v.category || '').toLowerCase();
+      return k.includes('parlor') || k.includes('salon') || c.includes('salon') || c.includes('parlor');
+    });
+  }, [vendors]);
+
+  const renderHorizontalVendorSection = (
+    title: string,
+    subtitle: string,
+    items: ServiceListItem[],
+    categoryFilter?: string
+  ) => {
+    if (items.length === 0) return null;
+
+    return (
+      <View className="mb-6">
+        <View className="flex-row justify-between items-center px-5 mb-3">
           <View>
-            <Text className="text-xl font-extrabold" style={{ color: Colors.textPrimary }}>
-              {userLat !== undefined && userLon !== undefined ? t('nearbyVendors') : t('topRated')}
+            <Text className="text-lg font-extrabold" style={{ color: Colors.textPrimary }}>
+              {title}
             </Text>
-            <Text className="text-xs font-medium mt-0.5" style={{ color: Colors.textTertiary }}>
-              Top verified event partners in Karachi
-            </Text>
+            <Text className="text-xs font-medium text-gray-400 mt-0.5">{subtitle}</Text>
           </View>
           <Pressable
             className="flex-row items-center gap-1 active:opacity-70 px-3 py-1.5 rounded-full bg-white border border-gray-100"
             style={Shadows.small}
-            onPress={() => router.push('/screens/client/Component/VendorListView')}
+            onPress={() =>
+              router.push({
+                pathname: '/screens/client/Component/VendorListView',
+                params: categoryFilter ? { category: categoryFilter } : undefined,
+              })
+            }
           >
             <Text className="text-xs font-bold" style={{ color: Colors.primary }}>
               {t('seeAll')}
@@ -156,26 +124,13 @@ export default function FeaturedVendors() {
           </Pressable>
         </View>
 
-        {loading && vendors.length === 0 && (
-          <View className="py-8 items-center justify-center">
-            <Text className="text-sm font-medium" style={{ color: Colors.textSecondary }}>
-              {t('loadingVendors')}
-            </Text>
-          </View>
-        )}
-
-        {error && !loading && vendors.length === 0 && (
-          <View className="py-8 px-5 items-center justify-center">
-            <Text className="text-sm font-medium text-center" style={{ color: Colors.error }}>
-              {error}
-            </Text>
-          </View>
-        )}
-
-        <View style={{ paddingHorizontal: 20, paddingBottom: Spacing.md }}>
-          {sortedVendors.map((item, index) => {
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 16, gap: 14 }}
+        >
+          {items.map((item) => {
             const catColor = getCategoryColor(item.key);
-            const isNearest = index === 0 && item.distance !== undefined && item.distance <= 15;
             const startingPrice =
               item.category === 'banquet'
                 ? item.price ?? 0
@@ -184,8 +139,8 @@ export default function FeaturedVendors() {
             return (
               <Pressable
                 key={item.id.toString()}
-                className="mb-4 rounded-3xl bg-white border border-gray-100 overflow-hidden active:opacity-90"
-                style={Shadows.medium}
+                className="rounded-3xl bg-white border border-gray-100 overflow-hidden active:opacity-90"
+                style={[{ width: 250 }, Shadows.medium]}
                 onPress={() =>
                   router.push({
                     pathname: '/screens/client/Component/DetailScreenPage',
@@ -196,100 +151,144 @@ export default function FeaturedVendors() {
                   })
                 }
               >
-                <View className="p-3.5 flex-row gap-3.5 items-center">
-                  <View className="relative">
-                    <Image
-                      className="rounded-2xl"
-                      source={{ uri: item.images[0] }}
-                      accessibilityLabel={item.name}
-                      style={{ width: 104, height: 114 }}
-                      resizeMode="cover"
-                    />
-                    <View
-                      className="absolute top-2 left-2 px-2 py-0.5 rounded-full"
-                      style={{ backgroundColor: `${catColor}EE` }}
-                    >
-                      <Text className="text-[9px] font-black text-white uppercase tracking-wider">
-                        {item.key}
-                      </Text>
-                    </View>
+                {/* Photo & Category Badge */}
+                <View className="relative">
+                  <Image
+                    source={{ uri: item.images[0] }}
+                    accessibilityLabel={item.name}
+                    style={{ width: 250, height: 135 }}
+                    resizeMode="cover"
+                  />
+                  <View
+                    className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full"
+                    style={{ backgroundColor: `${catColor}F0` }}
+                  >
+                    <Text className="text-[10px] font-black text-white uppercase tracking-wider">
+                      {item.key}
+                    </Text>
                   </View>
 
-                  <View className="flex-col flex-1 justify-between py-0.5 min-h-[114px]">
-                    <View>
-                      {isNearest && (
-                        <View className="flex-row items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 self-start mb-1">
-                          <Sparkles size={10} color="#047857" />
-                          <Text className="text-[9px] font-bold text-emerald-700">Nearest to you</Text>
-                        </View>
-                      )}
-
-                      <View className="flex-row justify-between items-start mb-1">
-                        <Text
-                          className="text-base font-extrabold flex-1 mr-2"
-                          style={{ color: Colors.textPrimary }}
-                          numberOfLines={1}
-                        >
-                          {item.name}
+                  {/* Rating Badge */}
+                  <View className="absolute bottom-2.5 right-2.5">
+                    {item.rating && item.rating > 0 ? (
+                      <View className="flex-row items-center gap-1 bg-white/95 px-2 py-0.5 rounded-full shadow-sm">
+                        <Star size={11} fill={Colors.rating} color={Colors.rating} />
+                        <Text className="text-[11px] font-extrabold text-amber-800">
+                          {Number(item.rating).toFixed(1)}
                         </Text>
-                        {item.rating && item.rating > 0 ? (
-                          <View className="flex-row items-center gap-1 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200/60">
-                            <Star size={11} fill={Colors.rating} color={Colors.rating} />
-                            <Text className="text-[11px] font-black" style={{ color: '#B45309' }}>
-                              {Number(item.rating).toFixed(1)}
-                            </Text>
-                          </View>
-                        ) : (
-                          <View className="bg-gray-100 px-1.5 py-0.5 rounded-md border border-gray-200/60">
-                            <Text className="text-[10px] font-semibold text-gray-500">
-                              No reviews
-                            </Text>
-                          </View>
-                        )}
                       </View>
-
-                      <View className="flex-row items-center mb-1 flex-wrap gap-1">
-                        <MapPin size={12} color={Colors.textTertiary} />
-                        <Text
-                          className="text-xs font-semibold text-gray-500 flex-1"
-                          numberOfLines={1}
-                        >
-                          {getConciseAddress(item.location)}
-                        </Text>
-                        {item.distance !== undefined && (
-                          <View className="bg-gray-100 px-1.5 py-0.5 rounded">
-                            <Text className="text-[10px] font-bold text-gray-600">
-                              {item.distance.toFixed(1)} km
-                            </Text>
-                          </View>
-                        )}
+                    ) : (
+                      <View className="bg-white/95 px-2 py-0.5 rounded-full shadow-sm">
+                        <Text className="text-[10px] font-bold text-gray-500">No reviews</Text>
                       </View>
+                    )}
+                  </View>
+                </View>
 
-                      {item.category === 'banquet' && (
-                        <View className="flex-row items-center mb-1">
-                          <Users size={12} color={Colors.textTertiary} />
-                          <Text className="text-xs font-semibold text-gray-500 ml-1">
-                            {item.minGuests}-{item.maxGuests} {t('guests')}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
+                {/* Info Card */}
+                <View className="p-3.5 flex-col justify-between" style={{ minHeight: 110 }}>
+                  <View>
+                    <Text
+                      className="text-base font-extrabold"
+                      style={{ color: Colors.textPrimary }}
+                      numberOfLines={1}
+                    >
+                      {item.name}
+                    </Text>
 
-                    <View className="flex-row justify-between items-baseline pt-1.5 border-t border-gray-100">
-                      <Text className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                        {t('startingFrom')}
-                      </Text>
-                      <Text className="text-sm font-black" style={{ color: Colors.primary }}>
-                        PKR {startingPrice.toLocaleString()}
+                    <View className="flex-row items-center mt-1">
+                      <MapPin size={12} color={Colors.textTertiary} />
+                      <Text
+                        className="text-xs font-semibold text-gray-500 ml-1 flex-1"
+                        numberOfLines={1}
+                      >
+                        {getConciseAddress(item.location)}
                       </Text>
                     </View>
+
+                    {item.category === 'banquet' && (
+                      <View className="flex-row items-center mt-1">
+                        <Users size={12} color={Colors.textTertiary} />
+                        <Text className="text-xs font-semibold text-gray-500 ml-1">
+                          {item.minGuests}-{item.maxGuests} {t('guests')}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <View className="flex-row justify-between items-baseline pt-2 mt-2 border-t border-gray-100">
+                    <Text className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                      {t('startingFrom')}
+                    </Text>
+                    <Text className="text-sm font-black" style={{ color: Colors.primary }}>
+                      PKR {startingPrice.toLocaleString()}
+                    </Text>
                   </View>
                 </View>
               </Pressable>
             );
           })}
-        </View>
+        </ScrollView>
       </View>
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+      {loading && vendors.length === 0 && (
+        <View className="py-10 items-center justify-center">
+          <Text className="text-sm font-medium" style={{ color: Colors.textSecondary }}>
+            {t('loadingVendors')}
+          </Text>
+        </View>
+      )}
+
+      {error && !loading && vendors.length === 0 && (
+        <View className="py-8 px-5 items-center justify-center">
+          <Text className="text-sm font-medium text-center" style={{ color: Colors.error }}>
+            {error}
+          </Text>
+        </View>
+      )}
+
+      {/* 1. Featured & Top Rated Carousel */}
+      {renderHorizontalVendorSection(
+        t('topRated'),
+        'Top verified event partners in Karachi',
+        topRatedVendors
+      )}
+
+      {/* 2. Banquets Section Carousel */}
+      {renderHorizontalVendorSection(
+        'Venues & Wedding Banquets',
+        'Luxury halls, open marquees & lawns',
+        banquetVendors,
+        'banquets'
+      )}
+
+      {/* 3. Catering Section Carousel */}
+      {renderHorizontalVendorSection(
+        'Catering & Master Chefs',
+        'Authentic Biryani, BBQ & dynamic menu feasts',
+        cateringVendors,
+        'caterings'
+      )}
+
+      {/* 4. Photography Section Carousel */}
+      {renderHorizontalVendorSection(
+        'Photography & Cinematic Films',
+        'Bridal shoots, event coverage & drone videography',
+        photoVendors,
+        'photographers'
+      )}
+
+      {/* 5. Salons & Beauty Section Carousel */}
+      {renderHorizontalVendorSection(
+        'Bridal Makeup & Groom Salons',
+        'Signature bridal makeup, styling & grooming',
+        salonVendors,
+        'parlor'
+      )}
     </View>
   );
 }
@@ -297,6 +296,6 @@ export default function FeaturedVendors() {
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    flex: 1,
+    paddingTop: Spacing.sm,
   },
 });
