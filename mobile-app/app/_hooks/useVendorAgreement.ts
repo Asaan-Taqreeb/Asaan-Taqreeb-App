@@ -6,7 +6,7 @@ export interface UseAgreementReturn {
   agreementAccepted: boolean;
   loading: boolean;
   error: string | null;
-  acceptAgreement: (paymentFrequency: 'per_booking' | 'monthly') => Promise<boolean>;
+  acceptAgreement: () => Promise<boolean>;
   rejectAgreement: () => void;
   checkAgreementStatus: () => Promise<void>;
 }
@@ -52,10 +52,10 @@ export const useVendorAgreement = (): UseAgreementReturn => {
   }, []);
 
   const acceptAgreement = useCallback(
-    async (paymentFrequency: 'per_booking' | 'monthly'): Promise<boolean> => {
+    async (): Promise<boolean> => {
       try {
         setLoading(true);
-        const result = await acceptAgreementApi(paymentFrequency);
+        const result = await acceptAgreementApi();
 
         if (result) {
           setAgreementAccepted(true);

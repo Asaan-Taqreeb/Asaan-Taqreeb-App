@@ -13,7 +13,7 @@ import { Colors, Spacing } from '@/app/_constants/theme';
 
 interface AgreementModalProps {
   visible: boolean;
-  onAccept: (paymentFrequency: 'per_booking' | 'monthly') => void;
+  onAccept: () => void;
   onReject: () => void;
   loading?: boolean;
 }
@@ -25,7 +25,6 @@ export default function AgreementModal({
   loading = false,
 }: AgreementModalProps) {
   const [agreed, setAgreed] = useState(false);
-  const [paymentFrequency, setPaymentFrequency] = useState<'per_booking' | 'monthly'>('per_booking');
   const [agreedText, setAgreedText] = useState(false);
 
   const handleAccept = () => {
@@ -33,7 +32,7 @@ export default function AgreementModal({
       Alert.alert('Error', 'Please read and agree to all terms');
       return;
     }
-    onAccept(paymentFrequency);
+    onAccept();
   };
 
   return (
@@ -71,36 +70,18 @@ export default function AgreementModal({
 
             <Text style={styles.sectionHeading}>1. COMMISSION RATE:</Text>
             <Text style={styles.sectionText}>
-              • Commission Rate: 3% of every booking amount{'\n'}• Commission is calculated on the
+              • Commission Rate: 5% of every booking amount{'\n'}• Commission is calculated on the
               total amount charged to the customer
             </Text>
 
-            <Text style={styles.sectionHeading}>2. PAYMENT FREQUENCY OPTIONS:</Text>
-            <Text style={styles.sectionText}>
-              You can choose one of the following payment methods:
-            </Text>
-            <View style={styles.frequencyOption}>
-              <Text style={styles.optionLabel}>a) Per Booking:</Text>
-              <Text style={styles.optionText}>
-                Pay commission immediately after each booking is completed
-              </Text>
-            </View>
-            <View style={styles.frequencyOption}>
-              <Text style={styles.optionLabel}>b) Monthly:</Text>
-              <Text style={styles.optionText}>
-                Accumulate commissions throughout the month and pay on the 1st of the following
-                month
-              </Text>
-            </View>
-
-            <Text style={styles.sectionHeading}>3. PAYMENT PROCESS:</Text>
+            <Text style={styles.sectionHeading}>2. PAYMENT PROCESS:</Text>
             <Text style={styles.sectionText}>
               • You will be provided with our bank details{'\n'}• Please transfer the commission
               amount and attach a screenshot as proof{'\n'}• We will verify and confirm receipt of
               payment
             </Text>
 
-            <Text style={styles.sectionHeading}>4. OUTSTANDING COMMISSION:</Text>
+            <Text style={styles.sectionHeading}>3. OUTSTANDING COMMISSION:</Text>
             <Text style={styles.sectionText}>
               • If commission is not paid on time, you will receive a notification reminder
               {'\n'}• Failure to pay outstanding commission may result in account suspension or
@@ -108,13 +89,13 @@ export default function AgreementModal({
               consistently overdue
             </Text>
 
-            <Text style={styles.sectionHeading}>5. COMMISSION TRACKING:</Text>
+            <Text style={styles.sectionHeading}>4. COMMISSION TRACKING:</Text>
             <Text style={styles.sectionText}>
               Your commission dashboard will show:{'\n'}• Outstanding commission (unpaid)
               {'\n'}• Commission history{'\n'}• Previous payments{'\n'}• Due dates
             </Text>
 
-            <Text style={styles.sectionHeading}>6. TERMINATION:</Text>
+            <Text style={styles.sectionHeading}>5. TERMINATION:</Text>
             <Text style={styles.sectionText}>
               • Non-payment of commissions may lead to immediate account deactivation
               {'\n'}• We will attempt to contact you before taking any action
@@ -150,61 +131,6 @@ export default function AgreementModal({
               I have read and understand the agreement above
             </Text>
           </Pressable>
-
-          {/* Payment Frequency Selection */}
-          <View style={styles.frequencySelection}>
-            <Text style={styles.frequencyTitle}>Choose Your Payment Frequency:</Text>
-
-            <Pressable
-              style={[
-                styles.frequencyButton,
-                paymentFrequency === 'per_booking' && styles.frequencyButtonActive,
-              ]}
-              onPress={() => setPaymentFrequency('per_booking')}
-            >
-              <View
-                style={[
-                  styles.radioButton,
-                  paymentFrequency === 'per_booking' && styles.radioButtonActive,
-                ]}
-              >
-                {paymentFrequency === 'per_booking' && (
-                  <View style={styles.radioButtonDot} />
-                )}
-              </View>
-              <View style={styles.frequencyContent}>
-                <Text style={styles.frequencyButtonLabel}>Per Booking</Text>
-                <Text style={styles.frequencyButtonDesc}>
-                  Pay 3% commission after each booking
-                </Text>
-              </View>
-            </Pressable>
-
-            <Pressable
-              style={[
-                styles.frequencyButton,
-                paymentFrequency === 'monthly' && styles.frequencyButtonActive,
-              ]}
-              onPress={() => setPaymentFrequency('monthly')}
-            >
-              <View
-                style={[
-                  styles.radioButton,
-                  paymentFrequency === 'monthly' && styles.radioButtonActive,
-                ]}
-              >
-                {paymentFrequency === 'monthly' && (
-                  <View style={styles.radioButtonDot} />
-                )}
-              </View>
-              <View style={styles.frequencyContent}>
-                <Text style={styles.frequencyButtonLabel}>Monthly</Text>
-                <Text style={styles.frequencyButtonDesc}>
-                  Pay accumulated commission on 1st of next month
-                </Text>
-              </View>
-            </Pressable>
-          </View>
 
           {/* Agree Checkbox */}
           <Pressable

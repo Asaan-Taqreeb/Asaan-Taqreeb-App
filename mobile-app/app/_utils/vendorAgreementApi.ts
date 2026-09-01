@@ -4,7 +4,6 @@ export interface VendorAgreement {
   _id: string;
   user: string;
   commissionRate: number;
-  paymentFrequency: 'per_booking' | 'monthly';
   agreementText: string;
   accepted: boolean;
   acceptedAt?: string;
@@ -57,9 +56,7 @@ export const getMyAgreement = async (): Promise<VendorAgreement | null> => {
   }
 };
 
-export const acceptAgreement = async (
-  paymentFrequency: 'per_booking' | 'monthly'
-): Promise<VendorAgreement | null> => {
+export const acceptAgreement = async (): Promise<VendorAgreement | null> => {
   try {
     const response = await apiFetchJson<{ success: boolean; data: VendorAgreement }>(
       `${VENDOR_API}/agreement/accept`,
@@ -69,7 +66,7 @@ export const acceptAgreement = async (
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ paymentFrequency }),
+        body: JSON.stringify({}),
       }
     );
 

@@ -102,6 +102,9 @@ export default function CategorySelection() {
           <Text className="text-xs font-bold leading-5 text-center text-gray-400 italic">
             &quot;Your service will be listed under the selected category to help clients find you easily.&quot;
           </Text>
+          <Pressable onPress={() => router.push('/screens/vendor/Component/CategoryRequestScreen')} className="mt-4 py-3 rounded-xl items-center" style={{ backgroundColor: Colors.primary }}>
+            <Text className="text-sm font-bold text-white">Request a new category</Text>
+          </Pressable>
         </View>
       </ScrollView>
     </View>

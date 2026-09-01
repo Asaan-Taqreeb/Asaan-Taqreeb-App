@@ -120,6 +120,13 @@ export default function VendorHomeScreen() {
     );
   };
 
+  const handleAcceptAgreement = async () => {
+    const accepted = await acceptAgreement();
+    if (accepted) {
+      router.replace('/screens/vendor/Component/CategorySelection');
+    }
+  };
+
   if (isChecking) {
     return (
       <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}> 
@@ -226,7 +233,7 @@ export default function VendorHomeScreen() {
       {/* Agreement Modal */}
       <AgreementModal
         visible={showAgreement}
-        onAccept={acceptAgreement}
+        onAccept={handleAcceptAgreement}
         onReject={handleRejectAgreement}
         loading={agreementLoading}
       />
