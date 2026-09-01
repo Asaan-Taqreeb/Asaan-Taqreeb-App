@@ -12,6 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useUser } from '@/app/_context/UserContext'
 import { showAlert } from '@/app/_utils/alert'
 import TimePickerModal from '@/app/_components/TimePickerModal'
+import { safeGoBack } from '@/app/_utils/navigation'
 
 type BookingAddon = {
     id: number
@@ -564,7 +565,7 @@ export default function BookingScreen() {
     >
         {/* Header */}
         <View className='flex-row items-center gap-4 px-5 py-5' style={{borderBottomWidth: 1, borderBottomColor: Colors.border}}>
-            <Pressable className='rounded-full p-2 active:opacity-70' style={{backgroundColor: Colors.lightGray}} onPress={() => router.back()}>
+            <Pressable className='rounded-full p-2 active:opacity-70' style={{backgroundColor: Colors.lightGray}} onPress={() => safeGoBack()}>
                 <ArrowLeft color={categoryColor} size={24} />
             </Pressable>
             <Text className='text-xl font-extrabold' style={{color: Colors.textPrimary}}>Booking Details</Text>
@@ -587,7 +588,7 @@ export default function BookingScreen() {
                     <Pressable
                         className='py-4 rounded-2xl active:opacity-80'
                         style={{borderWidth: 1, borderColor: Colors.border}}
-                        onPress={() => router.back()}
+                        onPress={() => safeGoBack()}
                     >
                         <Text className='text-center font-bold text-base' style={{color: Colors.textPrimary}}>Continue Browsing</Text>
                     </Pressable>

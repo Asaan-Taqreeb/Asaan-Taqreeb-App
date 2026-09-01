@@ -8,6 +8,7 @@ import { Colors, Shadows, Spacing, getCategoryColor } from '@/app/_constants/the
 import { ServiceListItem, getConciseAddress } from '@/app/_utils/servicesApi'
 import { getMyFavorites, toggleFavorite } from '@/app/_utils/favoritesApi'
 import { useUser } from '@/app/_context/UserContext'
+import { safeGoBack } from '@/app/_utils/navigation'
 
 export default function FavoritesScreen() {
     const insets = useSafeAreaInsets()
@@ -54,7 +55,7 @@ export default function FavoritesScreen() {
     return (
         <View style={[styles.container, {paddingTop: insets.top, paddingBottom: insets.bottom}]}>
             <View className='px-5 py-4 flex-row items-center gap-3' style={{borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.white}}>
-                <Pressable onPress={() => router.back()} className="p-1.5 rounded-full active:bg-gray-100">
+                <Pressable onPress={() => safeGoBack()} className="p-1.5 rounded-full active:bg-gray-100">
                     <ArrowLeft size={20} color={Colors.textPrimary} />
                 </Pressable>
                 <View>
