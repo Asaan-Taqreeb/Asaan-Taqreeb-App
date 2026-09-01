@@ -29,7 +29,7 @@ export const getConciseAddress = (address: string) => {
   }
   
   return cleanParts.slice(-2).join(', ');
-};
+}
 
 export type ServicePackage = {
   id?: string | number
