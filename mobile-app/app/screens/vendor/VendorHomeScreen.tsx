@@ -58,20 +58,24 @@ const DEFAULT_SERVICES: Array<{
   },
 ];
 
-const getCategoryRoute = (key: string): Href => {
+const getCategoryRoute = (category: Category | { key: string; name?: string }): Href => {
+  const key = category.key;
   switch (key) {
     case 'banquet':
+    case 'banquets':
       return '/screens/vendor/BanquetServiceForm' as Href;
     case 'catering':
+    case 'caterings':
       return '/screens/vendor/CateringServiceForm' as Href;
     case 'photo':
+    case 'photographers':
       return '/screens/vendor/PhotographyServiceForm' as Href;
     case 'parlor':
       return '/screens/vendor/ParlorServiceForm' as Href;
     default:
       return {
-        pathname: '/screens/vendor/PhotographyServiceForm',
-        params: { category: key },
+        pathname: '/screens/vendor/DynamicServiceForm',
+        params: { category: key, categoryName: category.name || key },
       } as Href;
   }
 };
@@ -137,8 +141,8 @@ export default function VendorHomeScreen() {
     };
   }, []);
 
-  const handleCategorySelect = (categoryKey: string) => {
-    if (lockedCategory && categoryKey !== lockedCategory) {
+  const handleCategorySelect = (category: Category) => {
+    if (lockedCategory && category.key !== lockedCategory) {
       Alert.alert(
         'Service Locked',
         'This vendor account already has a service category. You cannot add a different category with the same email.'
@@ -146,7 +150,7 @@ export default function VendorHomeScreen() {
       return;
     }
 
-    const route = getCategoryRoute(categoryKey);
+    const route = getCategoryRoute(category);
     router.push(route);
   };
 
@@ -226,7 +230,7 @@ export default function VendorHomeScreen() {
                   },
                   Shadows.medium
                 ]}
-                onPress={() => handleCategorySelect(category.key)}
+                onPress={() => handleCategorySelect(category)}
               >
                 <View className="flex-row items-center p-5">
                   {/* Icon */}

@@ -54,20 +54,24 @@ const DEFAULT_CATEGORIES: Array<{
   },
 ];
 
-const getCategoryRoute = (key: string): Href => {
+const getCategoryRoute = (category: Category | { key: string; name?: string }): Href => {
+  const key = category.key;
   switch (key) {
     case 'banquet':
+    case 'banquets':
       return '/screens/vendor/BanquetServiceForm' as Href;
     case 'catering':
+    case 'caterings':
       return '/screens/vendor/CateringServiceForm' as Href;
     case 'photo':
+    case 'photographers':
       return '/screens/vendor/PhotographyServiceForm' as Href;
     case 'parlor':
       return '/screens/vendor/ParlorServiceForm' as Href;
     default:
       return {
-        pathname: '/screens/vendor/PhotographyServiceForm',
-        params: { category: key },
+        pathname: '/screens/vendor/DynamicServiceForm',
+        params: { category: key, categoryName: category.name || key },
       } as Href;
   }
 };
@@ -148,7 +152,7 @@ export default function CategorySelection() {
           categories.map((category) => {
             const IconComponent = getIconComponent(category.icon || '');
             const categoryColor = category.color || '#6366F1';
-            const route = getCategoryRoute(category.key);
+            const route = getCategoryRoute(category);
 
             return (
               <Pressable
