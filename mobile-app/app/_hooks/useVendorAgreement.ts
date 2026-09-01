@@ -69,7 +69,7 @@ export const useVendorAgreement = (): UseAgreementReturn => {
         console.error('Error accepting agreement:', err);
         const msg = err?.message || 'Failed to accept agreement';
         setError(msg);
-        return false;
+        throw err;
       } finally {
         setLoading(false);
       }
