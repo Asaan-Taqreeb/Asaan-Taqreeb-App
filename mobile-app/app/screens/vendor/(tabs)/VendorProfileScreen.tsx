@@ -22,6 +22,7 @@ import {
   Clock,
   Calendar,
   Package,
+  DollarSign,
 } from 'lucide-react-native';
 import { Colors, Shadows } from '@/app/_constants/theme';
 import { useUser } from '@/app/_context/UserContext';
@@ -293,6 +294,12 @@ export default function VendorProfileScreen() {
             title="Operating Times"
             subtitle="Manage your daily time slots"
             onPress={() => router.push('/screens/vendor/Component/TimeSlotsScreen')}
+          />
+          <ProfileOption
+            icon={DollarSign}
+            title="Commission & Financial Ledger"
+            subtitle="5% platform fees, charges & payment history"
+            onPress={() => router.push('/screens/vendor/Component/CommissionHistoryScreen' as any)}
           />
           <ProfileOption
             icon={User}

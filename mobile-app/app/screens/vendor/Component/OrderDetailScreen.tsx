@@ -448,6 +448,32 @@ export default function OrderDetailScreen() {
           </Text>
         </View>
 
+        {/* 5% Platform Commission & Net Payout Breakdown */}
+        <View className="bg-white mx-5 mt-4 rounded-2xl p-4 border border-amber-100" style={Shadows.small}>
+          <View className="flex-row items-center justify-between mb-2">
+            <Text className="text-xs font-bold text-gray-500 uppercase tracking-wider">Financial Breakdown</Text>
+            <View className="bg-amber-100 px-2 py-0.5 rounded-full">
+              <Text className="text-[10px] font-black text-amber-800">5% PLATFORM FEE</Text>
+            </View>
+          </View>
+          <View className="flex-row justify-between items-center py-1.5 border-b border-gray-100">
+            <Text className="text-xs text-gray-600">Gross Booking Value</Text>
+            <Text className="text-xs font-bold text-gray-800">PKR {Number(order.totalAmount || 0).toLocaleString()}</Text>
+          </View>
+          <View className="flex-row justify-between items-center py-1.5 border-b border-gray-100">
+            <Text className="text-xs text-amber-800">Platform Facilitation (5%)</Text>
+            <Text className="text-xs font-black text-amber-700 font-mono">
+              - PKR {Math.round(Number(order.totalAmount || 0) * 0.05).toLocaleString()}
+            </Text>
+          </View>
+          <View className="flex-row justify-between items-center pt-2">
+            <Text className="text-xs font-extrabold text-emerald-800">Your Net Earnings (95%)</Text>
+            <Text className="text-sm font-black text-emerald-600 font-mono">
+              PKR {Math.round(Number(order.totalAmount || 0) * 0.95).toLocaleString()}
+            </Text>
+          </View>
+        </View>
+
         {/* Payment Progress */}
         {(orderStatus === 'accepted' || orderStatus === 'confirmed') && (
           <View className="bg-white mx-5 mt-4 rounded-2xl p-4" style={Shadows.small}>
