@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useUser } from './UserContext';
 import { getAccessToken } from '../_utils/authStorage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface SocketContextType {
   socket: Socket | null;
@@ -36,6 +37,21 @@ export function registerBookingRefreshListener(cb: BookingRefreshCallback) {
 
 export function unregisterBookingRefreshListener(cb: BookingRefreshCallback) {
   bookingRefreshListeners.delete(cb);
+}
+
+// ---------------------------------------------------------------------------
+// Service-refresh listener registry (module-level singleton)
+// When a SERVICE_UPDATE socket event arrives, caches are purged & screens refresh.
+// ---------------------------------------------------------------------------
+type ServiceRefreshCallback = () => void;
+const serviceRefreshListeners = new Set<ServiceRefreshCallback>();
+
+export function registerServiceRefreshListener(cb: ServiceRefreshCallback) {
+  serviceRefreshListeners.add(cb);
+}
+
+export function unregisterServiceRefreshListener(cb: ServiceRefreshCallback) {
+  serviceRefreshListeners.delete(cb);
 }
 
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -120,6 +136,25 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             try { cb(); } catch (_) {}
           });
         }
+      });
+
+      // Listen for live service listings updates
+      newSocket.on('SERVICE_UPDATE', async (payload: any) => {
+        console.log('⚡ SERVICE_UPDATE received via socket:', payload);
+        try {
+          await AsyncStorage.removeItem('cached_all_services');
+          await AsyncStorage.removeItem('cached_vendor_services');
+        } catch (_) {}
+        serviceRefreshListeners.forEach(cb => {
+          try { cb(); } catch (_) {}
+        });
+      });
+
+      // Listen for direct booking update broadcasts
+      newSocket.on('BOOKING_UPDATE', () => {
+        bookingRefreshListeners.forEach(cb => {
+          try { cb(); } catch (_) {}
+        });
       });
 
       // Listen for new message notifications (when user is NOT in the chat screen)
