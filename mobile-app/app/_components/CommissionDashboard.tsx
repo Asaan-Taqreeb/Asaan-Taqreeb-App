@@ -1,8 +1,9 @@
-import React from 'react';
-import { View, Text, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
-import { AlertCircle, CheckCircle, Clock } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
+import { AlertCircle, CheckCircle, Clock, CreditCard } from 'lucide-react-native';
 import { Colors, Spacing, Shadows } from '../_constants/theme';
 import { useCommission } from '../_hooks/useCommission';
+import { PayCommissionModal } from './PayCommissionModal';
 
 export const CommissionDashboard = () => {
   const {
@@ -13,6 +14,8 @@ export const CommissionDashboard = () => {
     error,
     refreshCommissionData,
   } = useCommission();
+
+  const [isPayModalVisible, setIsPayModalVisible] = useState(false);
 
   const formatCurrency = (amount: number) => {
     return `Rs. ${amount.toLocaleString('en-PK', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -52,66 +55,84 @@ export const CommissionDashboard = () => {
   const maxCharged = Math.max(...monthlySummary.slice(-6).map(m => Math.max(m.charged, m.paid, 1)), 1);
 
   return (
-    <ScrollView
-      className='flex-1 bg-white'
-      refreshControl={
-        <RefreshControl refreshing={loading} onRefresh={refreshCommissionData} />
-      }
-    >
-      <View className='p-4'>
-        {/* Outstanding Commission Card */}
-        <View
-          className='rounded-2xl p-5 mb-4 border'
-          style={{
-            backgroundColor: Colors.lightGray,
-            borderColor: Colors.border,
-            ...Shadows.medium,
-          }}
-        >
-          <View className='flex-row justify-between items-start mb-3'>
-            <Text className='text-gray-600 font-medium'>Outstanding Commission</Text>
-            {overdueCommissions.length > 0 && (
-              <View
-                className='px-2 py-1 rounded-full'
-                style={{ backgroundColor: `${Colors.error}20` }}
-              >
-                <Text className='text-xs font-semibold' style={{ color: Colors.error }}>
-                  {overdueCommissions.length} Overdue
-                </Text>
-              </View>
-            )}
-          </View>
-          <Text
-            className='text-3xl font-extrabold mb-2'
-            style={{ color: Colors.primary }}
-          >
-            {formatCurrency(summary?.totalOutstanding || 0)}
-          </Text>
-          <Text className='text-sm text-gray-600'>
-            {summary?.pendingCount || 0} pending charges
-          </Text>
-        </View>
-
-        {/* Overdue Alert */}
-        {overdueCommissions.length > 0 && (
+    <>
+      <ScrollView
+        className='flex-1 bg-white'
+        refreshControl={
+          <RefreshControl refreshing={loading} onRefresh={refreshCommissionData} />
+        }
+      >
+        <View className='p-4'>
+          {/* Outstanding Commission Card */}
           <View
-            className='rounded-xl p-4 mb-4 flex-row border'
+            className='rounded-2xl p-5 mb-4 border'
             style={{
-              backgroundColor: `${Colors.error}10`,
-              borderColor: Colors.error,
+              backgroundColor: Colors.lightGray,
+              borderColor: Colors.border,
+              ...Shadows.medium,
             }}
           >
-            <AlertCircle size={24} color={Colors.error} style={{ marginRight: 12 }} />
-            <View className='flex-1'>
-              <Text className='font-semibold text-sm mb-1' style={{ color: Colors.error }}>
-                Overdue Commission
+            <View className='flex-row justify-between items-start mb-3'>
+              <Text className='text-gray-600 font-medium'>Outstanding Commission</Text>
+              {overdueCommissions.length > 0 && (
+                <View
+                  className='px-2 py-1 rounded-full'
+                  style={{ backgroundColor: `${Colors.error}20` }}
+                >
+                  <Text className='text-xs font-semibold' style={{ color: Colors.error }}>
+                    {overdueCommissions.length} Overdue
+                  </Text>
+                </View>
+              )}
+            </View>
+            <Text
+              className='text-3xl font-extrabold mb-2'
+              style={{ color: Colors.primary }}
+            >
+              {formatCurrency(summary?.totalOutstanding || 0)}
+            </Text>
+            
+            <View className='flex-row justify-between items-center mt-2 pt-3 border-t border-gray-200'>
+              <Text className='text-sm text-gray-600'>
+                {summary?.pendingCount || 0} pending charges
               </Text>
-              <Text className='text-xs text-gray-700'>
-                You have {overdueCommissions.length} overdue payment{overdueCommissions.length !== 1 ? 's' : ''} of {formatCurrency(summary?.overdueAmount || 0)}
-              </Text>
+              <TouchableOpacity
+                onPress={() => setIsPayModalVisible(true)}
+                className='px-4 py-2 rounded-xl flex-row items-center gap-1.5'
+                style={{ backgroundColor: Colors.vendor }}
+              >
+                <CreditCard size={14} color="#FFFFFF" />
+                <Text className='text-white text-xs font-bold'>Pay Now</Text>
+              </TouchableOpacity>
             </View>
           </View>
-        )}
+
+          {/* Overdue Alert */}
+          {overdueCommissions.length > 0 && (
+            <View
+              className='rounded-xl p-4 mb-4 flex-row border'
+              style={{
+                backgroundColor: `${Colors.error}10`,
+                borderColor: Colors.error,
+              }}
+            >
+              <AlertCircle size={24} color={Colors.error} style={{ marginRight: 12 }} />
+              <View className='flex-1'>
+                <Text className='font-semibold text-sm mb-1' style={{ color: Colors.error }}>
+                  Overdue Commission
+                </Text>
+                <Text className='text-xs text-gray-700'>
+                  You have {overdueCommissions.length} overdue payment{overdueCommissions.length !== 1 ? 's' : ''} of {formatCurrency(summary?.overdueAmount || 0)}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setIsPayModalVisible(true)}
+                  className='mt-2 self-start px-3 py-1.5 rounded-lg bg-red-600'
+                >
+                  <Text className='text-white text-xs font-bold'>Settle Overdue Now</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
 
         {/* Summary Stats */}
         <View className='flex-row gap-2 mb-4'>
@@ -255,13 +276,21 @@ export const CommissionDashboard = () => {
           }}
         >
           <Text className='text-base font-extrabold mb-2' style={{ color: Colors.primary }}>
-            💡 Commission Info
+            💡 Commission & Payout Policy
           </Text>
           <Text className='text-sm font-medium leading-relaxed' style={{ color: Colors.textSecondary }}>
-            You earn 3% commission on every booking. Payments can be made per-booking or monthly as per your agreement. Keep track of your outstanding commission and make timely payments.
+            Asaan Taqreeb applies a standard 5% platform facilitation fee on confirmed event bookings. You receive 95% net payout. Settle your pending charges through direct bank transfer, JazzCash, or EasyPaisa.
           </Text>
         </View>
       </View>
     </ScrollView>
+
+    <PayCommissionModal
+      visible={isPayModalVisible}
+      onClose={() => setIsPayModalVisible(false)}
+      outstandingAmount={summary?.totalOutstanding || 0}
+      onSuccess={refreshCommissionData}
+    />
+  </>
   );
 };

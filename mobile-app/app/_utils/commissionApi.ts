@@ -121,3 +121,25 @@ export const getOverdueCommissions = async (): Promise<CommissionRecord[]> => {
     return [];
   }
 };
+
+export const payCommission = async (payload: {
+  amount: number;
+  transactionId?: string;
+  paymentProofUrl?: string;
+  notes?: string;
+}): Promise<any> => {
+  try {
+    const response = await apiFetchJson<any>(
+      `${API_BASE}/commission/pay`,
+      {
+        method: 'POST',
+        auth: true,
+        body: JSON.stringify(payload),
+      }
+    );
+    return response;
+  } catch (error) {
+    console.error('Error paying commission:', error);
+    throw error;
+  }
+};

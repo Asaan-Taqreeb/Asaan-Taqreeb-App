@@ -3,10 +3,11 @@ import { View, Text, ScrollView, TouchableOpacity , ActivityIndicator} from 'rea
 import { useRouter } from 'expo-router';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Bell, DollarSign, CheckCircle, XCircle, Clock, ChevronRight, Plus, Calendar, Image as ImageIcon, ShoppingBasket, MessageCircle, Star } from 'lucide-react-native';
+import { Bell, DollarSign, CheckCircle, XCircle, Clock, ChevronRight, Plus, Calendar, Image as ImageIcon, ShoppingBasket, MessageCircle, Star, CreditCard } from 'lucide-react-native';
 import { Colors, Shadows } from '@/app/_constants/theme';
 import { getVendorBookings, type VendorOrderItem } from '@/app/_utils/bookingsApi';
 import OrderCard from '../Component/OrderCard';
+import { PayCommissionModal } from '@/app/_components/PayCommissionModal';
 
 import NotificationBell from '@/app/_components/NotificationBell'
 import { useUser } from '@/app/_context/UserContext';
@@ -26,6 +27,7 @@ export default function VendorDashboardHome() {
   const [recentReviews, setRecentReviews] = React.useState<any[]>([])
   const [avgRating, setAvgRating] = React.useState(4.8)
   const [ratingDistribution, setRatingDistribution] = React.useState<Record<number, number>>({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 })
+  const [isPayModalVisible, setIsPayModalVisible] = React.useState(false)
 
   const loadDashboard = React.useCallback(async () => {
     try {
@@ -292,9 +294,20 @@ export default function VendorDashboardHome() {
               </Text>
             </View>
 
-            <Text className="text-[10px] text-gray-400 mt-2.5 leading-relaxed">
-              * A 5% platform facilitation fee applies to confirmed bookings. 95% is directly disbursed to your account.
-            </Text>
+            {/* Pay Commission Action Button */}
+            <View className="mt-3 pt-3 border-t border-gray-100 flex-row items-center justify-between">
+              <Text className="text-[10px] text-gray-400 flex-1 mr-2 leading-tight">
+                * Settle your 5% platform fee via Bank Transfer / JazzCash.
+              </Text>
+              <TouchableOpacity
+                onPress={() => setIsPayModalVisible(true)}
+                className="px-4 py-2 rounded-xl flex-row items-center gap-1.5 shadow-sm"
+                style={{ backgroundColor: Colors.vendor }}
+              >
+                <CreditCard size={14} color="#FFFFFF" />
+                <Text className="text-white text-xs font-bold">Pay Commission</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
@@ -561,6 +574,13 @@ export default function VendorDashboardHome() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <PayCommissionModal
+        visible={isPayModalVisible}
+        onClose={() => setIsPayModalVisible(false)}
+        outstandingAmount={stats.platformCommission}
+        onSuccess={loadDashboard}
+      />
     </View>
   );
 }
