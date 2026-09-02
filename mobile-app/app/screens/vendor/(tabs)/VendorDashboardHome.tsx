@@ -135,6 +135,9 @@ export default function VendorDashboardHome() {
     const acceptedOrders = orders.filter((order) => order.status === 'accepted' || order.status === 'confirmed').length
     const rejectedOrders = orders.filter((order) => order.status === 'rejected').length
     const pendingOrders = orders.filter((order) => order.status === 'pending').length
+    const grossVolume = orders
+      .filter((order) => order.status === 'accepted' || order.status === 'confirmed')
+      .reduce((sum, order) => sum + Math.max(Number(order.totalAmount || 0), Number(order.paidAmount || 0)), 0)
     const totalRevenue = orders
       .filter((order) => order.status === 'accepted' || order.status === 'confirmed')
       .reduce((sum, order) => sum + Number(order.paidAmount || 0), 0)
@@ -142,7 +145,20 @@ export default function VendorDashboardHome() {
       .filter((order) => order.status === 'accepted' || order.status === 'confirmed')
       .reduce((sum, order) => sum + Math.max(0, Number(order.totalAmount || 0) - Number(order.paidAmount || 0)), 0)
 
-    return { totalOrders, acceptedOrders, rejectedOrders, pendingOrders, totalRevenue, pendingRevenue }
+    const platformCommission = Math.round(grossVolume * 0.05);
+    const vendorNetPayout = Math.max(0, grossVolume - platformCommission);
+
+    return { 
+      totalOrders, 
+      acceptedOrders, 
+      rejectedOrders, 
+      pendingOrders, 
+      grossVolume,
+      totalRevenue, 
+      pendingRevenue,
+      platformCommission,
+      vendorNetPayout
+    }
   }, [orders])
 
   const recentOrders = React.useMemo(() => sortedOrders.filter(order => order.status === 'pending').slice(0, 3), [sortedOrders])
@@ -202,7 +218,7 @@ export default function VendorDashboardHome() {
                 <DollarSign size={16} color="#FFFFFF" />
               </View>
               <Text className="text-white/60 text-[10px] font-black uppercase tracking-[2px] ml-1">
-                Received Earnings
+                Gross Received Earnings
               </Text>
             </View>
             <View className="flex-row items-baseline mt-3">
@@ -236,6 +252,49 @@ export default function VendorDashboardHome() {
                 <Text className="text-emerald-950 text-[9px] font-black tracking-widest">REALTIME</Text>
               </View>
             </View>
+          </View>
+        </View>
+
+        {/* 5% Platform Commission & Net Payout Card */}
+        <View className="px-5 mt-4">
+          <View
+            className="rounded-3xl p-5 bg-white border border-amber-100"
+            style={Shadows.small}
+          >
+            <View className="flex-row items-center justify-between mb-3">
+              <View className="flex-row items-center gap-2">
+                <View className="w-8 h-8 rounded-xl bg-amber-50 items-center justify-center">
+                  <Text className="text-amber-700 text-xs font-black">%</Text>
+                </View>
+                <Text className="text-xs font-bold text-gray-800">Platform Commission & Net Share</Text>
+              </View>
+              <View className="bg-amber-100 px-2 py-0.5 rounded-full">
+                <Text className="text-[10px] font-black text-amber-800">5% STANDARD</Text>
+              </View>
+            </View>
+
+            <View className="flex-row justify-between items-center py-2 border-b border-gray-100">
+              <Text className="text-xs font-medium text-gray-500">Gross Booking Value</Text>
+              <Text className="text-xs font-bold text-gray-800">PKR {stats.grossVolume.toLocaleString()}</Text>
+            </View>
+
+            <View className="flex-row justify-between items-center py-2 border-b border-gray-100">
+              <Text className="text-xs font-medium text-amber-800">Asaan Taqreeb Cut (5%)</Text>
+              <Text className="text-xs font-black text-amber-700 font-mono">
+                - PKR {stats.platformCommission.toLocaleString()}
+              </Text>
+            </View>
+
+            <View className="flex-row justify-between items-center pt-2.5">
+              <Text className="text-xs font-extrabold text-emerald-800">Your Net Payout (95%)</Text>
+              <Text className="text-sm font-black text-emerald-600 font-mono">
+                PKR {stats.vendorNetPayout.toLocaleString()}
+              </Text>
+            </View>
+
+            <Text className="text-[10px] text-gray-400 mt-2.5 leading-relaxed">
+              * A 5% platform facilitation fee applies to confirmed bookings. 95% is directly disbursed to your account.
+            </Text>
           </View>
         </View>
 
